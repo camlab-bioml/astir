@@ -12,12 +12,25 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/camlab-bioml/astir-pkg",
-    packages=setuptools.find_packages(),
+    packages=['astir'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
         "Operating System :: OS Independent",
         "Topic :: Scientific/Engineering :: Bio-Informatics"
     ],
-    python_requires='>=3.6',
+    license='GPLv2',
+    install_requires=[
+        'torch',
+        'pandas',
+        'numpy',
+        'pyyaml',
+        'sklearn',
+        'argparse'
+    ],
+    include_package_data=True,
+    zip_safe=False,
+    scripts=['bin/astir'],
+    test_suite='nose.collector',
+    test_require=['nose']
 )
