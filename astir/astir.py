@@ -18,7 +18,6 @@ import yaml
 
 from sklearn.preprocessing import StandardScaler
 
-
 class Astir:
     def _param_init(self, G, C):
         log_sigma_init = np.log(self.Y_np.std(0))
