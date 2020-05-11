@@ -18,6 +18,7 @@ import yaml
 
 from sklearn.preprocessing import StandardScaler
 
+
 class Astir:
     def _param_init(self, G, C):
         log_sigma_init = np.log(self.Y_np.std(0))
@@ -31,11 +32,6 @@ class Astir:
         self.log_delta = Variable(0 * torch.ones((G,C+1)), requires_grad = True)
         self.delta = torch.exp(self.log_delta)
         self.rho = torch.from_numpy(self.marker_mat)
-
-        ## Construct optimizer
-        learning_rate = 1e-2
-        params = [self.log_sigma, self.mu, self.log_delta] + list(self.recog.parameters())
-        self.optimizer = torch.optim.Adam(params, lr=self.learning_rate)
     
     def _construct_marker_mat(self, G, C):
         marker_mat = np.zeros(shape = (G,C+1))
@@ -66,21 +62,17 @@ class Astir:
         
         return -elbo
 
-    def __init__(self, expr_csv, marker_yaml, output_csv, epochs = 100, 
-        learning_rate = 1e-2, batch_size = 1024, random_seed = 1234):
-        self.output_csv = output_csv
-        self.epochs = epochs
-        self.learning_rate = learning_rate
-        self.batch_size = batch_size
-
+    ## Todo: an output function
+    def __init__(self, df_gex, marker_yaml, random_seed = 1234):
         #Todo: fix problem with random seed
         torch.manual_seed(random_seed)
 
         # Read input data
-        self.df_gex = pd.read_csv(expr_csv, index_col = 0)
-        self.core_names = list(self.df_gex.index)
-        self.gene_names = list(self.df_gex.columns)
-        
+        self.df_gex = df_gex
+        self.core_names = list(df_gex.index)
+        self.gene_names = list(df_gex.columns)
+
+
         with open(marker_yaml, 'r') as stream:
             markers_states = yaml.safe_load(stream)
             
@@ -103,23 +95,27 @@ class Astir:
 
         self._param_init(self.G, self.C)
 
-    def fit(self):
+    def fit(self, epochs = 100, 
+        learning_rate = 1e-2, batch_size = 1024):
         ## Make dataloader
-        dataloader = DataLoader(self.dset, batch_size=min(self.batch_size, self.N), shuffle=True)
+        dataloader = DataLoader(self.dset, batch_size=min(batch_size, self.N), shuffle=True)
 
         ## Run training loop
-        epochs = self.epochs
         losses = np.empty(epochs)
+
+        ## Construct optimizer
+        params = [self.log_sigma, self.mu, self.log_delta] + list(self.recog.parameters())
+        optimizer = torch.optim.Adam(params, lr=learning_rate)
 
         for ep in range(epochs):
             L = None
             
             for batch in dataloader:
                 Y,X = batch
-                self.optimizer.zero_grad()
+                optimizer.zero_grad()
                 L = self._forward(self.log_delta, self.log_sigma, self.mu, self.log_alpha, self.rho, Y, X)
                 L.backward()
-                self.optimizer.step()
+                optimizer.step()
             
             l = L.detach().numpy()
             losses[ep] = l
@@ -132,9 +128,17 @@ class Astir:
         assignments.columns = self.cell_types + ['Other']
         assignments.index = self.core_names
 
-        assignments.to_csv(self.output_csv)
-
         print("Done!")
+
+    def output_csv(self, output_csv):
+        ## Save output
+        g = self.recog.forward(self.dset.X).detach().numpy()
+
+        assignments = pd.DataFrame(g)
+        assignments.columns = self.cell_types + ['Other']
+        assignments.index = self.core_names
+
+        assignments.to_csv(output_csv)
 
 
 ## Dataset class: for loading IMC datasets
@@ -166,6 +170,3 @@ class RecognitionNet(nn.Module):
         x = F.softmax(x, dim=1)
         return x
 
-
-# ast = Astir("./BaselTMA_SP43_115_X4Y8.csv", "jackson-2020-markers.yml", "./BaselTMA_SP43_115_X4Y8_assignment.csv")
-# ast.fit()
