@@ -1,6 +1,10 @@
 import pandas as pd
+import yaml
 from astir.astir import Astir
 
+## Todo: We need a class
 def csv_reader(read_csv, marker_yaml, random_seed = 1234):
         df_gex = pd.read_csv(read_csv, index_col = 0)
-        return Astir(df_gex, marker_yaml, random_seed)
+        with open(marker_yaml, 'r') as stream:
+            marker_dict = yaml.safe_load(stream)
+        return Astir(df_gex, marker_dict, random_seed)

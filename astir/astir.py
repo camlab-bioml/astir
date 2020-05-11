@@ -14,7 +14,6 @@ from torch.utils.data import Dataset, DataLoader
 
 import pandas as pd
 import numpy as np
-import yaml
 
 from sklearn.preprocessing import StandardScaler
 
@@ -63,7 +62,7 @@ class Astir:
         return -elbo
 
     ## Todo: an output function
-    def __init__(self, df_gex, marker_yaml, random_seed = 1234):
+    def __init__(self, df_gex, marker_dict, random_seed = 1234):
         #Todo: fix problem with random seed
         torch.manual_seed(random_seed)
 
@@ -71,12 +70,8 @@ class Astir:
         self.df_gex = df_gex
         self.core_names = list(df_gex.index)
         self.gene_names = list(df_gex.columns)
-
-
-        with open(marker_yaml, 'r') as stream:
-            markers_states = yaml.safe_load(stream)
             
-        self.markers = markers_states['cell_types']
+        self.markers = marker_dict['cell_types']
 
         self.cell_types = list(self.markers.keys())
         self.genes = [l for s in self.markers.values() for l in s]
