@@ -19,21 +19,35 @@ from sklearn.preprocessing import StandardScaler
 
 
 class Astir:
+    """ Loads a .csv expression file and a .yaml marker file.
+    """
 
     def _param_init(self):
-        log_sigma_init = np.log(self.Y_np.std(0))
-        mu_init = np.log(self.Y_np.mean(0))
+        """[summery]
+        """
+        self.initializations = {
+            "mu": np.log(self.Y_np.mean(0)),
+            "log_sigma": np.log(self.Y_np.std(0))
+        }
 
         ## prior on z
-        self.log_alpha = torch.log(torch.ones(self.C+1) / (self.C+1))
-
-        self.log_sigma = Variable(torch.from_numpy(log_sigma_init.copy()), requires_grad = True)
-        self.mu = Variable(torch.from_numpy(mu_init.copy()), requires_grad = True)
-        self.log_delta = Variable(0 * torch.ones((self.G,self.C+1)), requires_grad = True)
-        self.delta = torch.exp(self.log_delta)
-        self.rho = torch.from_numpy(self.marker_mat)
+        log_delta = Variable(0 * torch.ones((self.G,self.C+1)), requires_grad = True)
+        self.params = {
+            "log_alpha": torch.log(torch.ones(self.C+1) / (self.C+1)),
+            "log_sigma": Variable(torch.from_numpy(
+                self.initializations["log_sigma"].copy()), requires_grad = True),
+            "mu": Variable(torch.from_numpy(self.initializations["mu"].copy()), requires_grad = True),
+            "log_delta": log_delta,
+            "delta": torch.exp(log_delta),
+            "rho": torch.from_numpy(self.marker_mat)
+        }
     
     def _construct_marker_mat(self):
+        """[summary]
+
+        Returns:
+            [type] -- [description]
+        """
         marker_mat = np.zeros(shape = (self.G,self.C+1))
         for g in range(self.G):
             for ct in range(self.C):
@@ -46,12 +60,22 @@ class Astir:
         return marker_mat
 
     ## Declare pytorch forward fn
-    def _forward(self, log_delta, log_sigma, mu, log_alpha, rho, Y, X):
+    def _forward(self, Y, X):
+        """[summary]
+
+        Arguments:
+            Y {[type]} -- [description]
+            X {[type]} -- [description]
+
+        Returns:
+            [type] -- [description]
+        """
         
         Y_spread = Y.reshape(-1, self.G, 1).repeat(1, 1, self.C+1)
         
-        mean = torch.exp(torch.exp(log_delta) * rho + mu.reshape(-1, 1))
-        dist = Normal(mean, torch.exp(log_sigma).reshape(-1, 1))
+        mean = torch.exp(torch.exp(self.params["log_delta"]) * self.params["rho"]\
+             + self.params["mu"].reshape(-1, 1))
+        dist = Normal(mean, torch.exp(self.params["log_sigma"]).reshape(-1, 1))
         
 
         log_p_y = dist.log_prob(Y_spread)
@@ -60,12 +84,24 @@ class Astir:
         
         gamma = self.recog.forward(X)
 
-        elbo = ( gamma * (log_p_y_on_c + log_alpha - torch.log(gamma)) ).sum()
+        elbo = ( gamma * (log_p_y_on_c + self.params["log_alpha"] - torch.log(gamma)) ).sum()
         
         return -elbo
 
     ## Todo: an output function
     def __init__(self, df_gex, marker_dict, random_seed = 1234):
+        """[summary]
+
+        Arguments:
+            df_gex {[type]} -- [description]
+            marker_dict {[type]} -- [description]
+
+        Keyword Arguments:
+            random_seed {int} -- [description] (default: {1234})
+
+        Raises:
+            NotClassifiableError: [description]
+        """
         #Todo: fix problem with random seed
         torch.manual_seed(random_seed)
 
@@ -102,6 +138,13 @@ class Astir:
 
     def fit(self, epochs = 100, 
         learning_rate = 1e-2, batch_size = 1024):
+        """[summary]
+
+        Keyword Arguments:
+            epochs {int} -- [description] (default: {100})
+            learning_rate {[type]} -- [description] (default: {1e-2})
+            batch_size {int} -- [description] (default: {1024})
+        """
         ## Make dataloader
         dataloader = DataLoader(self.dset, batch_size=min(batch_size, self.N), shuffle=True)
 
@@ -109,8 +152,9 @@ class Astir:
         losses = np.empty(epochs)
 
         ## Construct optimizer
-        params = [self.log_sigma, self.mu, self.log_delta] + list(self.recog.parameters())
-        optimizer = torch.optim.Adam(params, lr=learning_rate)
+        optimizer = torch.optim.Adam(list(self.params.values())[1:4] + list(self.recog.parameters()),\
+            lr=learning_rate)
+        # optimizer = torch.optim.Adam(self.params + self.recog.parameters(), lr=learning_rate)
 
         for ep in range(epochs):
             L = None
@@ -118,7 +162,7 @@ class Astir:
             for batch in dataloader:
                 Y,X = batch
                 optimizer.zero_grad()
-                L = self._forward(self.log_delta, self.log_sigma, self.mu, self.log_alpha, self.rho, Y, X)
+                L = self._forward(Y, X)
                 L.backward()
                 optimizer.step()
             
@@ -138,15 +182,33 @@ class Astir:
         print("Done!")
 
     def get_assignments(self):
+        """[summary]
+
+        Returns:
+            [type] -- [description]
+        """
         return self.assignments
     
     def get_losses(self):
+        """[summary]
+
+        Returns:
+            [type] -- [description]
+        """
         return self.losses
 
     def output_csv(self, output_csv):
+        """[summary]
+
+        Arguments:
+            output_csv {[type]} -- [description]
+        """
         self.assignments.to_csv(output_csv)
 
-    # def __str__()
+    def __str__(self):
+        return "Astir object with " + str(self.Y_np.shape[0]) + " rows and " + \
+            str(self.Y_np.shape[1]) + " columns of data, " + \
+            str(len(self.cell_types)) + " types of possible cell assignment" 
 
 
 class NotClassifiableError(RuntimeError):
