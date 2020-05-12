@@ -1,0 +1,46 @@
+
+cell_states:
+  RTK_signalling:
+    - Her2
+    - EGFR
+  proliferation:
+    - Ki-67
+    - phospho Histone
+  mTOR_signalling:
+    - phospho mTOR
+    - phospho S6
+  apoptosis:
+    - cleaved PARP
+    - Cleaved Caspase3
+
+cell_types:
+  Stromal:
+    - Vimentin
+    - Fibronectin
+  B cells:
+    - CD45
+    - CD20
+  T cells:
+    - CD45
+    - CD3
+  Macrophage:
+    - CD45
+    - CD68
+  Epithelial (basal):
+    - E-Cadherin
+    - pan Cytokeratin
+    - Cytokeratin 5
+    - Cytokeratin 14
+    - Her2
+  Epithelial (luminal):
+    - E-Cadherin
+    - pan Cytokeratin
+    - Cytokeratin 7
+    - Cytokeratin 8/18
+    - Cytokeratin 19
+    - Cytokeratin 5
+    - Her2
+
+
+
+

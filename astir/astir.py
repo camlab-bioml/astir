@@ -41,7 +41,7 @@ class Astir:
                 cell_type = self.cell_types[ct]
                 if gene in self.marker_dict[cell_type]:
                     marker_mat[g,ct] = 1
-        print(marker_mat)
+
         return marker_mat
 
     ## Declare pytorch forward fn
@@ -67,6 +67,9 @@ class Astir:
     def __init__(self, df_gex, marker_dict, random_seed = 1234):
         #Todo: fix problem with random seed
         torch.manual_seed(random_seed)
+
+        self.assignments = None # cell type assignment probabilities
+        self.losses = None # losses after optimization
 
         self.marker_dict = marker_dict['cell_types']
 
@@ -122,21 +125,22 @@ class Astir:
         ## Save output
         g = self.recog.forward(self.dset.X).detach().numpy()
 
-        assignments = pd.DataFrame(g)
-        assignments.columns = self.cell_types + ['Other']
-        assignments.index = self.core_names
+        self.assignments = pd.DataFrame(g)
+        self.assignments.columns = self.cell_types + ['Other']
+        self.assignments.index = self.core_names
+
+        self.losses = losses
 
         print("Done!")
 
+    def get_assignments(self):
+        return self.assignments
+    
+    def get_losses(self):
+        return self.losses
+
     def output_csv(self, output_csv):
-        ## Save output
-        g = self.recog.forward(self.dset.X).detach().numpy()
-
-        assignments = pd.DataFrame(g)
-        assignments.columns = self.cell_types + ['Other']
-        assignments.index = self.core_names
-
-        assignments.to_csv(output_csv)
+        self.assignments.to_csv(output_csv)
 
     # def __str__()
 

@@ -1,1 +1,1 @@
-from astir.data_readers.csv_reader import *
+from astir.data_readers.data_readers import *
