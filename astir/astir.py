@@ -19,27 +19,29 @@ from sklearn.preprocessing import StandardScaler
 
 
 class Astir:
-    def _param_init(self, G, C):
+
+    def _param_init(self):
         log_sigma_init = np.log(self.Y_np.std(0))
         mu_init = np.log(self.Y_np.mean(0))
 
         ## prior on z
-        self.log_alpha = torch.log(torch.ones(C+1) / (C+1))
+        self.log_alpha = torch.log(torch.ones(self.C+1) / (self.C+1))
 
         self.log_sigma = Variable(torch.from_numpy(log_sigma_init.copy()), requires_grad = True)
         self.mu = Variable(torch.from_numpy(mu_init.copy()), requires_grad = True)
-        self.log_delta = Variable(0 * torch.ones((G,C+1)), requires_grad = True)
+        self.log_delta = Variable(0 * torch.ones((self.G,self.C+1)), requires_grad = True)
         self.delta = torch.exp(self.log_delta)
         self.rho = torch.from_numpy(self.marker_mat)
     
-    def _construct_marker_mat(self, G, C):
-        marker_mat = np.zeros(shape = (G,C+1))
-        for g in range(G):
-            for ct in range(C):
-                gene = self.genes[g]
+    def _construct_marker_mat(self):
+        marker_mat = np.zeros(shape = (self.G,self.C+1))
+        for g in range(self.G):
+            for ct in range(self.C):
+                gene = self.marker_genes[g]
                 cell_type = self.cell_types[ct]
-                if gene in self.markers[cell_type]:
+                if gene in self.marker_dict[cell_type]:
                     marker_mat[g,ct] = 1
+        print(marker_mat)
         return marker_mat
 
     ## Declare pytorch forward fn
@@ -66,29 +68,30 @@ class Astir:
         #Todo: fix problem with random seed
         torch.manual_seed(random_seed)
 
+        self.marker_dict = marker_dict['cell_types']
+
         # Read input data
         self.df_gex = df_gex
         self.core_names = list(df_gex.index)
-        self.gene_names = list(df_gex.columns)
+        self.expression_genes = list(df_gex.columns)
             
-        self.markers = marker_dict['cell_types']
 
-        self.cell_types = list(self.markers.keys())
-        self.genes = [l for s in self.markers.values() for l in s]
-        self.genes = list(set(self.genes)) # Make unique
+        self.cell_types = list(self.marker_dict.keys())
+        self.marker_genes = [l for s in self.marker_dict.values() for l in s]
+        self.marker_genes = list(set(self.marker_genes)) # Make unique
 
         ## Infer dimensions
         self.N = self.df_gex.shape[0]
-        self.G = len(self.genes)
+        self.G = len(self.marker_genes)
         self.C = len(self.cell_types)
 
-        self.marker_mat = self._construct_marker_mat(self.G, self.C)
-        self.Y_np = self.df_gex[self.genes].to_numpy()
+        self.marker_mat = self._construct_marker_mat()
+        self.Y_np = self.df_gex[self.marker_genes].to_numpy()
 
         self.dset = IMCDataSet(self.Y_np)
         self.recog = RecognitionNet(self.C, self.G)
 
-        self._param_init(self.G, self.C)
+        self._param_init()
 
     def fit(self, epochs = 100, 
         learning_rate = 1e-2, batch_size = 1024):
@@ -134,6 +137,8 @@ class Astir:
         assignments.index = self.core_names
 
         assignments.to_csv(output_csv)
+
+    def __str__()
 
 
 ## Dataset class: for loading IMC datasets
