@@ -138,7 +138,7 @@ class Astir:
 
         assignments.to_csv(output_csv)
 
-    def __str__()
+    # def __str__()
 
 
 ## Dataset class: for loading IMC datasets
