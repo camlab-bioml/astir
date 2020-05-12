@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+
+import argparse
+
+from astir import Astir
+from astir.data_readers import csv_reader
+
+
+
+parser = argparse.ArgumentParser(description='Run astir')
+
+
+
+parser.add_argument("expr_csv", help="CSV expression matrix with cells as rows and proteins as columns. First column is cell ID")
+parser.add_argument("marker_yaml", help="YAML file of cell markers")
+parser.add_argument("output_csv", help="Output CSV of cell assignment probabilities")
+parser.add_argument("--epochs", 
+                    help="Number of training epochs",
+                    type=int,
+                    default=200)
+parser.add_argument("--learning_rate",
+                    help="Learning rate",
+                    type=float,
+                    default=1e-2)
+parser.add_argument("--batch_size",
+                    help="Batch size",
+                    type=int,
+                    default=1024)
+parser.add_argument("--random_seed",
+                    help="Random seed",
+                    type=int,
+                    default=1234)
+parser.add_argument("--log_delta_init",
+                    help="Random seed",
+                    type=float,
+                    default=-1.)
+
+args = parser.parse_args()
+
+a = csv_reader(args.expr_csv, args.marker_yaml)
+
+a.fit(epochs = args.epochs, 
+    learning_rate = args.learning_rate, 
+    batch_size = args.batch_size)
+
+a.to_csv(args.output_csv)
