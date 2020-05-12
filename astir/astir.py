@@ -41,7 +41,7 @@ class Astir:
                 cell_type = self.cell_types[ct]
                 if gene in self.marker_dict[cell_type]:
                     marker_mat[g,ct] = 1
-        print(marker_mat)
+        # print(marker_mat)
         return marker_mat
 
     ## Declare pytorch forward fn
@@ -86,7 +86,10 @@ class Astir:
         self.C = len(self.cell_types)
 
         self.marker_mat = self._construct_marker_mat()
-        self.Y_np = self.df_gex[self.marker_genes].to_numpy()
+        try:
+            self.Y_np = self.df_gex[self.marker_genes].to_numpy()
+        except(KeyError):
+            raise NotClassifiableError("Classification failed. There's no overlap between marked proteins and expression proteins.")
 
         self.dset = IMCDataSet(self.Y_np)
         self.recog = RecognitionNet(self.C, self.G)
@@ -140,6 +143,9 @@ class Astir:
 
     # def __str__()
 
+
+class NotClassifiableError(RuntimeError):
+    pass
 
 ## Dataset class: for loading IMC datasets
 class IMCDataSet(Dataset):
