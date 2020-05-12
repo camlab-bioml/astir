@@ -139,7 +139,7 @@ class Astir:
     def get_losses(self):
         return self.losses
 
-    def output_csv(self, output_csv):
+    def to_csv(self, output_csv):
         self.assignments.to_csv(output_csv)
 
     # def __str__()
