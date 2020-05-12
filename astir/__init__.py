@@ -1,5 +1,5 @@
 from .astir import Astir
-from .data_readers.csv_reader import *
+from .data_readers.data_readers import *
 
 __all__ = [
     "Astir"
