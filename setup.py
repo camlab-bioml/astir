@@ -4,14 +4,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="astir-pkg-JinelleH",
+    name="astir",
     version="0.0.1",
     author="Jinyu Hou",
     author_email="jhou@lunenfeld.ca",
     description=" ",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/camlab-bioml/astir-pkg",
+    url="https://github.com/camlab-bioml/astir",
     packages=['astir'],
     classifiers=[
         "Programming Language :: Python :: 3",

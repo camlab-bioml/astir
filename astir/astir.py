@@ -42,6 +42,7 @@ class Astir:
                 if gene in self.marker_dict[cell_type]:
                     marker_mat[g,ct] = 1
         # print(marker_mat)
+
         return marker_mat
 
     ## Declare pytorch forward fn
