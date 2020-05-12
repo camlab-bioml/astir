@@ -32,3 +32,15 @@ class TestAstir(TestCase):
 
         self.assertIsInstance(a, Astir)
     
+    def test_fitting(self):
+
+        epochs = 2
+        self.a.fit(epochs=epochs)
+
+        assignments = self.a.get_assignments()
+        losses = self.a.get_losses()
+
+        self.assertTrue(assignments.shape[0] == self.expr.shape[0])
+        self.assertTrue(len(losses) == epochs)
+
+    
