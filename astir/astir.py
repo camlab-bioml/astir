@@ -6,6 +6,8 @@
 
 import re
 from typing import Tuple, List, Dict
+import warnings
+
 import torch
 from torch.autograd import Variable
 from torch.distributions import Normal
@@ -90,9 +92,16 @@ class Astir:
         try:
             CS_np = self.df_gex[self.mstate_genes].to_numpy()
         except(KeyError):
-            raise NotClassifiableError("Classification failed. There's no " + \
-                "overlap between marked genes and expression genes to " + \
+            raise NotClassifiableError("Classification failed. There's no " + 
+                "overlap between marked genes and expression genes to " + 
                 "classify among cell types.")
+        if CT_np.shape[1] < len(self.mtype_genes):
+            warnings.warn("Classified type genes are less than marked genes.")
+        if CS_np.shape[1] < len(self.mstate_genes):
+            warnings.warn("Classified state genes are less than marked genes.")
+        if CT_np.shape[1] + CS_np.shape[1] < len(self.expression_genes):
+            warnings.warn("Classified type and state genes are less than the expression genes in the input data.")
+        
         return CT_np, CS_np
 
     def _construct_marker_mat(self) -> np.array:
@@ -260,10 +269,6 @@ class Astir:
 ## NotClassifiableError: an error to be raised when the dataset fails 
 # to be analysed.
 class NotClassifiableError(RuntimeError):
-    pass
-
-
-class InformationLossWarning(RuntimeWarning):
     pass
 
 
