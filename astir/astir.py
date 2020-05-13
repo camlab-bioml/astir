@@ -7,7 +7,7 @@
 
 import torch
 from torch.autograd import Variable
-from torch.distributions import Normal
+from torch.distributions import Normal, StudentT
 import torch.nn.functional as F
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -26,9 +26,16 @@ class Astir:
         """[summery]
         """
         self.initializations = {
-            "mu": np.log(self.Y_np.mean(0)),
+            "mu": np.log(self.Y_np.mean(0)).reshape((-1,1)),
             "log_sigma": np.log(self.Y_np.std(0))
         }
+
+        if self.design is not None:
+            P = self.design.shape[1]
+            self.initializations['mu'] = np.column_stack([self.initializations['mu'],
+                                                        np.zeros((self.G, P-1))])
+        else:
+            self.design = torch.ones((self.N,1))
 
         ## prior on z
         log_delta = Variable(0 * torch.ones((self.G,self.C+1)), requires_grad = True)
@@ -41,6 +48,9 @@ class Astir:
             "delta": torch.exp(log_delta),
             "rho": torch.from_numpy(self.marker_mat)
         }
+
+        if self.include_beta:
+            self.params['beta'] = Variable(torch.zeros(self.G, self.C+1), requires_grad=True)
     
     def _construct_marker_mat(self):
         """[summary]
@@ -60,7 +70,7 @@ class Astir:
         return marker_mat
 
     ## Declare pytorch forward fn
-    def _forward(self, Y, X):
+    def _forward(self, Y, X, idx):
         """[summary]
 
         Arguments:
@@ -72,11 +82,28 @@ class Astir:
         """
         
         Y_spread = Y.reshape(-1, self.G, 1).repeat(1, 1, self.C+1)
-        
-        mean = torch.exp(torch.exp(self.params["log_delta"]) * self.params["rho"]\
-             + self.params["mu"].reshape(-1, 1))
-        dist = Normal(mean, torch.exp(self.params["log_sigma"]).reshape(-1, 1))
-        
+
+        delta_tilde = torch.exp(self.params["log_delta"]) # + np.log(0.5)
+        mean =  delta_tilde * self.params["rho"] 
+
+        design = torch.tensor(self.design[idx,:]).double()
+        # print(design.shape)
+        # print(self.params['mu'].shape)
+
+        mean2 = torch.matmul(design, self.params['mu'].T) ## N x P * P x G
+        mean2 = mean2.reshape(-1, self.G, 1).repeat(1, 1, self.C+1)
+
+        mean = mean + mean2
+
+        if self.include_beta:
+            with torch.no_grad():
+                min_delta = torch.min(delta_tilde)
+            mean = mean + min_delta * torch.tanh(self.params["beta"]) * (1 - self.params["rho"]) 
+
+
+        dist = Normal(torch.exp(mean), torch.exp(self.params["log_sigma"]).reshape(-1, 1))
+        # dist = StudentT(torch.tensor(1.), torch.exp(mean), torch.exp(self.params["log_sigma"]).reshape(-1, 1))
+
 
         log_p_y = dist.log_prob(Y_spread)
 
@@ -89,7 +116,7 @@ class Astir:
         return -elbo
 
     ## Todo: an output function
-    def __init__(self, df_gex, marker_dict, random_seed = 1234):
+    def __init__(self, df_gex, marker_dict, design = None, random_seed = 1234, include_beta=False):
         """[summary]
 
         Arguments:
@@ -110,11 +137,15 @@ class Astir:
 
         self.marker_dict = marker_dict['cell_types']
 
+        self.design = design
+
         # Read input data
         self.df_gex = df_gex
         self.core_names = list(df_gex.index)
         self.expression_genes = list(df_gex.columns)
-            
+        
+        # Does this model use separate beta?
+        self.include_beta = include_beta
 
         self.cell_types = list(self.marker_dict.keys())
         self.marker_genes = [l for s in self.marker_dict.values() for l in s]
@@ -152,17 +183,19 @@ class Astir:
         losses = np.empty(epochs)
 
         ## Construct optimizer
-        optimizer = torch.optim.Adam(list(self.params.values())[1:4] + list(self.recog.parameters()),\
-            lr=learning_rate)
+        opt_params = list(self.params.values())[1:4] + list(self.recog.parameters())
+        if self.include_beta:
+            opt_params = opt_params + [self.params["beta"]]
+        optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
         # optimizer = torch.optim.Adam(self.params + self.recog.parameters(), lr=learning_rate)
 
         for ep in range(epochs):
             L = None
             
             for batch in dataloader:
-                Y,X = batch
+                Y,X,idx = batch
                 optimizer.zero_grad()
-                L = self._forward(Y, X)
+                L = self._forward(Y, X, idx)
                 L.backward()
                 optimizer.step()
             
@@ -227,7 +260,7 @@ class IMCDataSet(Dataset):
         return self.Y.shape[0]
     
     def __getitem__(self, idx):
-        return self.Y[idx,:], self.X[idx,:]
+        return self.Y[idx,:], self.X[idx,:], idx
 
 ## Recognition network
 class RecognitionNet(nn.Module):

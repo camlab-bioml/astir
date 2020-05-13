@@ -3,7 +3,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import pandas as pd
 import yaml
-import anndata as ad
+# import anndata as ad
 from astir.astir import Astir
 
 ## Todo: We probably need a class
