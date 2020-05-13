@@ -4,6 +4,7 @@
 # ctrl+` to open terminal
 # cmd+P to go to file
 
+import re
 
 import torch
 from torch.autograd import Variable
@@ -29,19 +30,56 @@ class Astir:
             "mu": np.log(self.Y_np.mean(0)),
             "log_sigma": np.log(self.Y_np.std(0))
         }
-
         ## prior on z
         log_delta = Variable(0 * torch.ones((self.G,self.C+1)), requires_grad = True)
-        self.params = {
+        self.data = {
             "log_alpha": torch.log(torch.ones(self.C+1) / (self.C+1)),
-            "log_sigma": Variable(torch.from_numpy(
-                self.initializations["log_sigma"].copy()), requires_grad = True),
-            "mu": Variable(torch.from_numpy(self.initializations["mu"].copy()), requires_grad = True),
-            "log_delta": log_delta,
             "delta": torch.exp(log_delta),
             "rho": torch.from_numpy(self.marker_mat)
         }
-    
+        self.variables = {
+            "log_sigma": Variable(torch.from_numpy(
+                self.initializations["log_sigma"].copy()), requires_grad = True),
+            "mu": Variable(torch.from_numpy(self.initializations["mu"].copy()), requires_grad = True),
+            "log_delta": log_delta
+        }
+
+    def _sanitize_dict(self, marker_dict):
+        keys = list(marker_dict.keys())
+        if not len(keys) == 2:
+            raise NotClassifiableError("Marker file does not follow the " +\
+                "required format.")
+        ct = re.compile("cell[^a-zA-Z0-9]*type", re.IGNORECASE)
+        cs = re.compile("cell[^a-zA-Z0-9]*state", re.IGNORECASE)
+        if ct.match(keys[0]):
+            self.marker_dict = marker_dict[keys[0]]
+        elif ct.match(keys[1]):
+            self.marker_dict = marker_dict[keys[1]]
+        else:
+            raise NotClassifiableError("Can't find cell type dictionary" +\
+                " in the marker file.")
+        
+        if not cs.match(keys[0]) and not cs.match(keys[1]):
+            raise NotClassifiableError("Can't find cell state dictionary" +\
+                " in the marker file.")
+
+    def _sanitize_gex(self, df_gex):
+        N = df_gex.shape[0]
+        G = len(self.marker_genes)
+        C = len(self.cell_types)
+        if N <= 0:
+            raise NotClassifiableError("Classification failed. There should be " +\
+                "at least one row of data to be classified.")
+        if C <= 1:
+            raise NotClassifiableError("Classification failed. There should be " +\
+                "at least two cell types to classify the data into.")
+        try:
+            Y_np = df_gex[self.marker_genes].to_numpy()
+        except(KeyError):
+            raise NotClassifiableError("Classification failed. There's no " + \
+                "overlap between marked genes and expression genes.")
+        return N, G, C, Y_np
+
     def _construct_marker_mat(self):
         """[summary]
 
@@ -73,9 +111,9 @@ class Astir:
         
         Y_spread = Y.reshape(-1, self.G, 1).repeat(1, 1, self.C+1)
         
-        mean = torch.exp(torch.exp(self.params["log_delta"]) * self.params["rho"]\
-             + self.params["mu"].reshape(-1, 1))
-        dist = Normal(mean, torch.exp(self.params["log_sigma"]).reshape(-1, 1))
+        mean = torch.exp(torch.exp(self.variables["log_delta"]) * self.data["rho"]\
+             + self.variables["mu"].reshape(-1, 1))
+        dist = Normal(mean, torch.exp(self.variables["log_sigma"]).reshape(-1, 1))
         
 
         log_p_y = dist.log_prob(Y_spread)
@@ -84,7 +122,7 @@ class Astir:
         
         gamma = self.recog.forward(X)
 
-        elbo = ( gamma * (log_p_y_on_c + self.params["log_alpha"] - torch.log(gamma)) ).sum()
+        elbo = ( gamma * (log_p_y_on_c + self.data["log_alpha"] - torch.log(gamma)) ).sum()
         
         return -elbo
 
@@ -108,28 +146,19 @@ class Astir:
         self.assignments = None # cell type assignment probabilities
         self.losses = None # losses after optimization
 
-        self.marker_dict = marker_dict['cell_types']
+        self._sanitize_dict(marker_dict)
+
+        self.cell_types = list(self.marker_dict.keys())
+        self.marker_genes = list(set([l for s in self.marker_dict.values() for l in s]))
+
+        self.N, self.G, self.C, self.Y_np = self._sanitize_gex(df_gex)
 
         # Read input data
         self.df_gex = df_gex
         self.core_names = list(df_gex.index)
         self.expression_genes = list(df_gex.columns)
-            
-
-        self.cell_types = list(self.marker_dict.keys())
-        self.marker_genes = [l for s in self.marker_dict.values() for l in s]
-        self.marker_genes = list(set(self.marker_genes)) # Make unique
-
-        ## Infer dimensions
-        self.N = self.df_gex.shape[0]
-        self.G = len(self.marker_genes)
-        self.C = len(self.cell_types)
 
         self.marker_mat = self._construct_marker_mat()
-        try:
-            self.Y_np = self.df_gex[self.marker_genes].to_numpy()
-        except(KeyError):
-            raise NotClassifiableError("Classification failed. There's no overlap between marked proteins and expression proteins.")
 
         self.dset = IMCDataSet(self.Y_np)
         self.recog = RecognitionNet(self.C, self.G)
@@ -152,9 +181,8 @@ class Astir:
         losses = np.empty(epochs)
 
         ## Construct optimizer
-        optimizer = torch.optim.Adam(list(self.params.values())[1:4] + list(self.recog.parameters()),\
+        optimizer = torch.optim.Adam(list(self.variables.values()) + list(self.recog.parameters()),\
             lr=learning_rate)
-        # optimizer = torch.optim.Adam(self.params + self.recog.parameters(), lr=learning_rate)
 
         for ep in range(epochs):
             L = None
