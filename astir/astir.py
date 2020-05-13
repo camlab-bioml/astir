@@ -52,16 +52,20 @@ class Astir:
         ct = re.compile("cell[^a-zA-Z0-9]*type", re.IGNORECASE)
         cs = re.compile("cell[^a-zA-Z0-9]*state", re.IGNORECASE)
         if ct.match(keys[0]):
-            self.marker_dict = marker_dict[keys[0]]
+            type_dict = marker_dict[keys[0]]
         elif ct.match(keys[1]):
-            self.marker_dict = marker_dict[keys[1]]
+            type_dict = marker_dict[keys[1]]
         else:
             raise NotClassifiableError("Can't find cell type dictionary" +\
                 " in the marker file.")
-        
-        if not cs.match(keys[0]) and not cs.match(keys[1]):
+        if cs.match(keys[0]):
+            state_dict = marker_dict[keys[0]]
+        elif cs.match(keys[1]):
+            state_dict = marker_dict[keys[1]]
+        else:
             raise NotClassifiableError("Can't find cell state dictionary" +\
                 " in the marker file.")
+        return type_dict, state_dict
 
     def _sanitize_gex(self, df_gex):
         N = df_gex.shape[0]
@@ -73,6 +77,7 @@ class Astir:
         if C <= 1:
             raise NotClassifiableError("Classification failed. There should be " +\
                 "at least two cell types to classify the data into.")
+        ## This should also be done to cell_states
         try:
             Y_np = df_gex[self.marker_genes].to_numpy()
         except(KeyError):
@@ -91,7 +96,7 @@ class Astir:
             for ct in range(self.C):
                 gene = self.marker_genes[g]
                 cell_type = self.cell_types[ct]
-                if gene in self.marker_dict[cell_type]:
+                if gene in self.type_dict[cell_type]:
                     marker_mat[g,ct] = 1
         # print(marker_mat)
 
@@ -146,10 +151,10 @@ class Astir:
         self.assignments = None # cell type assignment probabilities
         self.losses = None # losses after optimization
 
-        self._sanitize_dict(marker_dict)
+        self.type_dict, self.state_dict = self._sanitize_dict(marker_dict)
 
-        self.cell_types = list(self.marker_dict.keys())
-        self.marker_genes = list(set([l for s in self.marker_dict.values() for l in s]))
+        self.cell_types = list(self.type_dict.keys())
+        self.marker_genes = list(set([l for s in self.type_dict.values() for l in s]))
 
         self.N, self.G, self.C, self.Y_np = self._sanitize_gex(df_gex)
 
