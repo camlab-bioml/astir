@@ -27,8 +27,8 @@ class Astir:
         """[summery]
         """
         self.initializations = {
-            "mu": np.log(self.Y_np.mean(0)),
-            "log_sigma": np.log(self.Y_np.std(0))
+            "mu": np.log(self.CT_np.mean(0)),
+            "log_sigma": np.log(self.CT_np.std(0))
         }
         ## prior on z
         log_delta = Variable(0 * torch.ones((self.G,self.C+1)), requires_grad = True)
@@ -69,7 +69,7 @@ class Astir:
 
     def _sanitize_gex(self, df_gex: pd.DataFrame) -> Tuple[int, int, int, np.array]:
         N = df_gex.shape[0]
-        G = len(self.marker_genes)
+        G = len(self.mtype_genes)
         C = len(self.cell_types)
         if N <= 0:
             raise NotClassifiableError("Classification failed. There " + \
@@ -77,13 +77,23 @@ class Astir:
         if C <= 1:
             raise NotClassifiableError("Classification failed. There " + \
                 "should be at least two cell types to classify the data into.")
+        return N, G, C
+
+    def _get_classifiable_genes(self):
         ## This should also be done to cell_states
         try:
-            Y_np = df_gex[self.marker_genes].to_numpy()
+            CT_np = self.df_gex[self.mtype_genes].to_numpy()
         except(KeyError):
             raise NotClassifiableError("Classification failed. There's no " + \
-                "overlap between marked genes and expression genes.")
-        return N, G, C, Y_np
+                "overlap between marked genes and expression genes to " + \
+                "classify among cell types.")
+        try:
+            CS_np = self.df_gex[self.mstate_genes].to_numpy()
+        except(KeyError):
+            raise NotClassifiableError("Classification failed. There's no " + \
+                "overlap between marked genes and expression genes to " + \
+                "classify among cell types.")
+        return CT_np, CS_np
 
     def _construct_marker_mat(self) -> np.array:
         """[summary]
@@ -94,7 +104,7 @@ class Astir:
         marker_mat = np.zeros(shape = (self.G,self.C+1))
         for g in range(self.G):
             for ct in range(self.C):
-                gene = self.marker_genes[g]
+                gene = self.mtype_genes[g]
                 cell_type = self.cell_types[ct]
                 if gene in self.type_dict[cell_type]:
                     marker_mat[g,ct] = 1
@@ -158,10 +168,12 @@ class Astir:
         self.type_dict, self.state_dict = self._sanitize_dict(marker_dict)
 
         self.cell_types = list(self.type_dict.keys())
-        self.marker_genes = list(set([l for s in self.type_dict.values() \
+        self.mtype_genes = list(set([l for s in self.type_dict.values() \
+            for l in s]))
+        self.mstate_genes = list(set([l for s in self.state_dict.values() \
             for l in s]))
 
-        self.N, self.G, self.C, self.Y_np = self._sanitize_gex(df_gex)
+        self.N, self.G, self.C = self._sanitize_gex(df_gex)
 
         # Read input data
         self.df_gex = df_gex
@@ -169,8 +181,9 @@ class Astir:
         self.expression_genes = list(df_gex.columns)
 
         self.marker_mat = self._construct_marker_mat()
+        self.CT_np, self.CS_np = self._get_classifiable_genes()
 
-        self.dset = IMCDataSet(self.Y_np)
+        self.dset = IMCDataSet(self.CT_np)
         self.recog = RecognitionNet(self.C, self.G)
 
         self._param_init()
@@ -238,14 +251,19 @@ class Astir:
         self.assignments.to_csv(output_csv)
 
     def __str__(self) -> str:
-        return "Astir object with " + str(self.Y_np.shape[0]) + " rows and " + \
-            str(self.Y_np.shape[1]) + " columns of data, " + \
-            str(len(self.cell_types)) + " types of possible cell assignment" 
+        return "Astir object with " + str(self.CT_np.shape[1]) + \
+            " columns of cell types, " + str(self.CS_np.shape[1]) + \
+            " columns of cell states and " + \
+            str(self.CT_np.shape[0]) + " rows."
 
 
 ## NotClassifiableError: an error to be raised when the dataset fails 
 # to be analysed.
 class NotClassifiableError(RuntimeError):
+    pass
+
+
+class InformationLossWarning(RuntimeWarning):
     pass
 
 
