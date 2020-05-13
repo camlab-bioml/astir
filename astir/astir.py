@@ -5,7 +5,7 @@
 # cmd+P to go to file
 
 import re
-
+from typing import Tuple, List, Dict
 import torch
 from torch.autograd import Variable
 from torch.distributions import Normal
@@ -23,7 +23,7 @@ class Astir:
     """ Loads a .csv expression file and a .yaml marker file.
     """
 
-    def _param_init(self):
+    def _param_init(self) -> None:
         """[summery]
         """
         self.initializations = {
@@ -44,7 +44,7 @@ class Astir:
             "log_delta": log_delta
         }
 
-    def _sanitize_dict(self, marker_dict):
+    def _sanitize_dict(self, marker_dict: Dict[str, dict]) -> Tuple[dict, dict]:
         keys = list(marker_dict.keys())
         if not len(keys) == 2:
             raise NotClassifiableError("Marker file does not follow the " +\
@@ -67,16 +67,16 @@ class Astir:
                 " in the marker file.")
         return type_dict, state_dict
 
-    def _sanitize_gex(self, df_gex):
+    def _sanitize_gex(self, df_gex: pd.DataFrame) -> Tuple[int, int, int, np.array]:
         N = df_gex.shape[0]
         G = len(self.marker_genes)
         C = len(self.cell_types)
         if N <= 0:
-            raise NotClassifiableError("Classification failed. There should be " +\
-                "at least one row of data to be classified.")
+            raise NotClassifiableError("Classification failed. There " + \
+                "should be at least one row of data to be classified.")
         if C <= 1:
-            raise NotClassifiableError("Classification failed. There should be " +\
-                "at least two cell types to classify the data into.")
+            raise NotClassifiableError("Classification failed. There " + \
+                "should be at least two cell types to classify the data into.")
         ## This should also be done to cell_states
         try:
             Y_np = df_gex[self.marker_genes].to_numpy()
@@ -85,7 +85,7 @@ class Astir:
                 "overlap between marked genes and expression genes.")
         return N, G, C, Y_np
 
-    def _construct_marker_mat(self):
+    def _construct_marker_mat(self) -> np.array:
         """[summary]
 
         Returns:
@@ -103,7 +103,7 @@ class Astir:
         return marker_mat
 
     ## Declare pytorch forward fn
-    def _forward(self, Y, X):
+    def _forward(self, Y: torch.Tensor , X: torch.Tensor) -> torch.Tensor:
         """[summary]
 
         Arguments:
@@ -132,7 +132,8 @@ class Astir:
         return -elbo
 
     ## Todo: an output function
-    def __init__(self, df_gex, marker_dict, random_seed = 1234):
+    def __init__(self, df_gex: pd.DataFrame, marker_dict: Dict, \
+        random_seed = 1234) -> None:
         """[summary]
 
         Arguments:
@@ -146,6 +147,9 @@ class Astir:
             NotClassifiableError: [description]
         """
         #Todo: fix problem with random seed
+        if not isinstance(random_seed, int):
+            raise NotClassifiableError(\
+                "Random seed is expected to be an integer.")
         torch.manual_seed(random_seed)
 
         self.assignments = None # cell type assignment probabilities
@@ -154,7 +158,8 @@ class Astir:
         self.type_dict, self.state_dict = self._sanitize_dict(marker_dict)
 
         self.cell_types = list(self.type_dict.keys())
-        self.marker_genes = list(set([l for s in self.type_dict.values() for l in s]))
+        self.marker_genes = list(set([l for s in self.type_dict.values() \
+            for l in s]))
 
         self.N, self.G, self.C, self.Y_np = self._sanitize_gex(df_gex)
 
@@ -170,8 +175,8 @@ class Astir:
 
         self._param_init()
 
-    def fit(self, epochs = 100, 
-        learning_rate = 1e-2, batch_size = 1024):
+    def fit(self, epochs = 100, learning_rate = 1e-2, 
+        batch_size = 1024) -> None:
         """[summary]
 
         Keyword Arguments:
@@ -180,41 +185,35 @@ class Astir:
             batch_size {int} -- [description] (default: {1024})
         """
         ## Make dataloader
-        dataloader = DataLoader(self.dset, batch_size=min(batch_size, self.N), shuffle=True)
-
+        dataloader = DataLoader(self.dset, batch_size=min(batch_size, self.N),\
+            shuffle=True)
         ## Run training loop
         losses = np.empty(epochs)
-
         ## Construct optimizer
-        optimizer = torch.optim.Adam(list(self.variables.values()) + list(self.recog.parameters()),\
-            lr=learning_rate)
+        optimizer = torch.optim.Adam(list(self.variables.values()) + \
+            list(self.recog.parameters()), lr=learning_rate)
 
         for ep in range(epochs):
             L = None
-            
             for batch in dataloader:
                 Y,X = batch
                 optimizer.zero_grad()
                 L = self._forward(Y, X)
                 L.backward()
                 optimizer.step()
-            
             l = L.detach().numpy()
             losses[ep] = l
             print(l)
 
         ## Save output
         g = self.recog.forward(self.dset.X).detach().numpy()
-
         self.assignments = pd.DataFrame(g)
         self.assignments.columns = self.cell_types + ['Other']
         self.assignments.index = self.core_names
-
         self.losses = losses
-
         print("Done!")
 
-    def get_assignments(self):
+    def get_assignments(self) -> pd.DataFrame:
         """[summary]
 
         Returns:
@@ -222,7 +221,7 @@ class Astir:
         """
         return self.assignments
     
-    def get_losses(self):
+    def get_losses(self) -> float:
         """[summary]
 
         Returns:
@@ -230,7 +229,7 @@ class Astir:
         """
         return self.losses
 
-    def to_csv(self, output_csv):
+    def to_csv(self, output_csv: str) -> None:
         """[summary]
 
         Arguments:
@@ -238,25 +237,28 @@ class Astir:
         """
         self.assignments.to_csv(output_csv)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Astir object with " + str(self.Y_np.shape[0]) + " rows and " + \
             str(self.Y_np.shape[1]) + " columns of data, " + \
             str(len(self.cell_types)) + " types of possible cell assignment" 
 
 
+## NotClassifiableError: an error to be raised when the dataset fails 
+# to be analysed.
 class NotClassifiableError(RuntimeError):
     pass
+
 
 ## Dataset class: for loading IMC datasets
 class IMCDataSet(Dataset):
     
-    def __init__(self, Y_np):
+    def __init__(self, Y_np: np.array) -> None:
              
         self.Y = torch.from_numpy(Y_np)
         X = StandardScaler().fit_transform(Y_np)
         self.X = torch.from_numpy(X)
     
-    def __len__(self):
+    def __len__(self) -> int:
         return self.Y.shape[0]
     
     def __getitem__(self, idx):
@@ -264,7 +266,7 @@ class IMCDataSet(Dataset):
 
 ## Recognition network
 class RecognitionNet(nn.Module):
-    def __init__(self, C, G, h=6):
+    def __init__(self, C: int, G: int, h=6) -> None:
         super(RecognitionNet, self).__init__()
         self.hidden_1 = nn.Linear(G, h).double()
         self.hidden_2 = nn.Linear(h, C+1).double()
