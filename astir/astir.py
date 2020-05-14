@@ -33,12 +33,12 @@ class Astir:
             "log_sigma": np.log(self.CT_np.std(0))
         }
 
-        if self.design is not None:
-            P = self.design.shape[1]
-            self.initializations['mu'] = np.column_stack([self.initializations['mu'],
+        # Add additional columns of mu for anything in the design matrix
+        P = self.dset.design.shape[1]
+        self.initializations['mu'] = np.column_stack([self.initializations['mu'],
                                                         np.zeros((self.G, P-1))])
-        else:
-            self.design = torch.ones((self.N,1))
+
+
 
         ## prior on z
         log_delta = Variable(0 * torch.ones((self.G,self.C+1)), requires_grad = True)
@@ -134,7 +134,7 @@ class Astir:
         return marker_mat
 
     ## Declare pytorch forward fn
-    def _forward(self, Y: torch.Tensor , X: torch.Tensor, idx) -> torch.Tensor:
+    def _forward(self, Y: torch.Tensor , X: torch.Tensor, design: torch.Tensor) -> torch.Tensor:
         """[summary]
 
         Arguments:
@@ -149,10 +149,6 @@ class Astir:
 
         delta_tilde = torch.exp(self.variables["log_delta"]) # + np.log(0.5)
         mean =  delta_tilde * self.data["rho"] 
-
-        design = torch.tensor(self.design[idx,:]).double()
-        # print(design.shape)
-        # print(self.variables['mu'].shape)
 
         mean2 = torch.matmul(design, self.variables['mu'].T) ## N x P * P x G
         mean2 = mean2.reshape(-1, self.G, 1).repeat(1, 1, self.C+1)
@@ -216,7 +212,6 @@ class Astir:
 
         self.N, self.G, self.C = self._sanitize_gex(df_gex)
 
-        self.design = design
 
         # Read input data
         self.core_names = list(df_gex.index)
@@ -229,7 +224,8 @@ class Astir:
         self.marker_mat = self._construct_marker_mat()
         self.CT_np, self.CS_np = self._get_classifiable_genes(df_gex)
 
-        self.dset = IMCDataSet(self.CT_np)
+        self.dset = IMCDataSet(self.CT_np, design)
+
         self.recog = RecognitionNet(self.C, self.G)
 
         self._param_init()
@@ -261,9 +257,9 @@ class Astir:
         for ep in range(epochs):
             L = None
             for batch in dataloader:
-                Y,X,idx = batch
+                Y,X,design = batch
                 optimizer.zero_grad()
-                L = self._forward(Y, X, idx)
+                L = self._forward(Y, X, design)
                 L.backward()
                 optimizer.step()
             l = L.detach().numpy()
@@ -318,17 +314,32 @@ class NotClassifiableError(RuntimeError):
 ## Dataset class: for loading IMC datasets
 class IMCDataSet(Dataset):
     
-    def __init__(self, Y_np: np.array) -> None:
+    def __init__(self, Y_np: np.array, design: np.array) -> None:
              
         self.Y = torch.from_numpy(Y_np)
         X = StandardScaler().fit_transform(Y_np)
         self.X = torch.from_numpy(X)
+        self.design = self._fix_design(design)
     
     def __len__(self) -> int:
         return self.Y.shape[0]
     
     def __getitem__(self, idx):
-        return self.Y[idx,:], self.X[idx,:], idx
+        return self.Y[idx,:], self.X[idx,:], self.design[idx,:]
+    
+    def _fix_design(self, design: np.array) -> torch.tensor:
+        
+        d = None
+        if design is None:
+            d = torch.ones((self.Y.shape[0],1)).double()
+        else:
+            d = torch.from_numpy(design).double()
+
+
+        if d.shape[0] != self.Y.shape[0]:
+            raise NotClassifiableError("Number of rows of design matrix must equal number of rows of expression data")
+            
+        return d
 
 ## Recognition network
 class RecognitionNet(nn.Module):
