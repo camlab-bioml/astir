@@ -4,7 +4,7 @@ import os
 import yaml
 
 from astir import Astir
-from astir.data_readers import csv_reader
+from astir.data_readers import from_csv_yaml
 
 class TestAstir(TestCase):
 
@@ -28,7 +28,7 @@ class TestAstir(TestCase):
 
     def test_csv_reading(self):
 
-        a = csv_reader(self.expr_csv_file, self.marker_yaml_file)
+        a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file)
 
         self.assertIsInstance(a, Astir)
     
