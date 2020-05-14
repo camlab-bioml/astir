@@ -157,7 +157,7 @@ class Astir:
 
         if self.include_beta:
             with torch.no_grad():
-                min_delta = torch.min(delta_tilde)
+                min_delta = torch.min(delta_tilde, 1).values.reshape((self.G,1))
             mean = mean + min_delta * torch.tanh(self.variables["beta"]) * (1 - self.data["rho"]) 
 
 
