@@ -1,0 +1,18 @@
+
+
+
+Cellstates:
+  RTK_signalling:
+    - DNA1
+    - DNA2
+  cell_growth:
+    - Ki-67
+    - phospho mTOR
+  mTOR_signalling:
+    - GATA3
+    - phospho S6
+  apoptosis:
+    - cleaved PARP
+    - Cleaved Caspase3
+
+

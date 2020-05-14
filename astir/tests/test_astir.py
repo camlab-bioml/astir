@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import yaml
 
-from astir import Astir
+from astir import Astir, NotClassifiableError
 from astir.data_readers import from_csv_yaml
 
 class TestAstir(TestCase):
@@ -42,5 +42,27 @@ class TestAstir(TestCase):
 
         self.assertTrue(assignments.shape[0] == self.expr.shape[0])
         self.assertTrue(len(losses) == epochs)
+
+    def test_no_overlap(self):
+        bad_file = os.path.join(os.path.dirname(__file__), 'test-data/bad_data.csv')
+        bad_data = pd.read_csv(bad_file)
+        raised = False
+        try:
+            test = Astir(bad_data, self.marker_dict)
+        except(NotClassifiableError):
+            raised = True
+        self.assertTrue(raised == True)
+
+    def missing_marker(self):
+        bad_marker = os.path.join(os.path.dirname(__file__), 'test-data/bad_marker.yml')
+        with open(bad_marker, 'r') as stream:
+            bad_dict = yaml.safe_load(stream)
+        raised = False
+        try:
+            test = Astir(bad_data, self.marker_dict)
+        except(NotClassifiableError):
+            raised = True
+        self.assertTrue(raised == True)   
+
 
     
