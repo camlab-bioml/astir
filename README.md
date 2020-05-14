@@ -14,6 +14,42 @@ pip install -e .
 
 ## Basic usage
 
+### Input
+
+`astir` takes as input a cell-by-gene expression matrix, which can optionally be read in from a csv:
+
+```csv
+"","EGFR","Ruthenium_1","Ruthenium_2","Ruthenium_3","Ruthenium_4"
+"BaselTMA_SP41_186_X5Y4_3679",0.346787047240784,0.962155972321163,0.330768187877474,1.21347557766054,1.26704845953417
+"BaselTMA_SP41_153_X7Y5_246",0.833751713754184,1.07555159349581,0.419977137830632,1.36904891724053,1.38510442154998
+"BaselTMA_SP41_20_X12Y5_197",0.110005567928629,0.908453513733461,0.301166333489085,1.28738891851379,1.30072755877247
+"BaselTMA_SP41_14_X1Y8_84",0.282666026986334,0.865982850277527,0.35037342731126,1.24080330000694,1.26476734524879
+```
+
+and a python dictionary or equivalently `yaml` file relating markers to cell types and cell states:
+
+```yaml
+cell_states:
+  RTK_signalling:
+    - Her2
+    - EGFR
+...
+cell_types:
+  Epithelial (basal):
+    - E-Cadherin
+    - pan Cytokeratin
+    - Cytokeratin 5
+    - Cytokeratin 14
+    - Her2
+  B cells:
+    - CD45
+    - CD20
+...
+```
+
+
+### Running
+
 From the command line:
 
 ```bash
