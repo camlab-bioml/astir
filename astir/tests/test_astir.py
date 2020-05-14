@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import yaml
 
-from astir import Astir, NotClassifiableError
+from astir import Astir
 from astir.data_readers import from_csv_yaml
 
 class TestAstir(TestCase):
@@ -49,7 +49,7 @@ class TestAstir(TestCase):
         raised = False
         try:
             test = Astir(bad_data, self.marker_dict)
-        except(NotClassifiableError):
+        except(RuntimeError):
             raised = True
         self.assertTrue(raised == True)
 
@@ -60,7 +60,7 @@ class TestAstir(TestCase):
         raised = False
         try:
             test = Astir(bad_data, self.marker_dict)
-        except(NotClassifiableError):
+        except(RuntimeError):
             raised = True
         self.assertTrue(raised == True)   
 
