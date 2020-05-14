@@ -13,6 +13,7 @@ class TestAstir(TestCase):
 
         self.expr_csv_file = os.path.join(os.path.dirname(__file__), 'test-data/test_data.csv')
         self.marker_yaml_file = os.path.join(os.path.dirname(__file__), 'test-data/jackson-2020-markers.yml')
+        self.design_file = os.path.join(os.path.dirname(__file__), 'test-data/design.csv')
 
         self.expr = pd.read_csv(self.expr_csv_file)
         with open(self.marker_yaml_file, 'r') as stream:
@@ -29,6 +30,12 @@ class TestAstir(TestCase):
     def test_csv_reading(self):
 
         a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file)
+
+        self.assertIsInstance(a, Astir)
+
+    def test_csv_reading_with_design(self):
+
+        a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file, design_csv=self.design_file)
 
         self.assertIsInstance(a, Astir)
     

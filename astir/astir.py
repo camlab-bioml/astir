@@ -224,6 +224,10 @@ class Astir:
         self.marker_mat = self._construct_marker_mat()
         self.CT_np, self.CS_np = self._get_classifiable_genes(df_gex)
 
+        if design is not None:
+            if isinstance(design, pd.DataFrame):
+                design = design.to_numpy()
+
         self.dset = IMCDataSet(self.CT_np, design)
 
         self.recog = RecognitionNet(self.C, self.G)
