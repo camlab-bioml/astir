@@ -1,5 +1,6 @@
 from .astir import Astir
 from .data_readers.data_readers import *
+from .models.celltype import CellTypeModel
 
 __all__ = [
     "Astir",
