@@ -22,27 +22,28 @@ from sklearn.preprocessing import StandardScaler
 
 
 class Astir:
-    """ Loads a .csv expression file and a .yaml marker file.
+    """Loads a .csv expression file and a .yaml marker file.
 
-    Parameters:
-        assignments {[type]} -- cell type assignment probabilities
-        losses {float} -- losses after optimization
-        type_dict {Dict[str, List[str]]} -- dictionary mapping cell type
-            to the corresponding genes
-        state_dict {Dict[str, List[str]]} -- dictionary mapping cell state
-            to the corresponding genes
-        cell_types {List[str]} -- list of all cell types from marker
-        mtype_genes {List[str]} -- list of all cell type genes from marker
-        mstate_genes {List[str]} -- list of all cell state genes from marker
-        N {int} -- number of rows of data
-        G {int} -- number of cell type genes
-        C {int} -- number of cell types
-        initializations {Dict[str, int]} -- initialization parameters
-        data {Dict[str, int]} -- parameters that is not to be optimized
-        variables {Dict[str, int]} -- parameters that is to be optimized
-        include_beta {type} -- [summery]
+    :raises NotClassifiableError: raised when the input gene expression
+        data or the marker is not classifiable
+
+    :param assignments: cell type assignment probabilities
+    :param losses:losses after optimization
+    :param type_dict: dictionary mapping cell type
+        to the corresponding genes
+    :param state_dict: dictionary mapping cell state
+        to the corresponding genes
+    :param cell_types: list of all cell types from marker
+    :param mtype_genes: list of all cell type genes from marker
+    :param mstate_genes: list of all cell state genes from marker
+    :param N: number of rows of data
+    :param G: number of cell type genes
+    :param C: number of cell types
+    :param initializations: initialization parameters
+    :param data: parameters that is not to be optimized
+    :param variables: parameters that is to be optimized
+    :param include_beta: [summery]
     """
-
     def _param_init(self) -> None:
         """Initialize parameters and design matrices.
         """
@@ -57,17 +58,17 @@ class Astir:
             [self.initializations['mu'], np.zeros((self.G, P-1))])
 
         ## prior on z
-        log_delta = Variable(0 * torch.ones((self.G,self.C+1)), requires_grad = True)
-        self.data = {
-            "log_alpha": torch.log(torch.ones(self.C+1) / (self.C+1)),
-            "delta": torch.exp(log_delta),
-            "rho": torch.from_numpy(self.marker_mat)
-        }
         self.variables = {
             "log_sigma": Variable(torch.from_numpy(
                 self.initializations["log_sigma"].copy()), requires_grad = True),
             "mu": Variable(torch.from_numpy(self.initializations["mu"].copy()), requires_grad = True),
-            "log_delta": log_delta
+            "log_delta": Variable(0 * torch.ones((self.G,self.C+1)), requires_grad = True)
+        }
+
+        self.data = {
+            "log_alpha": torch.log(torch.ones(self.C+1) / (self.C+1)),
+            "delta": torch.exp(self.variables["log_delta"]),
+            "rho": torch.from_numpy(self.marker_mat)
         }
 
         if self.include_beta:
@@ -77,16 +78,15 @@ class Astir:
     def _sanitize_dict(self, marker_dict: Dict[str, dict]) -> Tuple[dict, dict]:
         """Sanitizes the marker dictionary.
 
-        Arguments:
-            marker_dict {Dict[str, dict]} -- dictionary read from the yaml file.
+        :param marker_dict: dictionary read from the yaml file
+        :type marker_dict: Dict[str, dict]
 
-        Raises:
-            NotClassifiableError: Raized when the marker dictionary doesn't 
-                have required format.
+        :raises NotClassifiableError: raized when the marker dictionary doesn't 
+             have required format
 
-        Returns:
-            Tuple[dict, dict] -- dictionaries for cell type and state.
-        """
+        :return: dictionaries for cell type and state.
+        :rtype: Tuple[dict, dict]
+        """   
         keys = list(marker_dict.keys())
         if not len(keys) == 2:
             raise NotClassifiableError("Marker file does not follow the " +\
@@ -110,18 +110,17 @@ class Astir:
         return type_dict, state_dict
 
     def _sanitize_gex(self, df_gex: pd.DataFrame) -> Tuple[int, int, int]:
-        """Sanitizes the inputed gene expression dataframe.
+        """ Sanitizes the inputed gene expression dataframe.
 
-        Arguments:
-            df_gex {pd.DataFrame} -- dataframe read from the input .csv file
+        :param df_gex: dataframe read from the input .csv file
+        :type df_gex: pd.DataFrame
 
-        Raises:
-            NotClassifiableError: raised when the input information is not 
-                sufficient for the classification.
+        :raises NotClassifiableError: raised when the input information is not 
+             sufficient for the classification.
 
-        Returns:
-            Tuple[int, int, int] -- # of rows, # of marker genes, # of cell
-                types
+        :return: # of rows, # of marker genes, # of cell
+             types
+        :rtype: Tuple[int, int, int]
         """
         N = df_gex.shape[0]
         G = len(self.mtype_genes)
@@ -140,16 +139,12 @@ class Astir:
         """Return the classifiable data which contains a subset of genes from
             the marker and the input data.
 
-        Arguments:
-            df_gex {pd.Dataframe} -- input gene expression dataframe
+        :raises NotClassifiableError: raised when there is no overlap between the
+            inputed type or state gene and the marker type or state gene
 
-        Raises:
-            NotClassifiableError: raised when there is no overlap between the
-                inputed type or state gene and the marker type or state gene
-
-        Returns:
-            Tuple[pd.Dataframe, pd.Dataframe] -- classifiable cell type data
-                and cell state data
+        :return: classifiable cell type data
+            and cell state data
+        :rtype: Tuple[pd.Dataframe, pd.Dataframe]
         """
         ## This should also be done to cell_states
         try:
@@ -178,8 +173,8 @@ class Astir:
     def _construct_marker_mat(self) -> np.array:
         """ Constructs a matrix representing the marker information.
 
-        Returns:
-            np.array -- constructed matriz
+        :return: constructed matriz
+        :rtype: np.array
         """
         marker_mat = np.zeros(shape = (self.G,self.C+1))
         for g in range(self.G):
@@ -196,23 +191,22 @@ class Astir:
     def _forward(self, Y: torch.Tensor , X: torch.Tensor, design: torch.Tensor) -> torch.Tensor:
         """[summary]
 
-        Arguments:
-            Y {torch.Tensor} -- [description]
-            X {torch.Tensor} -- [description]
-            design {torch.Tensor} -- [description]
+        :param Y: [description]
+        :type Y: torch.Tensor
+        :param X: [description]
+        :type X: torch.Tensor
+        :param design: [description]
+        :type design: torch.Tensor
 
-        Returns:
-            torch.Tensor -- [description]
+        :return: [description]
+        :rtype: torch.Tensor
         """
-        
         Y_spread = Y.reshape(-1, self.G, 1).repeat(1, 1, self.C+1)
 
         delta_tilde = torch.exp(self.variables["log_delta"]) # + np.log(0.5)
         mean =  delta_tilde * self.data["rho"] 
-
         mean2 = torch.matmul(design, self.variables['mu'].T) ## N x P * P x G
         mean2 = mean2.reshape(-1, self.G, 1).repeat(1, 1, self.C+1)
-
         mean = mean + mean2
 
         if self.include_beta:
@@ -220,17 +214,12 @@ class Astir:
                 min_delta = torch.min(delta_tilde, 1).values.reshape((self.G,1))
             mean = mean + min_delta * torch.tanh(self.variables["beta"]) * (1 - self.data["rho"]) 
 
-
         dist = Normal(torch.exp(mean), torch.exp(self.variables["log_sigma"]).reshape(-1, 1))
         # dist = StudentT(torch.tensor(1.), torch.exp(mean), torch.exp(self.variables["log_sigma"]).reshape(-1, 1))
 
-
         log_p_y = dist.log_prob(Y_spread)
-
         log_p_y_on_c = log_p_y.sum(1)
-        
         gamma = self.recog.forward(X)
-
         elbo = ( gamma * (log_p_y_on_c + self.data["log_alpha"] - torch.log(gamma)) ).sum()
         
         return -elbo
@@ -243,17 +232,19 @@ class Astir:
                 include_beta = True) -> None:
         """Initializes an Astir object
 
-        Arguments:
-            df_gex {pd.DataFrame} -- the input gene expression dataframe
-            marker_dict {Dict} -- the gene marker dictionary
+        :param df_gex: the input gene expression dataframe
+        :type df_gex: pd.DataFrame
+        :param marker_dict: the gene marker dictionary
+        :type marker_dict: Dict
 
-        Keyword Arguments:
-            design {[type]} -- [description] (default: {None})
-            random_seed {int} -- [description] (default: {1234})
-            include_beta {bool} -- [description] (default: {True})
+        :param design: [description], defaults to None
+        :type design: [type], optional
+        :param random_seed: [description], defaults to 1234
+        :type random_seed: int, optional
+        :param include_beta: [description], defaults to True
+        :type include_beta: bool, optional
 
-        Raises:
-            NotClassifiableError: raised when randon seed is not an integer
+        :raises NotClassifiableError: raised when randon seed is not an integer
         """
         #Todo: fix problem with random seed
         if not isinstance(random_seed, int):
@@ -298,12 +289,14 @@ class Astir:
 
     def fit(self, epochs = 100, learning_rate = 1e-2, 
         batch_size = 1024) -> None:
-        """ Fit the model.
+        """Fit the model.
 
-        Keyword Arguments:
-            epochs {int} -- [description] (default: {100})
-            learning_rate {[type]} -- [description] (default: {1e-2})
-            batch_size {int} -- [description] (default: {1024})
+        :param epochs: [description], defaults to 100
+        :type epochs: int, optional
+        :param learning_rate: [description], defaults to 1e-2
+        :type learning_rate: [type], optional
+        :param batch_size: [description], defaults to 1024
+        :type batch_size: int, optional
         """
         ## Make dataloader
         dataloader = DataLoader(self.dset, batch_size=min(batch_size, self.N),\
@@ -343,32 +336,32 @@ class Astir:
     def get_assignments(self) -> pd.DataFrame:
         """ Getter for assignments.
 
-        Returns:
-            pd.DataFrame -- self.assignments
+        :return: self.assignments
+        :rtype: pd.DataFrame
         """
         return self.assignments
     
     def get_losses(self) -> float:
         """ Getter for losses
 
-        Returns:
-            [float] -- self.losses
+        :return: self.losses
+        :rtype: float
         """
         return self.losses
 
     def to_csv(self, output_csv: str) -> None:
         """ Output the assignment as a csv file.
 
-        Arguments:
-            output_csv {str} -- name for the output .csv file
+        :param output_csv: name for the output .csv file
+        :type output_csv: str
         """
         self.assignments.to_csv(output_csv)
 
     def __str__(self) -> str:
-        """String representation for Astir.
+        """ String representation for Astir.
 
-        Returns:
-            str -- summary for Astir object
+        :return: summary for Astir object
+        :rtype: str
         """
         return "Astir object with " + str(self.CT_np.shape[1]) + \
             " columns of cell types, " + str(self.CS_np.shape[1]) + \
@@ -379,7 +372,7 @@ class Astir:
 ## NotClassifiableError: an error to be raised when the dataset fails 
 # to be analysed.
 class NotClassifiableError(RuntimeError):
-    """Raised when the input data is not classifiable.
+    """ Raised when the input data is not classifiable.
     """
     pass
 
@@ -391,10 +384,12 @@ class IMCDataSet(Dataset):
     def __init__(self, Y_np: np.array, design: np.array) -> None:
         """[summary]
 
-        Arguments:
-            Dataset {[type]} -- [description]
-            Y_np {np.array} -- [description]
-            design {np.array} -- [description]
+        :param Dataset: [description]
+        :type Dataset: [type]
+        :param Y_np: [description]
+        :type Y_np: np.array
+        :param design: [description]
+        :type design: np.array
         """
         self.Y = torch.from_numpy(Y_np)
         X = StandardScaler().fit_transform(Y_np)
@@ -404,33 +399,29 @@ class IMCDataSet(Dataset):
     def __len__(self) -> int:
         """[summary]
 
-        Returns:
-            int -- [description]
+        :return: [description]
+        :rtype: int
         """
         return self.Y.shape[0]
     
     def __getitem__(self, idx):
         """[summary]
 
-        Arguments:
-            idx {[type]} -- [description]
-
-        Returns:
-            [type] -- [description]
+        :param idx: [description]
+        :type idx: [type]
+        :return: [description]
+        :rtype: [type]
         """
         return self.Y[idx,:], self.X[idx,:], self.design[idx,:]
     
     def _fix_design(self, design: np.array) -> torch.tensor:
         """[summary]
 
-        Arguments:
-            design {np.array} -- [description]
-
-        Raises:
-            NotClassifiableError: [description]
-
-        Returns:
-            torch.tensor -- [description]
+        :param design: [description]
+        :type design: np.array
+        :raises NotClassifiableError: [description]
+        :return: [description]
+        :rtype: torch.tensor
         """
         d = None
         if design is None:
@@ -452,13 +443,14 @@ class RecognitionNet(nn.Module):
     def __init__(self, C: int, G: int, h=6) -> None:
         """[summary]
 
-        Arguments:
-            nn {[type]} -- [description]
-            C {int} -- [description]
-            G {int} -- [description]
-
-        Keyword Arguments:
-            h {int} -- [description] (default: {6})
+        :param nn: [description]
+        :type nn: [type]
+        :param C: [description]
+        :type C: int
+        :param G: [description]
+        :type G: int
+        :param h: [description], defaults to 6
+        :type h: int, optional
         """
         super(RecognitionNet, self).__init__()
         self.hidden_1 = nn.Linear(G, h).double()
@@ -467,11 +459,10 @@ class RecognitionNet(nn.Module):
     def forward(self, x):
         """[summary]
 
-        Arguments:
-            x {[type]} -- [description]
-
-        Returns:
-            [type] -- [description]
+        :param x: [description]
+        :type x: [type]
+        :return: [description]
+        :rtype: [type]
         """
         x = self.hidden_1(x)
         x = F.relu(x)
