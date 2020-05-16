@@ -163,35 +163,35 @@ class CellStateModel:
 
         return Y_np
 
-    # def _forward(self, param_index=0):
-    #     """ One forward pass
-    #
-    #     :param param_index: the index of the parameters, if not specified
-    #     the function assumes that it only has one set of parameters,
-    #     defaults to 0
-    #     :type param_index: int, optional
-    #     """
-    #     log_sigma = self.variables["log_sigma"][param_index]
-    #     mu = self.variables["mu"][param_index]
-    #     alpha = self.variables["alpha"][param_index]
-    #     log_beta = self.variables["log_beta"][param_index]
-    #
-    #     rho = self.data["rho"]
-    #     Y = self.data["Y"]
-    #
-    #     rho_beta = torch.mul(rho, torch.exp(log_beta))
-    #     mean = mu + torch.matmul(alpha, rho_beta)
-    #
-    #     dist = Normal(mean, torch.exp(log_sigma).reshape(1, -1))
-    #
-    #     log_p_y = dist.log_prob(Y)
-    #     prior_alpha = Normal(torch.zeros(1),
-    #                          0.5 * torch.ones(1)).log_prob(alpha)
-    #     prior_sigma = Normal(torch.zeros(1),
-    #                          0.5 * torch.ones(1)).log_prob(log_sigma)
-    #
-    #     loss = log_p_y.sum() + prior_alpha.sum() + prior_sigma.sum()
-    #     return -loss
+    def _forward(self, param_index=0):
+        """ One forward pass
+
+        :param param_index: the index of the parameters, if not specified
+        the function assumes that it only has one set of parameters,
+        defaults to 0
+        :type param_index: int, optional
+        """
+        log_sigma = self.variables["log_sigma"][param_index]
+        mu = self.variables["mu"][param_index]
+        alpha = self.variables["alpha"][param_index]
+        log_beta = self.variables["log_beta"][param_index]
+
+        rho = self.data["rho"]
+        Y = self.data["Y"]
+
+        rho_beta = torch.mul(rho, torch.exp(log_beta))
+        mean = mu + torch.matmul(alpha, rho_beta)
+
+        dist = Normal(mean, torch.exp(log_sigma).reshape(1, -1))
+
+        log_p_y = dist.log_prob(Y)
+        prior_alpha = Normal(torch.zeros(1),
+                             0.5 * torch.ones(1)).log_prob(alpha)
+        prior_sigma = Normal(torch.zeros(1),
+                             0.5 * torch.ones(1)).log_prob(log_sigma)
+
+        loss = log_p_y.sum() + prior_alpha.sum() + prior_sigma.sum()
+        return -loss
 
     def __init__(self, df_gex: pd.DataFrame, marker_dict: Dict,
                  random_seed=1234, include_beta=True, alpha_random=True,
@@ -262,6 +262,8 @@ class CellStateModel:
         # self.recog = RecognitionNet(self.C, self.G)
         #
         self._param_init()
+        print(self.initializations)
+        print(self.variables)
 
     def fit(self, n_epochs=100, learning_rate=1e-2, batch_size=1024) -> None:
         """ Fit the model
@@ -279,6 +281,7 @@ class CellStateModel:
     #  use
     # TODO: write a function that runs train loops
     # TODO: dataloader make batches
+    # TODO: random seed when n_init_params > 1
 
 
 class NotClassifiableError(RuntimeError):
