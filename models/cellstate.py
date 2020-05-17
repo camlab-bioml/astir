@@ -166,18 +166,18 @@ class CellStateModel:
 
         return Y_np
 
-    def _forward(self, param_index=0):
+    def _forward(self, var_index=0):
         """ One forward pass
 
-        :param param_index: the index of the parameters, if not specified
+        :param var_index: the index of the parameters, if not specified
         the function assumes that it only has one set of parameters,
         defaults to 0
-        :type param_index: int, optional
+        :type var_index: int, optional
         """
-        log_sigma = self.variables["log_sigma"][param_index]
-        mu = self.variables["mu"][param_index]
-        alpha = self.variables["alpha"][param_index]
-        log_beta = self.variables["log_beta"][param_index]
+        log_sigma = self.variables["log_sigma"][var_index]
+        mu = self.variables["mu"][var_index]
+        alpha = self.variables["alpha"][var_index]
+        log_beta = self.variables["log_beta"][var_index]
 
         rho = self.data["rho"]
         Y = self.data["Y"]
@@ -198,7 +198,7 @@ class CellStateModel:
 
     def __init__(self, df_gex: pd.DataFrame, marker_dict: Dict,
                  random_seed=1234, include_beta=True, alpha_random=True,
-                 n_init_params=1):
+                 n_init_params=1, learning_rate=1e-2, n_epochs=500):
         """ Initialize a Cell State Model
 
         :param df_gex: the input gene expression dataframe
@@ -215,6 +215,8 @@ class CellStateModel:
         :type alpha_random: bool, optional, defaults to True
         :param n_init_params: number of sets of parameters to initialize
         :type n_init_params: int, optional, defaults to 1
+        :param learning_rate: the learning rate, defaults to 1e-2
+        :type learning_rate: float, optional
         """
         if not isinstance(random_seed, int):
             raise NotClassifiableError(\
@@ -250,6 +252,8 @@ class CellStateModel:
         self.alpha_random = alpha_random
 
         self.n_init_params = n_init_params
+        self.learning_rate = learning_rate
+        self.n_epochs = n_epochs
 
         self.state_mat = self._construct_state_mat()
         self.Y_np = self._get_classifiable_genes(df_gex)
@@ -264,9 +268,83 @@ class CellStateModel:
         #
         # self.recog = RecognitionNet(self.C, self.G)
         #
+        self.losses = []
         self._param_init()
 
-    def fit(self, n_epochs=100, learning_rate=1e-2, batch_size=1024) -> None:
+    def _train_loops(self, n_iter, var_index) -> np.array:
+        """ Train loops
+
+        :param n_iter: number of train loop iterations
+        :type n_iter: int, required
+        :param var_index: parameter index to run train loops on
+        :type var_index: int, required
+
+        :return: np.array of shape (n_iter,) that contains the losses after
+        each iteration where the last element of the numpy array is the loss
+        after n_iter iterations
+        :rtype: np.array
+        """
+        if n_iter > self.n_epochs:
+            raise InvalidInputError("The number of iterations should be less "
+                                    "than the number of epochs")
+
+        losses = np.empty(n_iter)
+
+        for it in range(n_iter):
+            self.optimizers[var_index].zero_grad()
+
+            # Forward pass & Compute loss
+            loss = self._forward(var_index)
+
+            # Backward pass
+            loss.backward()
+
+            # Update parameters
+            self.optimizers[var_index].step()
+
+            l = loss.detach().numpy()
+            losses[it] = l
+
+        return losses
+
+    def _train_param_init(self, max_iter, param_index, conv_rate=1e-3):
+        """ Train each parameters until convergences
+
+        :param max_iter: maximum iteration, if the convergence rate does not
+        reach by max_iter iterations the train loop terminates
+        :type max_iter: int, required
+        :param param_index: the index of the parameters
+        :type param_index: int, required
+        :param conv_rate: the convergence rate where the parameter stops,
+        defaults to 0.001
+        :type conv_rate: float, optional
+        """
+        if max_iter > self.n_epochs:
+            raise InvalidInputError("The number of iterations should be " + \
+                                    "less than the number of epochs")
+
+        for i in range(self.n_init_params):
+            # Perform first ten iterations
+            n_train_iter = 10
+            count_iter = n_train_iter
+            losses = self._train_loops(n_iter=n_train_iter, var_index=i)
+
+            ratio_loss = 1
+            prev_mean = np.sum(losses) / n_train_iter
+
+            # Find the iteration where the loss converges
+            while ((ratio_loss > conv_rate) or (ratio_loss < 0)) and \
+                    (~(count_iter > max_iter)):
+                loss = self._train_loops(n_iter=1, var_index=i)
+                losses = np.append(losses, loss)
+
+                curr_mean = np.sum(losses[-n_train_iter:]) / n_train_iter
+                ratio_loss = (prev_mean - curr_mean) / prev_mean
+                count_iter += 1
+
+            self.losses.append(losses)
+
+    def fit(self, n_epochs=100, batch_size=1024) -> None:
         """ Fit the model
 
         :param n_epochs: the number of epochs, defaults to 100
@@ -276,7 +354,34 @@ class CellStateModel:
         :param batch_size: the batch size, defaults to 1024
         :type batch_size: int, optional
         """
+        # Create optimizers
+        self.optimizers = []
+        for i in range(self.n_init_params):
+            opt_params = list(self.variables[i].values())
+            optimizer = torch.optim.Adam(opt_params, lr=self.learning_rate)
+            self.optimizers.append(optimizer)
+
         # Determine which parameter the model should use
+        losses_after_convergence = np.array([
+            self._train_param_init(max_iter=n_epochs, param_index=i)
+            for i in range(self.n_init_params)
+        ])
+        best_loss_index = np.argmin(losses_after_convergence)
+        n_iter_done = len(self.losses[best_loss_index])
+
+        # Run the remaining training loops
+        remaining_n_iter = self.n_epochs - n_iter_done
+        losses = self._train_loops(n_iter=remaining_n_iter,
+                                   var_index=best_loss_index)
+        self.losses[best_loss_index] = \
+            np.append(self.losses[best_loss_index], losses)
+
+        # TODO
+        # g = self.recog.forward(self.dset.X).detach().numpy()
+        # self.assignments = pd.DataFrame(g)
+        # self.assignments.columns = self.cell_types + ['Other']
+        # self.assignments.index = self.core_names
+
 
 
     # TODO: write a function that determines which parameter the model should
@@ -291,6 +396,8 @@ class NotClassifiableError(RuntimeError):
     """
     pass
 
+class InvalidInputError(RuntimeError):
+    pass
 
 if __name__ == "__main__":
     import yaml
