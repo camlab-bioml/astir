@@ -41,7 +41,7 @@ parser.add_argument("--log_delta_init",
 
 args = parser.parse_args()
 
-a = from_csv_yaml(args.expr_csv, args.marker_yaml, design=args.design, random_seed=args.random_seed)
+a = from_csv_yaml(args.expr_csv, args.marker_yaml, design_csv=args.design, random_seed=args.random_seed)
 
 a.fit(epochs = args.epochs, 
     learning_rate = args.learning_rate, 
