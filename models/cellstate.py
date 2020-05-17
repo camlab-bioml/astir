@@ -29,44 +29,47 @@ class CellStateModel:
         data or the marker is not classifiable
 
     :param initializations: initialization of parameters
-    :type initializations: Dict[str, list], length of lists are n_init_params
+    :type initializations: List[Dict[str, np.array]]
     :param data: parameters that are not optimized
     :type data: Dict[str, torch.Tensor]
     :param variables: parameters that are optimized
-    :type variables: Dict[str, List[torch.Tensor]]
+    :type variables: List[Dict[str, torch.Tensor]]
     """
-    def _param_init(self) -> None:
-        """ Initialize parameters
-        """
-        self.initializations = {
-            "log_sigma": [np.log(self.Y_np.std()).reshape(1)
-                          for _ in range(self.n_init_params)],
-            "mu": [self.Y_np.mean(0).reshape(1, -1)
-                   for _ in range(self.n_init_params)]
-        }
+    def _single_param_init(self) -> Dict[str, np.array]:
+        """ Initializes a single set of parameters
 
+        :return: dictionary which contains initializations of parameters
+        :rtype: Dict[str, np.array]
+        """
+        init_params = {
+            "log_sigma": np.log(self.Y_np.std()).reshape(1),
+            "mu": self.Y_np.mean(0).reshape(1, -1)
+        }
         if self.alpha_random:
-            self.initializations["alpha"] = \
-                [np.zeros((self.N, self.C)) +
-                 np.random.normal(loc=0, scale=0.5)
-                 for _ in range(self.n_init_params)]
+            init_params["alpha"] = np.zeros((self.N, self.C)) + \
+                                   np.random.normal(loc=0, scale=0.5)
         else:
-            self.initializations["alpha"] = [np.zeros((self.N, self.C))
-                                             for _ in range(self.n_init_params)]
+            init_params["alpha"] = np.zeros((self.N, self.C))
 
         if self.include_beta:
-            self.initializations["log_beta"] = \
-                [np.log(np.random.uniform(
-                    low=0, high=1.5, size=(self.C, self.G)))
-                for _ in range(self.n_init_params)]
+            init_params["log_beta"] = np.log(
+                np.random.uniform(low=0, high=1.5, size=(self.C, self.G)))
 
-        self.variables = {}
-        for param_name, param in self.initializations.items():
-            self.variables[param_name] = []
-            for i in range(self.n_init_params):
-                variable = Variable(torch.from_numpy(param[i].copy()),
+        return init_params
+
+    def _param_init(self) -> None:
+        """ Initialize sets of parameters
+        """
+        self.initializations = [self._single_param_init()
+                                for _ in range(self.n_init_params)]
+        self.variables = []
+        for i in range(self.n_init_params):
+            variables = {}
+            for param_name, param in self.initializations[i].items():
+                variable = Variable(torch.from_numpy(param.copy()),
                                     requires_grad=True)
-                self.variables[param_name].append(variable)
+                variables[param_name] = variable
+            self.variables.append(variables)
 
         self.data = {
             "rho": torch.from_numpy(self.state_mat.T).double().to(self.device),
@@ -262,8 +265,6 @@ class CellStateModel:
         # self.recog = RecognitionNet(self.C, self.G)
         #
         self._param_init()
-        print(self.initializations)
-        print(self.variables)
 
     def fit(self, n_epochs=100, learning_rate=1e-2, batch_size=1024) -> None:
         """ Fit the model
@@ -275,7 +276,8 @@ class CellStateModel:
         :param batch_size: the batch size, defaults to 1024
         :type batch_size: int, optional
         """
-        pass
+        # Determine which parameter the model should use
+
 
     # TODO: write a function that determines which parameter the model should
     #  use
@@ -290,17 +292,16 @@ class NotClassifiableError(RuntimeError):
     pass
 
 
-# if __name__ == "__main__":
-#     import yaml
-#
-#     expr_csv = "sce.csv"
-#     marker_yaml = "jackson-2020-markers.yml"
-#
-#     df_gex = pd.read_csv(expr_csv, index_col=0)
-#     with open(marker_yaml, 'r') as stream:
-#         marker_dict = yaml.safe_load(stream)
-#     print(df_gex.shape)
-#     model = CellStateModel(df_gex, marker_dict, random_seed=42,
-#                            include_beta=True, alpha_random=True,
-#                            n_init_params=1)
+if __name__ == "__main__":
+    import yaml
+
+    expr_csv = "sce.csv"
+    marker_yaml = "jackson-2020-markers.yml"
+
+    df_gex = pd.read_csv(expr_csv, index_col=0)
+    with open(marker_yaml, 'r') as stream:
+        marker_dict = yaml.safe_load(stream)
+    model = CellStateModel(df_gex, marker_dict, random_seed=42,
+                           include_beta=True, alpha_random=True,
+                           n_init_params=4)
 
