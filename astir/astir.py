@@ -81,7 +81,8 @@ class Astir:
                 " in the marker file.")
         return type_dict, state_dict
 
-    def _sanitize_gex(self, df_gex: pd.DataFrame) -> Tuple[int, int, int]:
+    def _sanitize_gex(self, df_gex: pd.DataFrame) -> Tuple[int, int, int,
+                                                           int, int]:
         """ Sanitizes the inputed gene expression dataframe.
 
         :param df_gex: dataframe read from the input .csv file
@@ -215,7 +216,7 @@ class Astir:
         self._mstate_genes = list(set([l for s in self._state_dict.values() \
             for l in s]))
 
-        N, self._G_t, self._G_s, self._C_t, self._C_s = \
+        self._N, self._G_t, self._G_s, self._C_t, self._C_s = \
             self._sanitize_gex(df_gex)
 
         # Read input data
@@ -227,10 +228,10 @@ class Astir:
         self._CT_np, self._CS_np = self._get_classifiable_genes(df_gex)
 
         self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
-            N, self._G_t, self._C_t, type_mat, include_beta, design)
+            self._N, self._G_t, self._C_t, type_mat, include_beta, design)
         self._state_ast = \
             CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
-                           N=N, G=self._G_s, C=self._C_s,
+                           N=self._N, G=self._G_s, C=self._C_s,
                            state_mat=state_mat, design=None,
                            include_beta=True, alpha_random=True,
                            random_seed=random_seed)
