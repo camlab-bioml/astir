@@ -10,6 +10,8 @@ Welcome to astir's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   about
+
 
 
 Indices and tables
