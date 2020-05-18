@@ -128,3 +128,21 @@ class TestAstir(TestCase):
 
         self.assertEqual(expected_G, actual_G, "unexpected G value")
         self.assertEqual(expected_C, actual_C, "unexpected C value")
+
+    def test_core_names(self):
+        """ Test core names
+        """
+        expected_core_names = sorted(self.expr.index)
+        actual_core_names = sorted(self.a._core_names)
+
+        self.assertListEqual(expected_core_names, actual_core_names,
+                             "unexpected _core_names value")
+
+    def test_expr_gene_names(self):
+        """ Test _expression_genes
+        """
+        expected_gene_names = sorted(self.expr.columns)
+        actual_gene_names = sorted(self.a._expression_genes)
+
+        self.assertListEqual(expected_gene_names, actual_gene_names,
+                             "unexpected _expression_genes value")
