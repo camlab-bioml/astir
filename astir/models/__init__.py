@@ -1,1 +1,1 @@
-from astir.models.celltype import *
+from .celltype import *
