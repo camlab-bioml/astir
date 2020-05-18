@@ -35,41 +35,32 @@ class CellStateModel:
     :param variables: parameters that are optimized
     :type variables: List[Dict[str, torch.Tensor]]
     """
-    def _single_param_init(self) -> Dict[str, np.array]:
-        """ Initializes a single set of parameters
-
-        :return: dictionary which contains initializations of parameters
-        :rtype: Dict[str, np.array]
-        """
-        init_params = {
-            "log_sigma": np.log(self.Y_np.std()).reshape(1),
-            "mu": self.Y_np.mean(0).reshape(1, -1)
-        }
-        if self.alpha_random:
-            init_params["alpha"] = np.zeros((self.N, self.C)) + \
-                                   np.random.normal(loc=0, scale=0.5)
-        else:
-            init_params["alpha"] = np.zeros((self.N, self.C))
-
-        if self.include_beta:
-            init_params["log_beta"] = np.log(
-                np.random.uniform(low=0, high=1.5, size=(self.C, self.G)))
-
-        return init_params
 
     def _param_init(self) -> None:
         """ Initialize sets of parameters
         """
-        self.initializations = [self._single_param_init()
-                                for _ in range(self.n_init_params)]
-        self.variables = []
-        for i in range(self.n_init_params):
-            variables = {}
-            for param_name, param in self.initializations[i].items():
-                variable = Variable(torch.from_numpy(param.copy()),
-                                    requires_grad=True)
-                variables[param_name] = variable
-            self.variables.append(variables)
+        self.initializations = {
+            "log_sigma": np.log(self.Y_np.std()).reshape(1),
+            "mu": self.Y_np.mean(0).reshape(1, -1)
+        }
+        # Implement Gaussian noise to alpha?
+        if self.alpha_random:
+            self.initializations["alpha"] = np.zeros((self.N, self.C)) + \
+                                            np.random.normal(loc=0, scale=0.5)
+        else:
+            self.initializations["alpha"] = np.zeros((self.N, self.C))
+
+        # Include beta or not
+        if self.include_beta:
+            self.initializations["log_beta"] = np.log(
+                np.random.uniform(low=0, high=1.5, size=(self.C, self.G)))
+
+        self.variables = {}
+        for param_name, param in self.initializations.items():
+            self.variables[param_name] = Variable(
+                torch.from_numpy(self.initializations[param_name].copy()),
+                requires_grad=True
+            )
 
         self.data = {
             "rho": torch.from_numpy(self.state_mat.T).double().to(self.device),
@@ -166,18 +157,13 @@ class CellStateModel:
 
         return Y_np
 
-    def _forward(self, var_index=0):
+    def _forward(self):
         """ One forward pass
-
-        :param var_index: the index of the parameters, if not specified
-        the function assumes that it only has one set of parameters,
-        defaults to 0
-        :type var_index: int, optional
         """
-        log_sigma = self.variables["log_sigma"][var_index]
-        mu = self.variables["mu"][var_index]
-        alpha = self.variables["alpha"][var_index]
-        log_beta = self.variables["log_beta"][var_index]
+        log_sigma = self.variables["log_sigma"]
+        mu = self.variables["mu"]
+        alpha = self.variables["alpha"]
+        log_beta = self.variables["log_beta"]
 
         rho = self.data["rho"]
         Y = self.data["Y"]
@@ -197,8 +183,7 @@ class CellStateModel:
         return -loss
 
     def __init__(self, df_gex: pd.DataFrame, marker_dict: Dict,
-                 random_seed=1234, include_beta=True, alpha_random=True,
-                 n_init_params=1, learning_rate=1e-2, n_epochs=500):
+                 random_seed=1234, include_beta=True, alpha_random=True):
         """ Initialize a Cell State Model
 
         :param df_gex: the input gene expression dataframe
@@ -213,10 +198,6 @@ class CellStateModel:
         :param alpha_random: adds Gaussian noise to alpha initialization if True
         otherwise alpha is initialized to zeros
         :type alpha_random: bool, optional, defaults to True
-        :param n_init_params: number of sets of parameters to initialize
-        :type n_init_params: int, optional, defaults to 1
-        :param learning_rate: the learning rate, defaults to 1e-2
-        :type learning_rate: float, optional
         """
         if not isinstance(random_seed, int):
             raise NotClassifiableError(\
@@ -251,14 +232,12 @@ class CellStateModel:
         self.include_beta = include_beta
         self.alpha_random = alpha_random
 
-        self.n_init_params = n_init_params
-        self.learning_rate = learning_rate
-        self.n_epochs = n_epochs
-
         self.state_mat = self._construct_state_mat()
         self.Y_np = self._get_classifiable_genes(df_gex)
         # Rescale data so that the model is not gene specific
         self.Y_np = self.Y_np / (self.Y_np.std(0))
+
+        self.optimizer = None
 
         # if design is not None:
         #     if isinstance(design, pd.DataFrame):
@@ -268,121 +247,172 @@ class CellStateModel:
         #
         # self.recog = RecognitionNet(self.C, self.G)
         #
-        self.losses = []
         self._param_init()
 
-    def _train_loops(self, n_iter, var_index) -> np.array:
+        # print("===== self.initializations =====")
+        # for param_name, param in self.initializations.items():
+        #     print("#########", param_name, "#########")
+        #     print(self.initializations[param_name])
+        #
+        # print("===== self.variables =====")
+        # for param_name, param in self.variables.items():
+        #     print("#########", param_name, "#########")
+        #     print(self.variables[param_name])
+        #
+        # print("===== self.data =====")
+        # for param_name, param in self.data.items():
+        #     print("#########", param_name, "#########")
+        #     print(self.data[param_name])
+        #
+        # print("\nloss: ", self._forward())
+
+    def fit(self, n_epochs, lr=1e-2, delta_loss=1e-3,
+            delta_loss_batch=10) -> np.array:
         """ Train loops
 
-        :param n_iter: number of train loop iterations
-        :type n_iter: int, required
-        :param var_index: parameter index to run train loops on
-        :type var_index: int, required
+        :param n_epochs: number of train loop iterations
+        :type n_epochs: int, required
+        :param lr: the learning rate, defaults to 0.01
+        :type lr: float, optional
+        :param delta_loss: stops iteration once the loss rate reaches
+        delta_loss, defaults to 0.001
+        :type delta_loss: float, optional
+        :param delta_loss_batch:
+        :type delta_loss_batch:
 
         :return: np.array of shape (n_iter,) that contains the losses after
         each iteration where the last element of the numpy array is the loss
         after n_iter iterations
         :rtype: np.array
         """
-        if n_iter > self.n_epochs:
-            raise InvalidInputError("The number of iterations should be less "
-                                    "than the number of epochs")
+        if delta_loss_batch >= n_epochs:
+            warnings.warn("Delta loss batch size is greater than the number "
+                          "of epochs")
 
-        losses = np.empty(n_iter)
+        opt_params = list(self.variables.values())
+        if self.optimizer is None:
+            self.optimizer = torch.optim.Adam(opt_params, lr=lr)
 
-        for it in range(n_iter):
-            self.optimizers[var_index].zero_grad()
+        losses = np.empty(n_epochs)
+
+        prev_mean = None
+        delta_cond_met = False
+
+        for ep in range(n_epochs):
+            self.optimizer.zero_grad()
 
             # Forward pass & Compute loss
-            loss = self._forward(var_index)
+            loss = self._forward()
 
             # Backward pass
             loss.backward()
 
             # Update parameters
-            self.optimizers[var_index].step()
+            self.optimizer.step()
 
             l = loss.detach().numpy()
-            losses[it] = l
+            losses[ep] = l
+
+            start_index = ep - delta_loss_batch + 1
+            if start_index >= 0:
+                end_index = start_index + delta_loss_batch
+                curr_mean = np.mean(losses[start_index:end_index])
+                if prev_mean is not None:
+                    curr_delta_loss = (prev_mean - curr_mean) / prev_mean
+                    delta_cond_met = 0 < curr_delta_loss < delta_loss
+                prev_mean = curr_mean
+
+            if delta_cond_met:
+                losses = losses[0:ep+1]
+                break
+
+        if not delta_cond_met:
+            warnings.warn("Reached max iter but not converged")
 
         return losses
 
-    def _train_param_init(self, max_iter, param_index, conv_rate=1e-3):
-        """ Train each parameters until convergences
+    # def _train_param_init(self, max_iter, var_index, conv_rate=1e-3):
+    #     """ Train each parameters until convergences
+    #
+    #     :param max_iter: maximum iteration, if the convergence rate does not
+    #     reach by max_iter iterations the train loop terminates. Assume that
+    #     max_iter is less than or equal to number of epochs.
+    #     :type max_iter: int, required
+    #     :param var_index: the index of the parameters
+    #     :type var_index: int, required
+    #     :param conv_rate: the convergence rate where the parameter stops,
+    #     defaults to 0.001
+    #     :type conv_rate: float, optional
+    #     """
+    #     for i in range(self.n_init_params):
+    #         # Perform first ten iterations
+    #         n_train_iter = 10
+    #         count_iter = n_train_iter
+    #         losses = self._train_loops(n_iter=n_train_iter, var_index=i)
+    #
+    #         ratio_loss = 1
+    #         prev_mean = np.sum(losses) / n_train_iter
+    #
+    #         # Find the iteration where the loss converges
+    #         print(max_iter)
+    #         print(count_iter)
+    #         while (not (0 < ratio_loss < conv_rate)) and \
+    #                 (not (count_iter > max_iter)):
+    #             print((~(count_iter > max_iter)))
+    #             loss = self._train_loops(n_iter=1, var_index=i)
+    #             losses = np.append(losses, loss)
+    #
+    #             curr_mean = np.sum(losses[-n_train_iter:]) / n_train_iter
+    #             ratio_loss = (prev_mean - curr_mean) / prev_mean
+    #             count_iter += 1
+    #
+    #         self.losses.append(losses)
 
-        :param max_iter: maximum iteration, if the convergence rate does not
-        reach by max_iter iterations the train loop terminates
-        :type max_iter: int, required
-        :param param_index: the index of the parameters
-        :type param_index: int, required
-        :param conv_rate: the convergence rate where the parameter stops,
-        defaults to 0.001
-        :type conv_rate: float, optional
-        """
-        if max_iter > self.n_epochs:
-            raise InvalidInputError("The number of iterations should be " + \
-                                    "less than the number of epochs")
-
-        for i in range(self.n_init_params):
-            # Perform first ten iterations
-            n_train_iter = 10
-            count_iter = n_train_iter
-            losses = self._train_loops(n_iter=n_train_iter, var_index=i)
-
-            ratio_loss = 1
-            prev_mean = np.sum(losses) / n_train_iter
-
-            # Find the iteration where the loss converges
-            while ((ratio_loss > conv_rate) or (ratio_loss < 0)) and \
-                    (~(count_iter > max_iter)):
-                loss = self._train_loops(n_iter=1, var_index=i)
-                losses = np.append(losses, loss)
-
-                curr_mean = np.sum(losses[-n_train_iter:]) / n_train_iter
-                ratio_loss = (prev_mean - curr_mean) / prev_mean
-                count_iter += 1
-
-            self.losses.append(losses)
-
-    def fit(self, n_epochs=100, batch_size=1024) -> None:
-        """ Fit the model
-
-        :param n_epochs: the number of epochs, defaults to 100
-        :type n_epochs: int, optional
-        :param learning_rate: the learning rate, defaults to 0.01
-        :type learning_rate: float, optional
-        :param batch_size: the batch size, defaults to 1024
-        :type batch_size: int, optional
-        """
-        # Create optimizers
-        self.optimizers = []
-        for i in range(self.n_init_params):
-            opt_params = list(self.variables[i].values())
-            optimizer = torch.optim.Adam(opt_params, lr=self.learning_rate)
-            self.optimizers.append(optimizer)
-
-        # Determine which parameter the model should use
-        losses_after_convergence = np.array([
-            self._train_param_init(max_iter=n_epochs, param_index=i)
-            for i in range(self.n_init_params)
-        ])
-        best_loss_index = np.argmin(losses_after_convergence)
-        n_iter_done = len(self.losses[best_loss_index])
-
-        # Run the remaining training loops
-        remaining_n_iter = self.n_epochs - n_iter_done
-        losses = self._train_loops(n_iter=remaining_n_iter,
-                                   var_index=best_loss_index)
-        self.losses[best_loss_index] = \
-            np.append(self.losses[best_loss_index], losses)
+    # def fit(self, n_epochs=100, conv_rate=1e-3, lr=1e-2,
+    #         batch_size=1024) -> None:
+    #     """ Fit the model
+    #
+    #     :param n_epochs: the number of epochs, defaults to 100
+    #     :type n_epochs: int, optional
+    #     :param lr: the learning rate, defaults to 0.01
+    #     :type lr: float, optional
+    #     :param batch_size: the batch size, defaults to 1024
+    #     :type batch_size: int, optional
+    #     """
+    #     # Create optimizers
+    #     self.optimizers = []
+    #     for i in range(self.n_init_params):
+    #         opt_params = list(self.variables[i].values())
+    #         optimizer = torch.optim.Adam(opt_params, lr=lr)
+    #         self.optimizers.append(optimizer)
+    #
+    #     # Determine which parameter the model should use
+    #     losses_after_convergence = np.array([
+    #         self._train_param_init(max_iter=n_epochs, var_index=i,
+    #                                conv_rate=conv_rate)
+    #         for i in range(self.n_init_params)
+    #     ])
+    #     best_loss_index = np.argmin(losses_after_convergence)
+    #     n_iter_done = len(self.losses[best_loss_index])
+    #
+    #     # Run the remaining training loops
+    #     remaining_n_iter = n_epochs - n_iter_done
+    #     losses = self._train_loops(n_iter=remaining_n_iter,
+    #                                var_index=best_loss_index)
+    #     self.losses[best_loss_index] = \
+    #         np.append(self.losses[best_loss_index], losses)
+    #
+    #     # TODO: delete
+    #     for i in range(self.n_init_params):
+    #         print("##############", i, "##############")
+    #         pf = pd.DataFrame(self.losses[i])
+    #         print(pf)
 
         # TODO
         # g = self.recog.forward(self.dset.X).detach().numpy()
         # self.assignments = pd.DataFrame(g)
         # self.assignments.columns = self.cell_types + ['Other']
         # self.assignments.index = self.core_names
-
-
 
     # TODO: write a function that determines which parameter the model should
     #  use
@@ -396,8 +426,10 @@ class NotClassifiableError(RuntimeError):
     """
     pass
 
+
 class InvalidInputError(RuntimeError):
     pass
+
 
 if __name__ == "__main__":
     import yaml
@@ -409,6 +441,12 @@ if __name__ == "__main__":
     with open(marker_yaml, 'r') as stream:
         marker_dict = yaml.safe_load(stream)
     model = CellStateModel(df_gex, marker_dict, random_seed=42,
-                           include_beta=True, alpha_random=True,
-                           n_init_params=4)
+                           include_beta=True, alpha_random=True)
+    pd.set_option("max_rows", None)
+    losses = model.fit(n_epochs=100, delta_loss=1e-3, delta_loss_batch=10,
+                       lr=0.01)
+    # losses2 = model.fit(n_epochs=100, delta_loss=1e-3, delta_loss_batch=10)
+    # losses = np.append(losses, losses2)
 
+    pf_losses = pd.DataFrame(losses)
+    print(pf_losses)
