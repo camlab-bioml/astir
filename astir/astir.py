@@ -224,7 +224,7 @@ class Astir:
         self._expression_genes = list(df_gex.columns)
 
         type_mat = self._construct_type_mat()
-        state_mat = self._construct_state_mat()
+        self._state_mat = self._construct_state_mat()
         self._CT_np, self._CS_np = self._get_classifiable_genes(df_gex)
 
         self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
@@ -232,7 +232,7 @@ class Astir:
         self._state_ast = \
             CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
                            N=self._N, G=self._G_s, C=self._C_s,
-                           state_mat=state_mat, design=None,
+                           state_mat=self._state_mat, design=None,
                            include_beta=True, alpha_random=True,
                            random_seed=random_seed)
 
