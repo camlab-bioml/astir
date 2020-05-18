@@ -192,7 +192,7 @@ class Astir:
 
         :param design: [description], defaults to None
         :type design: [type], optional
-        :param random_seed: [description], defaults to 1234
+        :param random_seed: seed number to reproduce results, defaults to 1234
         :type random_seed: int, optional
         :param include_beta: [description], defaults to True
         :type include_beta: bool, optional
