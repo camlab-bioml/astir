@@ -18,6 +18,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 from astir.models.celltype import CellTypeModel
+from astir.models.cellstate import CellStateModel
 from astir.models.imcdataset import IMCDataSet
 from astir.models.recognet import RecognitionNet
 
@@ -109,7 +110,6 @@ class Astir:
                 "should be at least two cell states to classify the data into.")
         return N, G_t, G_s, C_t, C_s
 
-
     def _get_classifiable_genes(self, df_gex: pd.DataFrame) -> \
             Tuple[pd.DataFrame, pd.DataFrame]:
         """Return the classifiable data which contains a subset of genes from
@@ -145,9 +145,9 @@ class Astir:
         return CT_np, CS_np
 
     def _construct_type_mat(self) -> np.array:
-        """[summary]
+        """ Constructs a matrix representing the marker information.
 
-        :return: constructed matriz
+        :return: constructed matrix
         :rtype: np.array
         """
         marker_mat = np.zeros(shape = (self._G_t,self._C_t+1))
@@ -161,22 +161,19 @@ class Astir:
         return marker_mat
 
     def _construct_state_mat(self) -> np.array:
-        """[summary]
+        """ Constructs a matrix representing the marker information.
 
-        Returns:
-            [type] -- [description]
+        :return: constructed matrix
+        :rtype: np.array
         """
-        marker_mat = np.zeros(shape = (self._G_s,self._C_s+1))
-        for g in range(self._G_s):
-            for cs in range(self._C_s):
-                gene = self._mstate_genes[g]
-                cell_state = self._cell_states[cs]
-                if gene in self._state_dict[cell_state]:
-                    marker_mat[g,cs] = 1
+        state_mat = np.zeros(shape=(self.G, self.C))
 
-        return marker_mat
+        for g, gene in enumerate(self.marker_genes):
+            for ct, state in enumerate(self.state_names):
+                if gene in self.state_dict[state]:
+                    state_mat[g, ct] = 1
 
-    ##Todo: _construct_state_mat
+        return state_mat
 
     def __init__(self, 
                 df_gex: pd.DataFrame, marker_dict: Dict,
@@ -218,7 +215,8 @@ class Astir:
         self._mstate_genes = list(set([l for s in self._state_dict.values() \
             for l in s]))
 
-        N, self._G_t, self._G_s, self._C_t, self._C_s = self._sanitize_gex(df_gex)
+        N, self._G_t, self._G_s, self._C_t, self._C_s = \
+            self._sanitize_gex(df_gex)
 
         # Read input data
         self._core_names = list(df_gex.index)
@@ -230,7 +228,12 @@ class Astir:
 
         self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
             N, self._G_t, self._C_t, type_mat, include_beta, design)
-        # self._state_ast = CellStateModel(self._CS_np, self._state_dict)
+        self._state_ast = \
+            CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
+                           N=N, G=self._G_s, C=self._C_s,
+                           state_mat=state_mat, design=None,
+                           include_beta=True, alpha_random=True,
+                           random_seed=random_seed)
 
     def fit_type(self, epochs = 100, learning_rate = 1e-2, 
         batch_size = 1024) -> None:
