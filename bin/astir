@@ -6,11 +6,10 @@ from astir import Astir
 from astir.data_readers import from_csv_yaml
 
 
-
 parser = argparse.ArgumentParser(description='Run astir')
 
 
-
+parser.add_argument("criteria", help="Enter type to classify cells by type or enter state to classify cells by state")
 parser.add_argument("expr_csv", help="Path to CSV expression matrix with cells as rows and proteins as columns. First column is cell ID")
 parser.add_argument("marker_yaml", help="Path to YAML file of cell markers")
 parser.add_argument("output_csv", help="Output CSV of cell assignment probabilities")
@@ -43,8 +42,15 @@ args = parser.parse_args()
 
 a = from_csv_yaml(args.expr_csv, args.marker_yaml, design=args.design, random_seed=args.random_seed)
 
-a.fit(epochs = args.epochs, 
-    learning_rate = args.learning_rate, 
-    batch_size = args.batch_size)
-
-a.to_csv(args.output_csv)
+if args.criteria == "type":
+    a.fit_type(epochs = args.epochs, 
+        learning_rate = args.learning_rate, 
+        batch_size = args.batch_size)
+    a.type_to_csv(args.output_csv)
+# elif args.criteria == "state":
+#     a.fit_state(epochs = args.epochs, 
+#         learning_rate = args.learning_rate, 
+#         batch_size = args.batch_size)
+#     a.state_to_csv(args.output_csv)
+else:
+    print("Please specify the criteria for classification. (astir type [option] / astir state [option])")
