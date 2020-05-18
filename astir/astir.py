@@ -166,11 +166,11 @@ class Astir:
         :return: constructed matrix
         :rtype: np.array
         """
-        state_mat = np.zeros(shape=(self.G, self.C))
+        state_mat = np.zeros(shape=(self._G_s, self._C_s))
 
-        for g, gene in enumerate(self.marker_genes):
-            for ct, state in enumerate(self.state_names):
-                if gene in self.state_dict[state]:
+        for g, gene in enumerate(self._mstate_genes):
+            for ct, state in enumerate(self._cell_states):
+                if gene in self._state_dict[state]:
                     state_mat[g, ct] = 1
 
         return state_mat
