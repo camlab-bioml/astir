@@ -2,6 +2,7 @@ from unittest import TestCase
 import pandas as pd
 import os
 import yaml
+import numpy as np
 
 from astir import Astir
 from astir.data_readers import from_csv_yaml
@@ -150,3 +151,23 @@ class TestAstir(TestCase):
     #
     #     self.assertListEqual(expected_gene_names, actual_gene_names,
     #                          "unexpected _expression_genes value")
+    #
+    # def test_state_mat(self):
+    #     """ Test state_mat variable
+    #     """
+    #     state_dict = self.marker_dict["cell_states"]
+    #     marker_genes = list(
+    #                 set([l for s in state_dict.values() for l in s]))
+    #     state_names = state_dict.keys()
+    #     G = len([item for l in state_dict.values() for item in l])
+    #     C = len(self.marker_dict["cell_states"])
+    #     expected_state_mat = np.zeros(shape=(G, C))
+    #
+    #     for g, gene in enumerate(marker_genes):
+    #         for ct, state in enumerate(state_names):
+    #             if gene in state_dict[state]:
+    #                 expected_state_mat[g, ct] = 1
+    #
+    #     actual_state_mat = self.a._state_mat
+    #
+    #     np.testing.assert_array_equal(expected_state_mat, actual_state_mat)
