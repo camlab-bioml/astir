@@ -22,7 +22,7 @@ class TestAstir(TestCase):
 
 
     def test_basic_instance_creation(self):
-    
+
         self.assertIsInstance(self.a, Astir)
         # self.assertTrue(isinstance(a, str))
 
@@ -32,13 +32,13 @@ class TestAstir(TestCase):
 
         self.assertIsInstance(a, Astir)
     
-    def test_fitting(self):
+    def test_fitting_type(self):
 
         epochs = 2
-        self.a.fit(epochs=epochs)
+        self.a.fit_type(epochs=epochs)
 
-        assignments = self.a.get_assignments()
-        losses = self.a.get_losses()
+        assignments = self.a.get_celltypes()
+        losses = self.a.get_type_losses()
 
         self.assertTrue(assignments.shape[0] == self.expr.shape[0])
         self.assertTrue(len(losses) == epochs)
