@@ -139,6 +139,7 @@ class CellStateModel:
         self.Y_np = self.Y_np / (self.Y_np.std(0))
 
         self.optimizer = None
+        self.losses = None
 
         # if design is not None:
         #     if isinstance(design, pd.DataFrame):
@@ -149,6 +150,24 @@ class CellStateModel:
         # self.recog = RecognitionNet(self.C, self.G)
         #
         self._param_init()
+        # print("===== self.Y_np =====")
+        # print(self.Y_np)
+        # print("===== self.initializations =====")
+        # for param_name, param in self.initializations.items():
+        #     print("#########", param_name, "#########")
+        #     print(self.initializations[param_name])
+        #
+        # print("===== self.variables =====")
+        # for param_name, param in self.variables.items():
+        #     print("#########", param_name, "#########")
+        #     print(self.variables[param_name])
+        #
+        # print("===== self.data =====")
+        # for param_name, param in self.data.items():
+        #     print("#########", param_name, "#########")
+        #     print(self.data[param_name])
+        #
+        # print("\nloss: ", self._forward())
 
     def fit(self, n_epochs, lr=1e-2, delta_loss=1e-3,
             delta_loss_batch=10) -> np.array:
@@ -161,8 +180,9 @@ class CellStateModel:
         :param delta_loss: stops iteration once the loss rate reaches
         delta_loss, defaults to 0.001
         :type delta_loss: float, optional
-        :param delta_loss_batch:
-        :type delta_loss_batch:
+        :param delta_loss_batch: the batch size  to consider delta loss,
+        defaults to 10
+        :type delta_loss_batch: int, optional
 
         :return: np.array of shape (n_iter,) that contains the losses after
         each iteration where the last element of the numpy array is the loss
@@ -173,13 +193,22 @@ class CellStateModel:
             warnings.warn("Delta loss batch size is greater than the number "
                           "of epochs")
 
+        losses = np.empty(n_epochs)
+
         opt_params = list(self.variables.values())
         if self.optimizer is None:
             self.optimizer = torch.optim.Adam(opt_params, lr=lr)
-
-        losses = np.empty(n_epochs)
+        else:
+            if self.losses.size > delta_loss_batch:
+                prev_mean = np.mean(self.losses[-delta_loss_batch-1:-1])
+                curr_mean = np.mean(self.losses[-delta_loss_batch:])
+                curr_delta_loss = (prev_mean - curr_mean) / prev_mean
+                if 0 < curr_delta_loss < delta_loss:
+                    return losses[:0]
 
         prev_mean = None
+        curr_mean = None
+        curr_delta_loss = None
         delta_cond_met = False
 
         for ep in range(n_epochs):
@@ -212,6 +241,11 @@ class CellStateModel:
 
         if not delta_cond_met:
             warnings.warn("Reached max iter but not converged")
+
+        if self.losses is None:
+            self.losses = losses
+        else:
+            self.losses = np.append(self.losses, losses)
 
         return losses
 

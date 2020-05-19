@@ -16,7 +16,6 @@ import pandas as pd
 import numpy as np
 
 from sklearn.preprocessing import StandardScaler
-
 from astir.models.celltype import CellTypeModel
 from astir.models.cellstate import CellStateModel
 from astir.models.imcdataset import IMCDataSet
@@ -200,7 +199,8 @@ class Astir:
         if not isinstance(random_seed, int):
             raise NotClassifiableError(\
                 "Random seed is expected to be an integer.")
-        torch.manual_seed(random_seed)
+        self.random_seed = random_seed
+        torch.manual_seed(self.random_seed)
 
         self._type_assignments = None
         self._state_assignments = None
@@ -214,6 +214,7 @@ class Astir:
             for l in s]))
         self._mstate_genes = list(set([l for s in self._state_dict.values() \
             for l in s]))
+        self._mstate_genes = sorted(self._mstate_genes)
 
         self._N, self._G_t, self._G_s, self._C_t, self._C_s = \
             self._sanitize_gex(df_gex)
@@ -228,12 +229,12 @@ class Astir:
 
         self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
             self._N, self._G_t, self._C_t, type_mat, include_beta, design)
-        self._state_ast = \
-            CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
-                           N=self._N, G=self._G_s, C=self._C_s,
-                           state_mat=self._state_mat, design=None,
-                           include_beta=True, alpha_random=True,
-                           random_seed=random_seed)
+        # self._state_ast = \
+        #     CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
+        #                    N=self._N, G=self._G_s, C=self._C_s,
+        #                    state_mat=self._state_mat, design=None,
+        #                    include_beta=True, alpha_random=True,
+        #                    random_seed=random_seed)
 
     def fit_type(self, epochs = 100, learning_rate = 1e-2, 
         batch_size = 1024) -> None:
@@ -241,10 +242,63 @@ class Astir:
             self._type_assignments = pd.DataFrame(g)
             self._type_assignments.columns = self._cell_types + ['Other']
             self._type_assignments.index = self._core_names
-    
-    # def fit_state(self, epochs = 100, learning_rate = 1e-2, 
-    #     batch_size = 1024) -> None:
-    #         self._state_ast.fit(epochs, learning_rate, batch_size)
+
+    def fit_state(self, n_epochs=100, learning_rate=1e-2, n_init_params=5,
+                  delta_loss=1e-3, delta_loss_batch=10, batch_size=1024):
+        """ Fitting CellStateModel
+
+        :param n_epochs: number of epochs, defaults to 100
+        :type n_epochs: int, optional
+        :param learning_rate: the learning rate, defaults to 1e-2
+        :type learning_rate: float, optional
+        :param n_init_params: the number of initial parameters to compare,
+        defaults to 5
+        :type n_init_params: int, optional
+        :param delta_loss: stops iteration once the loss rate reaches
+        delta_loss, defaults to 0.001
+        :type delta_loss: float, optional
+        :param delta_loss_batch: the batch size  to consider delta loss,
+        defaults to 10
+        :type delta_loss_batch: int, optional
+        :param batch_size: the batch size, defaults to 1024
+        :type batch_size: int, optional
+        """
+        self._cellstate_models = []
+        self._cellstate_losses = []
+
+        for i in range(n_init_params):
+            # Initializing a model
+            model = \
+                CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
+                               N=self._N, G=self._G_s, C=self._C_s,
+                               state_mat=self._state_mat, design=None,
+                               include_beta=True, alpha_random=True,
+                               random_seed=(self.random_seed + i))
+
+            # Fitting the model
+            n_init_epochs = min(n_epochs, 100)
+            losses = model.fit(n_epochs=n_init_epochs, lr=learning_rate,
+                               delta_loss=delta_loss,
+                               delta_loss_batch=delta_loss_batch)
+            if losses.size < delta_loss_batch:
+                raise Exception("Must choose a smaller delta loss batch size")
+            self._cellstate_losses.append(losses)
+            self._cellstate_models.append(model)
+
+        last_delta_losses_mean = np.array([
+            losses[-delta_loss_batch:].mean()
+            for losses in self._cellstate_losses
+        ])
+
+        best_model_index = np.argmin(last_delta_losses_mean)
+
+        self._state_ast = self._cellstate_models[best_model_index]
+        n_epochs_done = self._cellstate_losses[best_model_index].size
+        n_epoch_remaining = max(n_epochs - n_epochs_done, 0)
+
+        self._state_ast.fit(n_epochs=n_epoch_remaining,
+                            lr=learning_rate, delta_loss=delta_loss,
+                            delta_loss_batch=delta_loss_batch)
 
     def get_celltypes(self) -> pd.DataFrame:
         """[summary]
