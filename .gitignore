@@ -11,3 +11,7 @@
 .Rhistory
 .RData
 .Ruserdata
+
+_build
+_static
+_templates
