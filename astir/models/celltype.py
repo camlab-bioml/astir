@@ -62,16 +62,15 @@ class CellTypeModel:
             1)
 
         t = torch.distributions.Normal(torch.tensor(0.), torch.tensor(0.2))
-        log_delta_init = t.sample((self.G,self.C+1))
-
-        print(f"log_delta_init mean: {torch.mean(log_delta_init)}")
 
         ## prior on z
         self.variables = {
             "log_sigma": Variable(self.initializations['log_sigma'], requires_grad = True),
             "mu": Variable(self.initializations["mu"], requires_grad = True),
-            "log_delta": Variable(log_delta_init, requires_grad = True)
+            "log_delta": t.sample((self.G,self.C+1))
         }
+
+        print(f"log_delta_init mean: {torch.mean(self.variables['log_delta'])}")
 
         self.data = {
             "log_alpha": torch.log(torch.ones(self.C+1) / (self.C+1)),
@@ -142,6 +141,7 @@ class CellTypeModel:
         :raises NotClassifiableError: raised when randon seed is not an integer
         """
         if not isinstance(random_seed, int):
+            print(type(random_seed))
             raise NotClassifiableError(\
                 "Random seed is expected to be an integer.")
         torch.manual_seed(random_seed)
