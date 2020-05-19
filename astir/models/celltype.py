@@ -70,7 +70,7 @@ class CellTypeModel:
             "log_delta": t.sample((self.G,self.C+1))
         }
 
-        print(f"log_delta_init mean: {torch.mean(self.variables['log_delta'])}")
+        # print(f"log_delta_init mean: {torch.mean(self.variables['log_delta'])}")
 
         self.data = {
             "log_alpha": torch.log(torch.ones(self.C+1) / (self.C+1)),
@@ -141,7 +141,6 @@ class CellTypeModel:
         :raises NotClassifiableError: raised when randon seed is not an integer
         """
         if not isinstance(random_seed, int):
-            print(type(random_seed))
             raise NotClassifiableError(\
                 "Random seed is expected to be an integer.")
         torch.manual_seed(random_seed)
@@ -167,7 +166,7 @@ class CellTypeModel:
 
         self._param_init()
 
-    def fit(self, epochs = 100, learning_rate = 1e-2, 
+    def fit(self, max_epochs = 100, learning_rate = 1e-2, 
         batch_size = 1024) -> None:
         """Fit the model.
 
@@ -183,7 +182,8 @@ class CellTypeModel:
             shuffle=True)
         
         ## Run training loop
-        losses = np.empty(epochs)
+        losses = np.empty(0)
+        per = 1
 
         ## Construct optimizer
         opt_params = list(self.variables.values()) + \
@@ -193,7 +193,7 @@ class CellTypeModel:
             opt_params = opt_params + [self.variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
-        for ep in range(epochs):
+        for ep in range(max_epochs):
             L = None
             for batch in dataloader:
                 Y,X,design = batch
@@ -201,14 +201,23 @@ class CellTypeModel:
                 L = self._forward(Y, X, design)
                 L.backward()
                 optimizer.step()
-            l = self._forward(self.dset.Y, self.dset.X, self.dset.design).detach().numpy()
-            losses[ep] = l
+            l = self._forward(self.dset.Y, self.dset.X, \
+                self.dset.design).detach().numpy()
+            if losses.shape[0] > 0:
+                per = abs((l - losses[-1]) / losses[-1])
+            losses = np.append(losses, l)
+            if per <= 0.0001:
+                break
             print(l)
 
         ## Save output
         g = self.recog.forward(self.dset.X).detach().numpy()
         self.losses = losses
         print("Done!")
+        if per > 0.0001:
+            msg = "Maximum epochs reached. More iteration may be needed to" +\
+                " complete the training."
+            warnings.warn(msg)
         return g
     
     def get_losses(self) -> float:
