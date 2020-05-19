@@ -47,29 +47,29 @@ class CellTypeModel:
     def _param_init(self) -> None:
         """Initialize parameters and design matrices.
         """
+
+
         self.initializations = {
-            "mu": 0.5 * np.log(self.Y_np.mean(0)).reshape((-1,1)),
-            "log_sigma": np.log(self.Y_np.std(0))
+            "mu": 0.5 * torch.from_numpy(np.log(self.Y_np.mean(0).copy().reshape((-1,1)))),
+            "log_sigma": torch.from_numpy(np.log(self.Y_np.std(0)).copy())
         }
+
 
         # Add additional columns of mu for anything in the design matrix
         P = self.dset.design.shape[1]
-        self.initializations['mu'] = np.column_stack( \
-            [self.initializations['mu'], np.zeros((self.G, P-1))])
+        self.initializations['mu'] = torch.cat( \
+            [self.initializations['mu'], torch.zeros((self.G, P-1)).double()],
+            1)
 
         t = torch.distributions.Normal(torch.tensor(0.), torch.tensor(0.2))
-
         log_delta_init = t.sample((self.G,self.C+1))
 
         print(f"log_delta_init mean: {torch.mean(log_delta_init)}")
 
         ## prior on z
         self.variables = {
-            "log_sigma": Variable(torch.from_numpy(
-                self.initializations["log_sigma"].copy()), \
-                    requires_grad = True),
-            "mu": Variable(torch.from_numpy(\
-                self.initializations["mu"].copy()), requires_grad = True),
+            "log_sigma": Variable(self.initializations['log_sigma'], requires_grad = True),
+            "mu": Variable(self.initializations["mu"], requires_grad = True),
             "log_delta": Variable(log_delta_init, requires_grad = True)
         }
 
@@ -196,7 +196,7 @@ class CellTypeModel:
                 L = self._forward(Y, X, design)
                 L.backward()
                 optimizer.step()
-            l = L.detach().numpy()
+            l = self._forward(self.dset.Y, self.dset.X, self.dset.design).detach().numpy()
             losses[ep] = l
             print(l)
 
