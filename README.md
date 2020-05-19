@@ -2,7 +2,7 @@
 
 astir: automated assignment of cell type and state (phenotype) from single-cell proteomic data, with a focus on imaging mass cytometry (IMC).
 
-![Image of astir](doc/source/_static/figs/astir.png)
+![Image of astir](docs/source/_static/figs/astir.png)
 
 ## Installation
 
