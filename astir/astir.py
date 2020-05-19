@@ -18,6 +18,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 from astir.models.celltype import CellTypeModel
+from astir.models.cellstate import CellStateModel
 from astir.models.imcdataset import IMCDataSet
 from astir.models.recognet import RecognitionNet
 
@@ -109,7 +110,6 @@ class Astir:
                 "should be at least two cell states to classify the data into.")
         return N, G_t, G_s, C_t, C_s
 
-
     def _get_classifiable_genes(self, df_gex: pd.DataFrame) -> \
             Tuple[pd.DataFrame, pd.DataFrame]:
         """Return the classifiable data which contains a subset of genes from
@@ -144,30 +144,36 @@ class Astir:
         
         return CT_np, CS_np
 
-    def _construct_marker_mat(self) -> Tuple[np.array, np.array]:
-        """[summary]
+    def _construct_type_mat(self) -> np.array:
+        """ Constructs a matrix representing the marker information.
 
-        :return: constructed matriz
+        :return: constructed matrix
         :rtype: np.array
         """
-        type_mat = np.zeros(shape = (self._G_t,self._C_t+1))
+        marker_mat = np.zeros(shape = (self._G_t,self._C_t+1))
         for g in range(self._G_t):
             for ct in range(self._C_t):
                 gene = self._mtype_genes[g]
                 cell_type = self._cell_types[ct]
                 if gene in self._type_dict[cell_type]:
-                    type_mat[g,ct] = 1
-        state_mat = np.zeros(shape = (self._G_s,self._C_s+1))
-        for g in range(self._G_s):
-            for cs in range(self._C_s):
-                gene = self._mstate_genes[g]
-                cell_state = self._cell_states[cs]
-                if gene in self._state_dict[cell_state]:
-                    state_mat[g,cs] = 1
+                    marker_mat[g,ct] = 1
 
-        return type_mat, state_mat
+        return marker_mat
 
-    ##Todo: _construct_state_mat
+    def _construct_state_mat(self) -> np.array:
+        """ Constructs a matrix representing the marker information.
+
+        :return: constructed matrix
+        :rtype: np.array
+        """
+        state_mat = np.zeros(shape=(self._G_s, self._C_s))
+
+        for g, gene in enumerate(self._mstate_genes):
+            for ct, state in enumerate(self._cell_states):
+                if gene in self._state_dict[state]:
+                    state_mat[g, ct] = 1
+
+        return state_mat
 
     def __init__(self, 
                 df_gex: pd.DataFrame, marker_dict: Dict,
@@ -183,7 +189,7 @@ class Astir:
 
         :param design: [description], defaults to None
         :type design: [type], optional
-        :param random_seed: [description], defaults to 1234
+        :param random_seed: seed number to reproduce results, defaults to 1234
         :type random_seed: int, optional
         :param include_beta: [description], defaults to True
         :type include_beta: bool, optional
@@ -211,18 +217,25 @@ class Astir:
         self._mstate_genes = list(set([l for s in self._state_dict.values() \
             for l in s]))
 
-        self.N, self._G_t, self._G_s, self._C_t, self._C_s = self._sanitize_gex(df_gex)
+        self._N, self._G_t, self._G_s, self._C_t, self._C_s = \
+            self._sanitize_gex(df_gex)
 
         # Read input data
         self._core_names = list(df_gex.index)
         self._expression_genes = list(df_gex.columns)
 
-        self.type_mat, self.state_mat = self._construct_marker_mat()
+        type_mat = self._construct_type_mat()
+        self._state_mat = self._construct_state_mat()
         self._CT_np, self._CS_np = self._get_classifiable_genes(df_gex)
 
-        # self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
-        #     N, self._G_t, self._C_t, type_mat, include_beta, design)
-        # self._state_ast = CellStateModel(self._CS_np, self._state_dict)
+        self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
+            self._N, self._G_t, self._C_t, type_mat, include_beta, design)
+        self._state_ast = \
+            CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
+                           N=self._N, G=self._G_s, C=self._C_s,
+                           state_mat=self._state_mat, design=None,
+                           include_beta=True, alpha_random=True,
+                           random_seed=random_seed)
 
     def fit_type(self, epochs = 100, learning_rate = 1e-2, 
         batch_size = 1024, num_repeats = 5) -> None:
