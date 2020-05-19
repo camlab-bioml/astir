@@ -118,7 +118,7 @@ class CellTypeModel:
     ## Todo: an output function
     def __init__(self, Y_np: np.array, type_dict: Dict,  \
                 N: int, G: int, C: int, type_mat: np.array, \
-                include_beta = True, design = None
+                include_beta = True, design = None, random_seed = 1234
                 ) -> None:
         """Initializes an Astir object
 
@@ -136,6 +136,11 @@ class CellTypeModel:
 
         :raises NotClassifiableError: raised when randon seed is not an integer
         """
+        if not isinstance(random_seed, int):
+            raise NotClassifiableError(\
+                "Random seed is expected to be an integer.")
+        torch.manual_seed(random_seed)
+        
         self.losses = None # losses after optimization
 
         self.type_dict = type_dict

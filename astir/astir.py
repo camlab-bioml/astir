@@ -190,11 +190,13 @@ class Astir:
 
         :raises NotClassifiableError: raised when randon seed is not an integer
         """
-        #Todo: fix problem with random seed
         if not isinstance(random_seed, int):
             raise NotClassifiableError(\
                 "Random seed is expected to be an integer.")
         torch.manual_seed(random_seed)
+
+        self.design = design
+        self.include_beta = include_beta
 
         self._type_assignments = None
         self._state_assignments = None
@@ -209,25 +211,29 @@ class Astir:
         self._mstate_genes = list(set([l for s in self._state_dict.values() \
             for l in s]))
 
-        N, self._G_t, self._G_s, self._C_t, self._C_s = self._sanitize_gex(df_gex)
+        self.N, self._G_t, self._G_s, self._C_t, self._C_s = self._sanitize_gex(df_gex)
 
         # Read input data
         self._core_names = list(df_gex.index)
         self._expression_genes = list(df_gex.columns)
 
-        type_mat, state_mat = self._construct_marker_mat()
+        self.type_mat, self.state_mat = self._construct_marker_mat()
         self._CT_np, self._CS_np = self._get_classifiable_genes(df_gex)
 
-        self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
-            N, self._G_t, self._C_t, type_mat, include_beta, design)
+        # self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
+        #     N, self._G_t, self._C_t, type_mat, include_beta, design)
         # self._state_ast = CellStateModel(self._CS_np, self._state_dict)
 
     def fit_type(self, epochs = 100, learning_rate = 1e-2, 
-        batch_size = 1024) -> None:
-            g = self._type_ast.fit(epochs, learning_rate, batch_size)
-            self._type_assignments = pd.DataFrame(g)
-            self._type_assignments.columns = self._cell_types + ['Other']
-            self._type_assignments.index = self._core_names
+        batch_size = 1024, num_repeats = 5) -> None:
+        seeds = np.random.randint(100000000, num_repeats)
+        type_models = [CellTypeModel(self._CT_np, self._type_dict, \
+                self.N, self._G_t, self._C_t, self.type_mat, \
+                self.include_beta, self.design, seed) for seed in seeds]
+        # g = self._type_ast.fit(epochs, learning_rate, batch_size)
+        # self._type_assignments = pd.DataFrame(g)
+        # self._type_assignments.columns = self._cell_types + ['Other']
+        # self._type_assignments.index = self._core_names
     
     # def fit_state(self, epochs = 100, learning_rate = 1e-2, 
     #     batch_size = 1024) -> None:
