@@ -144,7 +144,7 @@ class Astir:
         
         return CT_np, CS_np
 
-    def _construct_marker_mat(self) -> Tuple(np.array, np.array):
+    def _construct_marker_mat(self) -> Tuple[np.array, np.array]:
         """[summary]
 
         :return: constructed matriz
