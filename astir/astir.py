@@ -144,37 +144,28 @@ class Astir:
         
         return CT_np, CS_np
 
-    def _construct_type_mat(self) -> np.array:
+    def _construct_marker_mat(self) -> Tuple(np.array, np.array):
         """[summary]
 
         :return: constructed matriz
         :rtype: np.array
         """
-        marker_mat = np.zeros(shape = (self._G_t,self._C_t+1))
+        type_mat = np.zeros(shape = (self._G_t,self._C_t+1))
         for g in range(self._G_t):
             for ct in range(self._C_t):
                 gene = self._mtype_genes[g]
                 cell_type = self._cell_types[ct]
                 if gene in self._type_dict[cell_type]:
-                    marker_mat[g,ct] = 1
-
-        return marker_mat
-
-    def _construct_state_mat(self) -> np.array:
-        """[summary]
-
-        Returns:
-            [type] -- [description]
-        """
-        marker_mat = np.zeros(shape = (self._G_s,self._C_s+1))
+                    type_mat[g,ct] = 1
+        state_mat = np.zeros(shape = (self._G_s,self._C_s+1))
         for g in range(self._G_s):
             for cs in range(self._C_s):
                 gene = self._mstate_genes[g]
                 cell_state = self._cell_states[cs]
                 if gene in self._state_dict[cell_state]:
-                    marker_mat[g,cs] = 1
+                    state_mat[g,cs] = 1
 
-        return marker_mat
+        return type_mat, state_mat
 
     ##Todo: _construct_state_mat
 
@@ -224,8 +215,7 @@ class Astir:
         self._core_names = list(df_gex.index)
         self._expression_genes = list(df_gex.columns)
 
-        type_mat = self._construct_type_mat()
-        state_mat = self._construct_state_mat()
+        type_mat, state_mat = self._construct_marker_mat()
         self._CT_np, self._CS_np = self._get_classifiable_genes(df_gex)
 
         self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
