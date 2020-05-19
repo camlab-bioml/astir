@@ -214,7 +214,7 @@ class Astir:
             for l in s]))
         self._mstate_genes = list(set([l for s in self._state_dict.values() \
             for l in s]))
-        self._mstate_genes = sorted(self._mstate_genes)
+        # self._mstate_genes = sorted(self._mstate_genes)
 
         self._N, self._G_t, self._G_s, self._C_t, self._C_s = \
             self._sanitize_gex(df_gex)
