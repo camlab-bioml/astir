@@ -7,8 +7,12 @@ import yaml
 from astir.astir import Astir
 
 ## Todo: We probably need a class
-def from_csv_yaml(csv_input, marker_yaml, design = None, random_seed = 1234, include_beta = True):
+def from_csv_yaml(csv_input, marker_yaml, design_csv = None, random_seed = 1234, include_beta = True):
         df_gex = pd.read_csv(csv_input, index_col = 0)
+
+        design = None
+        if design_csv is not None:
+            design = pd.read_csv(design_csv, index_col=0)
         with open(marker_yaml, 'r') as stream:
             marker_dict = yaml.safe_load(stream)
         return Astir(df_gex, marker_dict, design, random_seed, include_beta)
