@@ -48,7 +48,7 @@ class CellTypeModel:
         """Initialize parameters and design matrices.
         """
         self.initializations = {
-            "mu": np.log(self.Y_np.mean(0)).reshape((-1,1)),
+            "mu": 0.5 * np.log(self.Y_np.mean(0)).reshape((-1,1)),
             "log_sigma": np.log(self.Y_np.std(0))
         }
 
@@ -57,6 +57,12 @@ class CellTypeModel:
         self.initializations['mu'] = np.column_stack( \
             [self.initializations['mu'], np.zeros((self.G, P-1))])
 
+        t = torch.distributions.Normal(torch.tensor(0.), torch.tensor(0.2))
+
+        log_delta_init = t.sample((self.G,self.C+1))
+
+        print(f"log_delta_init mean: {torch.mean(log_delta_init)}")
+
         ## prior on z
         self.variables = {
             "log_sigma": Variable(torch.from_numpy(
@@ -64,8 +70,7 @@ class CellTypeModel:
                     requires_grad = True),
             "mu": Variable(torch.from_numpy(\
                 self.initializations["mu"].copy()), requires_grad = True),
-            "log_delta": Variable(0 * torch.ones((self.G,self.C+1)), \
-                requires_grad = True)
+            "log_delta": Variable(log_delta_init, requires_grad = True)
         }
 
         self.data = {
