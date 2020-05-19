@@ -168,3 +168,22 @@ class TestAstir(TestCase):
         actual_state_mat = self.a._state_mat
 
         np.testing.assert_array_equal(expected_state_mat, actual_state_mat)
+
+    # def test_init_params(self):
+    #     """ Testing whether the parameters are initialized correctly
+    #     """
+    #     import yaml
+    #
+    #     expr_csv = "test-data/models/cellstate/sce.csv"
+    #     marker_yaml = "test-data/models/cellstate/jackson-2020-markers.yml"
+    #
+    #     df_gex = pd.read_csv(expr_csv, index_col=0)
+    #     with open(marker_yaml, 'r') as stream:
+    #         marker_dict = yaml.safe_load(stream)
+    #     print()
+    #     astir = Astir(df_gex, marker_dict, design=None, random_seed=42,
+    #                   include_beta=True)
+    #
+    #     astir.fit_state(n_epochs=500, learning_rate=0.01, n_init_params=5,
+    #                     delta_loss=0.001, delta_loss_batch=10,
+    #                     batch_size=1024)
