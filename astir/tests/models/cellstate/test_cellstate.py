@@ -76,9 +76,3 @@ class TestCellStateModel(TestCase):
         """ Test initial optimizer
         """
         self.assertIsNone(self.model.optimizer)
-
-    def test_initializations_log_sigma(self):
-        """ Test if log_sigma is initialized correctly
-        """
-        np.random.seed(self.random_seed)
-        pass
