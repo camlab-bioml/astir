@@ -44,19 +44,16 @@ class CellTypeModel:
     :param variables: parameters that is to be optimized
     :param include_beta: [summery]
     """
-    def _param_init(self, dset) -> None:
+    def _param_init(self, P) -> None:
         """Initialize parameters and design matrices.
         """
-
 
         self.initializations = {
             "mu": 0.5 * torch.from_numpy(np.log(self.Y_np.mean(0).copy().reshape((-1,1)))),
             "log_sigma": torch.from_numpy(np.log(self.Y_np.std(0)).copy())
         }
 
-
         # Add additional columns of mu for anything in the design matrix
-        P = dset.design.shape[1]
         self.initializations['mu'] = torch.cat( \
             [self.initializations['mu'], torch.zeros((self.G, P-1)).double()],
             1)
@@ -174,7 +171,8 @@ class CellTypeModel:
         :param batch_size: [description], defaults to 1024
         :type batch_size: int, optional
         """
-        self._param_init(dset)
+        P = dset.design.shape[1]
+        self._param_init(P)
         ## Make dataloader
         dataloader = DataLoader(dset, batch_size=min(batch_size, self.N),\
             shuffle=True)
