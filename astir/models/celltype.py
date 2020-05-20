@@ -175,8 +175,8 @@ class CellTypeModel:
 
         self.recog = RecognitionNet(self.C, self.G)
 
-    def fit(self, dset, max_epochs = 100, learning_rate = 1e-2, 
-        batch_size = 1024) -> None:
+    def fit(self, dset, max_epochs = 10, learning_rate = 1e-2, 
+        batch_size = 24) -> None:
         """Fit the model.
 
         :param epochs: [description], defaults to 100

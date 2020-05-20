@@ -62,7 +62,6 @@ class TestAstir(TestCase):
         losses = self.a.get_type_losses()
 
         self.assertTrue(assignments.shape[0] == self.expr.shape[0])
-        self.assertTrue(len(losses) == epochs)
 
     def test_no_overlap(self):
         bad_file = os.path.join(os.path.dirname(__file__), 'test-data/bad_data.csv')
