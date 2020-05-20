@@ -184,6 +184,6 @@ class TestAstir(TestCase):
     #     astir = Astir(df_gex, marker_dict, design=None, random_seed=42,
     #                   include_beta=True)
     #
-    #     astir.fit_state(n_epochs=500, learning_rate=0.01, n_init_params=5,
-    #                     delta_loss=0.001, delta_loss_batch=10,
-    #                     batch_size=1024)
+    #     print("###########################")
+    #     print(astir.fit_state_predictive(50))
+    #     print("###########################")

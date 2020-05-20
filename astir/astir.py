@@ -238,14 +238,8 @@ class Astir:
         #                    state_mat=self._state_mat, design=None,
         #                    include_beta=True, alpha_random=True,
         #                    random_seed=random_seed)
-        self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
-            self._N, self._G_t, self._C_t, type_mat, include_beta, design)
-        # self._state_ast = \
-        #     CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
-        #                    N=self._N, G=self._G_s, C=self._C_s,
-        #                    state_mat=self._state_mat, design=None,
-        #                    include_beta=True, alpha_random=True,
-        #                    random_seed=random_seed)
+
+        self._state_ast = None
 
     def fit_type(self, max_epochs = 100, learning_rate = 1e-2,
         batch_size = 1024, num_repeats = 5) -> None:
@@ -335,13 +329,15 @@ class Astir:
         """
         return self._type_assignments
 
-    # def get_cellstates(self) -> pd.DataFrame:
-    #     """[summary]
+    def get_cellstates(self) -> pd.DataFrame:
+        """[summary]
 
-    #     Returns:
-    #         [type] -- [description]
-    #     """
-    #     return self._state_ast.get_assignments()
+        Returns:
+            [type] -- [description]
+        """
+        if self._state_ast is None:
+            raise Exception("Fit state model before calling its getter")
+        return self._state_ast.get_assignments()
     
     def get_type_losses(self) -> float:
         """[summary]
@@ -351,13 +347,14 @@ class Astir:
         """
         return self._type_ast.get_losses()
 
-    # def get_state_losses(self) -> float:
-    #     """[summary]
+    def get_state_losses(self) -> float:
+        """ Getter for losses
 
-    #     Returns:
-    #         [type] -- [description]
-    #     """
-    #     return self._state_ast.get_losses()
+        :return: a numpy array of losses for each training iteration the
+        model runs
+        :rtype: np.array
+        """
+        return self._state_ast.get_losses()
 
     def type_to_csv(self, output_csv: str) -> None:
         """[summary]
@@ -367,13 +364,13 @@ class Astir:
         """
         self._type_assignments.to_csv(output_csv)
 
-    # def state_to_csv(self, output_csv: str) -> None:
-    #     """[summary]
+    def state_to_csv(self, output_csv: str) -> None:
+        """[summary]
 
-    #     Arguments:
-    #         output_csv {[type]} -- [description]
-    #     """
-    #     self._state_ast.to_csv(output_csv)
+        Arguments:
+            output_csv {[type]} -- [description]
+        """
+        self._state_ast.to_csv(output_csv)
     
     def __str__(self) -> str:
         return "Astir object with " + str(self._CT_np.shape[1]) + \
@@ -388,4 +385,3 @@ class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
     """
     pass
-
