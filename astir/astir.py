@@ -17,6 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import StandardScaler
+
 from astir.models.celltype import CellTypeModel
 from astir.models.cellstate import CellStateModel
 from astir.models.imcdataset import IMCDataSet
@@ -217,7 +218,6 @@ class Astir:
             for l in s]))
         self._mstate_genes = list(set([l for s in self._state_dict.values() \
             for l in s]))
-        # self._mstate_genes = sorted(self._mstate_genes)
 
         self._N, self._G_t, self._G_s, self._C_t, self._C_s = \
             self._sanitize_gex(df_gex)
@@ -232,13 +232,6 @@ class Astir:
 
         # self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
         #     self._N, self._G_t, self._C_t, type_mat, include_beta, design)
-        # self._state_ast = \
-        #     CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
-        #                    N=self._N, G=self._G_s, C=self._C_s,
-        #                    state_mat=self._state_mat, design=None,
-        #                    include_beta=True, alpha_random=True,
-        #                    random_seed=random_seed)
-
         self._state_ast = None
 
     def fit_type(self, max_epochs = 100, learning_rate = 1e-2,
@@ -385,3 +378,4 @@ class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
     """
     pass
+
