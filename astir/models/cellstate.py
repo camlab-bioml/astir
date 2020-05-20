@@ -43,22 +43,25 @@ class CellStateModel:
         }
         # Implement Gaussian noise to alpha?
         if self.alpha_random:
-            self.initializations["alpha"] = np.zeros((self.N, self.C)) + \
+            self.initializations["z"] = np.zeros((self.N, self.C)) + \
                                             np.random.normal(loc=0, scale=0.5)
         else:
-            self.initializations["alpha"] = np.zeros((self.N, self.C))
+            self.initializations["z"] = np.zeros((self.N, self.C))
 
         # Include beta or not
         if self.include_beta:
-            self.initializations["log_beta"] = np.log(
+            self.initializations["log_w"] = np.log(
                 np.random.uniform(low=0, high=1.5, size=(self.C, self.G)))
 
-        self.variables = {}
-        for param_name, param in self.initializations.items():
-            self.variables[param_name] = Variable(
-                torch.from_numpy(self.initializations[param_name].copy()),
-                requires_grad=True
-            )
+        self.variables = {n: Variable(torch.from_numpy(i.copy()),
+                          requires_grad=True)
+                          for (n, i) in self.initializations.items()}
+
+        # for param_name, param in self.initializations.items():
+        #     self.variables[param_name] = Variable(
+        #         torch.from_numpy(self.initializations[param_name].copy()),
+        #         requires_grad=True
+        #     )
 
         self.data = {
             "rho": torch.from_numpy(self.state_mat.T).double().to(self.device),
@@ -70,8 +73,8 @@ class CellStateModel:
         """
         log_sigma = self.variables["log_sigma"]
         mu = self.variables["mu"]
-        alpha = self.variables["alpha"]
-        log_beta = self.variables["log_beta"]
+        alpha = self.variables["z"]
+        log_beta = self.variables["log_w"]
 
         rho = self.data["rho"]
         Y = self.data["Y"]
