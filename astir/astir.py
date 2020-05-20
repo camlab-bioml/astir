@@ -233,25 +233,39 @@ class Astir:
         # self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
         #     self._N, self._G_t, self._C_t, type_mat, include_beta, design)
         self._state_ast = None
+        # self._state_ast = \
+        #     CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
+        #                    N=self._N, G=self._G_s, C=self._C_s,
+        #                    state_mat=self._state_mat, design=None,
+        #                    include_beta=True, alpha_random=True,
+        #                    random_seed=random_seed)
+        if design is not None:
+            if isinstance(design, pd.DataFrame):
+                design = design.to_numpy()
+        self._type_dset = IMCDataSet(self._CT_np, design)
 
-    def fit_type(self, max_epochs = 100, learning_rate = 1e-2,
-        batch_size = 1024, num_repeats = 5) -> None:
-        if max_epochs < 10:
-            raise NotClassifiableError("max_eppchs should be at least 10")
+    def fit_type(self, max_epochs = 10, learning_rate = 1e-2,
+        batch_size = 24, num_repeats = 5) -> None:
+        if max_epochs < 2:
+            raise NotClassifiableError("max_eppchs should be at least 2")
         seeds = np.random.randint(1, 100000000, num_repeats)
         type_models = [CellTypeModel(self._CT_np, self._type_dict, \
                 self._N, self._G_t, self._C_t, self._type_mat, \
                 self._include_beta, self._design, int(seed)) for seed in seeds]
-        gs = [m.fit(max_epochs, learning_rate, batch_size) for m in type_models]
-        losses = [m.get_losses()[-10:].mean() for m in type_models]
+        gs = [m.fit(self._type_dset, max_epochs, learning_rate, batch_size) for m in type_models]
+        losses = [m.get_losses()[-2:].mean() for m in type_models]
 
         best_ind = np.argmin(losses)
         self._type_ast = type_models[best_ind]
+        if not self._type_ast.is_converged():
+            msg = "Maximum epochs reached. More iteration may be needed to" +\
+                " complete the training."
+            warnings.warn(msg)
         g = gs[best_ind]
-
-        plt.plot(self._type_ast.get_losses())
-        plt.ylabel('losses')
-        plt.show()
+        
+        # plt.plot(self._type_ast.get_losses())
+        # plt.ylabel('losses')
+        # plt.show()
 
         self._type_assignments = pd.DataFrame(g)
         self._type_assignments.columns = self._cell_types + ['Other']
@@ -322,15 +336,15 @@ class Astir:
         """
         return self._type_assignments
 
-    def get_cellstates(self) -> pd.DataFrame:
-        """[summary]
-
-        Returns:
-            [type] -- [description]
-        """
-        if self._state_ast is None:
-            raise Exception("Fit state model before calling its getter")
-        return self._state_ast.get_assignments()
+    # def get_cellstates(self) -> pd.DataFrame:
+    #     """[summary]
+    #
+    #     Returns:
+    #         [type] -- [description]
+    #     """
+    #     if self._state_ast is None:
+    #         raise Exception("Fit state model before calling its getter")
+    #     return self._state_ast.get_assignments()
     
     def get_type_losses(self) -> float:
         """[summary]
@@ -357,13 +371,13 @@ class Astir:
         """
         self._type_assignments.to_csv(output_csv)
 
-    def state_to_csv(self, output_csv: str) -> None:
-        """[summary]
+    # def state_to_csv(self, output_csv: str) -> None:
+    #     """[summary]
 
-        Arguments:
-            output_csv {[type]} -- [description]
-        """
-        self._state_ast.to_csv(output_csv)
+    #     Arguments:
+    #         output_csv {[type]} -- [description]
+    #     """
+    #     self._state_ast.to_csv(output_csv)
     
     def __str__(self) -> str:
         return "Astir object with " + str(self._CT_np.shape[1]) + \
