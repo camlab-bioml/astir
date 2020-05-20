@@ -19,14 +19,11 @@ class TestCellStateModel(TestCase):
 
         self.expr_csv_file = \
             os.path.join(os.path.dirname(__file__),
-                         '../../test-data/models/cellstate/sce.csv')
+                         '../../test-data/sce.csv')
         self.marker_yaml_file = \
             os.path.join(os.path.dirname(__file__),
-                         '../../test-data/models/cellstate/jackson-2020-markers'
+                         '../../test-data/jackson-2020-markers'
                          '.yml')
-        self.design_file = \
-            os.path.join(os.path.dirname(__file__),
-                         '../../test-data/design.csv')
 
         self.expr = pd.read_csv(self.expr_csv_file)
         with open(self.marker_yaml_file, 'r') as stream:
@@ -53,7 +50,7 @@ class TestCellStateModel(TestCase):
         self.model = CellStateModel(Y_np=self.Y_np,
                                     state_dict=self.state_dict,
                                     N=self.N, G=self.G, C=self.C,
-                                    state_mat=state_mat, design=None,
+                                    state_mat=state_mat,
                                     include_beta=True, alpha_random=True,
                                     random_seed=self.random_seed)
 
