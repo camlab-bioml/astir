@@ -14,8 +14,10 @@ from torch.distributions import Normal, StudentT
 
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import StandardScaler
+
 from astir.models.celltype import CellTypeModel
 from astir.models.cellstate import CellStateModel
 from astir.models.imcdataset import IMCDataSet
@@ -149,15 +151,15 @@ class Astir:
         :return: constructed matrix
         :rtype: np.array
         """
-        marker_mat = np.zeros(shape = (self._G_t,self._C_t+1))
+        type_mat = np.zeros(shape = (self._G_t,self._C_t+1))
         for g in range(self._G_t):
             for ct in range(self._C_t):
                 gene = self._mtype_genes[g]
                 cell_type = self._cell_types[ct]
                 if gene in self._type_dict[cell_type]:
-                    marker_mat[g,ct] = 1
+                    type_mat[g,ct] = 1
 
-        return marker_mat
+        return type_mat
 
     def _construct_state_mat(self) -> np.array:
         """ Constructs a matrix representing the marker information.
@@ -195,12 +197,13 @@ class Astir:
 
         :raises NotClassifiableError: raised when randon seed is not an integer
         """
-        #Todo: fix problem with random seed
         if not isinstance(random_seed, int):
             raise NotClassifiableError(\
                 "Random seed is expected to be an integer.")
-        self.random_seed = random_seed
-        torch.manual_seed(self.random_seed)
+        torch.manual_seed(random_seed)
+
+        self._design = design
+        self._include_beta = include_beta
 
         self._type_assignments = None
         self._state_assignments = None
@@ -214,7 +217,6 @@ class Astir:
             for l in s]))
         self._mstate_genes = list(set([l for s in self._state_dict.values() \
             for l in s]))
-        # self._mstate_genes = sorted(self._mstate_genes)
 
         self._N, self._G_t, self._G_s, self._C_t, self._C_s = \
             self._sanitize_gex(df_gex)
@@ -223,25 +225,36 @@ class Astir:
         self._core_names = list(df_gex.index)
         self._expression_genes = list(df_gex.columns)
 
-        type_mat = self._construct_type_mat()
+        self._type_mat = self._construct_type_mat()
         self._state_mat = self._construct_state_mat()
         self._CT_np, self._CS_np = self._get_classifiable_genes(df_gex)
 
-        self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
-            self._N, self._G_t, self._C_t, type_mat, include_beta, design)
-        # self._state_ast = \
-        #     CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
-        #                    N=self._N, G=self._G_s, C=self._C_s,
-        #                    state_mat=self._state_mat, design=None,
-        #                    include_beta=True, alpha_random=True,
-        #                    random_seed=random_seed)
+        # self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
+        #     self._N, self._G_t, self._C_t, type_mat, include_beta, design)
+        self._state_ast = None
 
-    def fit_type(self, epochs = 100, learning_rate = 1e-2, 
-        batch_size = 1024) -> None:
-            g = self._type_ast.fit(epochs, learning_rate, batch_size)
-            self._type_assignments = pd.DataFrame(g)
-            self._type_assignments.columns = self._cell_types + ['Other']
-            self._type_assignments.index = self._core_names
+    def fit_type(self, max_epochs = 100, learning_rate = 1e-2,
+        batch_size = 1024, num_repeats = 5) -> None:
+        if max_epochs < 10:
+            raise NotClassifiableError("max_eppchs should be at least 10")
+        seeds = np.random.randint(1, 100000000, num_repeats)
+        type_models = [CellTypeModel(self._CT_np, self._type_dict, \
+                self._N, self._G_t, self._C_t, self._type_mat, \
+                self._include_beta, self._design, int(seed)) for seed in seeds]
+        gs = [m.fit(max_epochs, learning_rate, batch_size) for m in type_models]
+        losses = [m.get_losses()[-10:].mean() for m in type_models]
+
+        best_ind = np.argmin(losses)
+        self._type_ast = type_models[best_ind]
+        g = gs[best_ind]
+
+        plt.plot(self._type_ast.get_losses())
+        plt.ylabel('losses')
+        plt.show()
+
+        self._type_assignments = pd.DataFrame(g)
+        self._type_assignments.columns = self._cell_types + ['Other']
+        self._type_assignments.index = self._core_names
 
     def fit_state(self, n_epochs=100, learning_rate=1e-2, n_init_params=5,
                   delta_loss=1e-3, delta_loss_batch=10, batch_size=1024):
@@ -324,13 +337,13 @@ class Astir:
         """
         return self._type_ast.get_losses()
 
-    # def get_state_losses(self) -> float:
-    #     """[summary]
+    def get_state_losses(self) -> float:
+        """[summary]
 
-    #     Returns:
-    #         [type] -- [description]
-    #     """
-    #     return self._state_ast.get_losses()
+        Returns:
+            [type] -- [description]
+        """
+        return self._state_ast.get_losses()
 
     def type_to_csv(self, output_csv: str) -> None:
         """[summary]

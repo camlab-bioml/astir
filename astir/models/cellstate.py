@@ -252,6 +252,15 @@ class CellStateModel:
 
         return losses
 
+    def get_losses(self) -> np.array:
+        """ Get all losses
+
+        :return: numpy array of all losses where the last element is the loss
+        from the last training iteration
+        :type: np.array
+        """
+        return self.losses
+
 
 class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
