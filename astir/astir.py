@@ -242,16 +242,16 @@ class Astir:
                 design = design.to_numpy()
         self._type_dset = IMCDataSet(self._CT_np, design)
 
-    def fit_type(self, max_epochs = 100, learning_rate = 1e-2, 
-        batch_size = 1024, num_repeats = 5) -> None:
-        if max_epochs < 10:
-            raise NotClassifiableError("max_eppchs should be at least 10")
+    def fit_type(self, max_epochs = 10, learning_rate = 1e-2, 
+        batch_size = 24, num_repeats = 5) -> None:
+        if max_epochs < 2:
+            raise NotClassifiableError("max_eppchs should be at least 2")
         seeds = np.random.randint(1, 100000000, num_repeats)
         type_models = [CellTypeModel(self._CT_np, self._type_dict, \
                 self._N, self._G_t, self._C_t, self._type_mat, \
                 self._include_beta, self._design, int(seed)) for seed in seeds]
         gs = [m.fit(self._type_dset, max_epochs, learning_rate, batch_size) for m in type_models]
-        losses = [m.get_losses()[-10:].mean() for m in type_models]
+        losses = [m.get_losses()[-2:].mean() for m in type_models]
 
         best_ind = np.argmin(losses)
         self._type_ast = type_models[best_ind]
