@@ -156,7 +156,7 @@ class CellTypeModel:
         torch.manual_seed(random_seed)
         
         self.losses = None # losses after optimization
-
+        self._is_converged = False
         self.cov_mat = None # temporary -- remove
 
         self.type_dict = type_dict
@@ -225,10 +225,8 @@ class CellTypeModel:
         g = self.recog.forward(dset.X).detach().numpy()
         self.losses = losses
         print("Done!")
-        if per > 0.0001:
-            msg = "Maximum epochs reached. More iteration may be needed to" +\
-                " complete the training."
-            warnings.warn(msg)
+        if per <= 0.0001:
+            self._is_converged = True
         return g
     
     def get_losses(self) -> float:
@@ -238,6 +236,9 @@ class CellTypeModel:
         :rtype: float
         """
         return self.losses
+
+    def is_converged(self) -> bool:
+        return self._is_converged
 
     def __str__(self) -> str:
         """ String representation for Astir.
