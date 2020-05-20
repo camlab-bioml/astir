@@ -44,7 +44,7 @@ class CellTypeModel:
     :param variables: parameters that is to be optimized
     :param include_beta: [summery]
     """
-    def _param_init(self) -> None:
+    def _param_init(self, dset) -> None:
         """Initialize parameters and design matrices.
         """
 
@@ -56,7 +56,7 @@ class CellTypeModel:
 
 
         # Add additional columns of mu for anything in the design matrix
-        P = self.dset.design.shape[1]
+        P = dset.design.shape[1]
         self.initializations['mu'] = torch.cat( \
             [self.initializations['mu'], torch.zeros((self.G, P-1)).double()],
             1)
@@ -149,24 +149,21 @@ class CellTypeModel:
 
         self.type_dict = type_dict
 
+        self.Y_np = Y_np
         self.N, self.G, self.C = N, G, C
 
         # Does this model use separate beta?
         self.include_beta = include_beta
 
         self.marker_mat = type_mat
-        self.Y_np = Y_np
 
         if design is not None:
             if isinstance(design, pd.DataFrame):
                 design = design.to_numpy()
 
-        self.dset = IMCDataSet(self.Y_np, design)
         self.recog = RecognitionNet(self.C, self.G)
 
-        self._param_init()
-
-    def fit(self, max_epochs = 100, learning_rate = 1e-2, 
+    def fit(self, dset, max_epochs = 100, learning_rate = 1e-2, 
         batch_size = 1024) -> None:
         """Fit the model.
 
@@ -177,8 +174,9 @@ class CellTypeModel:
         :param batch_size: [description], defaults to 1024
         :type batch_size: int, optional
         """
+        self._param_init(dset)
         ## Make dataloader
-        dataloader = DataLoader(self.dset, batch_size=min(batch_size, self.N),\
+        dataloader = DataLoader(dset, batch_size=min(batch_size, self.N),\
             shuffle=True)
         
         ## Run training loop
@@ -201,8 +199,8 @@ class CellTypeModel:
                 L = self._forward(Y, X, design)
                 L.backward()
                 optimizer.step()
-            l = self._forward(self.dset.Y, self.dset.X, \
-                self.dset.design).detach().numpy()
+            l = self._forward(dset.Y, dset.X, \
+                dset.design).detach().numpy()
             if losses.shape[0] > 0:
                 per = abs((l - losses[-1]) / losses[-1])
             losses = np.append(losses, l)
@@ -211,7 +209,7 @@ class CellTypeModel:
             print(l)
 
         ## Save output
-        g = self.recog.forward(self.dset.X).detach().numpy()
+        g = self.recog.forward(dset.X).detach().numpy()
         self.losses = losses
         print("Done!")
         if per > 0.0001:
