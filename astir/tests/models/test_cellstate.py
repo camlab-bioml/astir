@@ -19,10 +19,10 @@ class TestCellStateModel(TestCase):
 
         self.expr_csv_file = \
             os.path.join(os.path.dirname(__file__),
-                         '../../test-data/sce.csv')
+                         '../test-data/sce.csv')
         self.marker_yaml_file = \
             os.path.join(os.path.dirname(__file__),
-                         '../../test-data/jackson-2020-markers'
+                         '../test-data/jackson-2020-markers'
                          '.yml')
 
         self.expr = pd.read_csv(self.expr_csv_file)
