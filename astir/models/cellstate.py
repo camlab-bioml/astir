@@ -150,24 +150,6 @@ class CellStateModel:
         # self.recog = RecognitionNet(self.C, self.G)
         #
         self._param_init()
-        # print("===== self.Y_np =====")
-        # print(self.Y_np)
-        # print("===== self.initializations =====")
-        # for param_name, param in self.initializations.items():
-        #     print("#########", param_name, "#########")
-        #     print(self.initializations[param_name])
-        #
-        # print("===== self.variables =====")
-        # for param_name, param in self.variables.items():
-        #     print("#########", param_name, "#########")
-        #     print(self.variables[param_name])
-        #
-        # print("===== self.data =====")
-        # for param_name, param in self.data.items():
-        #     print("#########", param_name, "#########")
-        #     print(self.data[param_name])
-        #
-        # print("\nloss: ", self._forward())
 
     def fit(self, n_epochs, lr=1e-2, delta_loss=1e-3,
             delta_loss_batch=10) -> np.array:
@@ -248,6 +230,15 @@ class CellStateModel:
             self.losses = np.append(self.losses, losses)
 
         return losses
+
+    def get_losses(self) -> np.array:
+        """ Getter for losses
+
+        :return: a numpy array of losses for each training iteration the
+        model runs
+        :rtype: np.array
+        """
+        return self.losses
 
 
 class NotClassifiableError(RuntimeError):
