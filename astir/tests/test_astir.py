@@ -182,21 +182,16 @@ class TestAstir(TestCase):
 
         np.testing.assert_array_equal(expected_state_mat, actual_state_mat)
 
-    # def test_init_params(self):
-    #     """ Testing whether the parameters are initialized correctly
-    #     """
-    #     import yaml
-    #
-    #     expr_csv = "test-data/models/cellstate/sce.csv"
-    #     marker_yaml = "test-data/models/cellstate/jackson-2020-markers.yml"
-    #
-    #     df_gex = pd.read_csv(expr_csv, index_col=0)
-    #     with open(marker_yaml, 'r') as stream:
-    #         marker_dict = yaml.safe_load(stream)
-    #     print()
-    #     astir = Astir(df_gex, marker_dict, design=None, random_seed=42,
-    #                   include_beta=True)
-    #
-    #     print("###########################")
-    #     print(astir.fit_state_predictive(50))
-    #     print("###########################")
+    def test_get_cellstates(self):
+        """ Tests get_cellstates()
+        """
+        self.a.fit_state(n_epochs=500)
+        state_assignments = self.a.get_cellstates()
+
+        if self.a._state_ast.is_converged():
+            self.assertTrue(state_assignments.shape[0] ==
+                            len(self.a._core_names))
+            self.assertTrue(state_assignments.shape[1] ==
+                            len(self.a._cell_states))
+        else:
+            self.assertIsNone(state_assignments)

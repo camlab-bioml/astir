@@ -93,8 +93,7 @@ class CellStateModel:
         loss = log_p_y.sum() + prior_alpha.sum() + prior_sigma.sum()
         return -loss
 
-    def __init__(self, Y_np, state_dict, N, G, C,
-                 state_mat, design=None,
+    def __init__(self, Y_np, state_dict, N, G, C, state_mat,
                  include_beta=True, alpha_random=True,
                  random_seed=42):
         """ Initialize a Cell State Model
@@ -144,14 +143,9 @@ class CellStateModel:
         self.optimizer = None
         self.losses = None
 
-        # if design is not None:
-        #     if isinstance(design, pd.DataFrame):
-        #         design = design.to_numpy()
-        #
-        # self.dset = IMCDataSet(self.CT_np, design)
-        #
-        # self.recog = RecognitionNet(self.C, self.G)
-        #
+        # Convergence flag
+        self._is_converged = False
+
         self._param_init()
 
     def fit(self, n_epochs, lr=1e-2, delta_loss=1e-3,
@@ -181,15 +175,14 @@ class CellStateModel:
         losses = np.empty(n_epochs)
 
         opt_params = list(self.variables.values())
+
+        # Create an optimizer if there is no optimizer
         if self.optimizer is None:
             self.optimizer = torch.optim.Adam(opt_params, lr=lr)
-        else:
-            if self.losses.size > delta_loss_batch:
-                prev_mean = np.mean(self.losses[-delta_loss_batch-1:-1])
-                curr_mean = np.mean(self.losses[-delta_loss_batch:])
-                curr_delta_loss = (prev_mean - curr_mean) / prev_mean
-                if 0 < curr_delta_loss < delta_loss:
-                    return losses[:0]
+
+        # Returns early if the model has already converged
+        if self._is_converged:
+            return losses[:0]
 
         prev_mean = None
         curr_mean = None
@@ -222,6 +215,7 @@ class CellStateModel:
 
             if delta_cond_met:
                 losses = losses[0:ep+1]
+                self._is_converged = True
                 break
 
         if not delta_cond_met:
@@ -243,6 +237,24 @@ class CellStateModel:
         """
         return self.losses
 
+    def is_converged(self) -> bool:
+        """ Returns True if the model converged
+
+        :return: self._is_converged
+        :rtype: bool
+        """
+        return self._is_converged
+
+    def __str__(self) -> str:
+        """ String representation for CellStateModel.
+
+        :return: summary for CellStateModel object
+        :rtype: str
+        """
+        return "CellStateModel object with " + str(self.Y_np.shape[1]) + \
+            " columns of cell states, " + \
+            str(self.Y_np.shape[0]) + " rows."
+
 
 class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
@@ -252,50 +264,3 @@ class NotClassifiableError(RuntimeError):
 
 class InvalidInputError(RuntimeError):
     pass
-
-
-# if __name__ == "__main__":
-#     import yaml
-#
-#     pd.set_option("max_rows", None)
-#
-#     expr_csv = "sce.csv"
-#     marker_yaml = "jackson-2020-markers.yml"
-#
-#     df_gex = pd.read_csv(expr_csv, index_col=0)
-#     with open(marker_yaml, 'r') as stream:
-#         marker_dict = yaml.safe_load(stream)
-#
-#     state_dict = marker_dict["cell_states"]
-#     marker_genes = sorted(list(
-#         set([l for s in state_dict.values() for l in s])))
-#     state_names = list(state_dict.keys())
-#
-#     Y_np = df_gex[marker_genes].to_numpy()
-#
-#     N = df_gex.shape[0]
-#     G = len(marker_genes)
-#     C = len(state_names)
-#
-#     state_mat = np.zeros(shape=(G, C))
-#
-#     for g, gene in enumerate(marker_genes):
-#         for ct, state in enumerate(state_names):
-#             if gene in state_dict[state]:
-#                 state_mat[g, ct] = 1
-#
-#     model = CellStateModel(Y_np=Y_np, state_dict=state_dict,
-#                            N=N, G=G, C=C,
-#                            state_mat=state_mat, design=None,
-#                            include_beta=True, alpha_random=True,
-#                            random_seed=42)
-#
-#     losses = model.fit(n_epochs=100, delta_loss=1e-3, delta_loss_batch=10,
-#                        lr=0.01)
-#     # losses2 = model.fit(n_epochs=100, delta_loss=1e-3, delta_loss_batch=10)
-#     # losses = np.append(losses, losses2)
-#
-#     pf_losses = pd.DataFrame(losses)
-#     print(pf_losses)
-
-
