@@ -42,8 +42,8 @@ class TestAstir(TestCase):
     
     def test_fitting_type(self):
 
-        epochs = 2
-        self.a.fit_type(epochs=epochs)
+        epochs = 200
+        self.a.fit_type(max_epochs=epochs)
 
         assignments = self.a.get_celltypes()
         losses = self.a.get_type_losses()
