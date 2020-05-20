@@ -10,7 +10,6 @@ from sklearn.preprocessing import OneHotEncoder
 from astir.astir import Astir
 
 
-## Todo: We probably need a class
 def from_csv_yaml(csv_input, marker_yaml, design_csv = None, random_seed = 1234, include_beta = False):
     df_gex = pd.read_csv(csv_input, index_col = 0)
 

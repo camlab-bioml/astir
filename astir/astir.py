@@ -255,6 +255,10 @@ class Astir:
 
         best_ind = np.argmin(losses)
         self._type_ast = type_models[best_ind]
+        if not self._type_ast.is_converged():
+            msg = "Maximum epochs reached. More iteration may be needed to" +\
+                " complete the training."
+            warnings.warn(msg)
         g = gs[best_ind]
         
         # plt.plot(self._type_ast.get_losses())
