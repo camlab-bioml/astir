@@ -217,8 +217,9 @@ class CellTypeModel:
                 per = abs((l - losses[-1]) / losses[-1])
             losses = np.append(losses, l)
             if per <= 0.0001:
+                print("Reached convergence -- breaking from training loop")
                 break
-            print(l)
+            print(f"loss: {l} \t % change: {100*per}")
 
         ## Save output
         g = self.recog.forward(dset.X).detach().numpy()
