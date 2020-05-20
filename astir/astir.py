@@ -237,6 +237,10 @@ class Astir:
                            state_mat=self._state_mat, design=None,
                            include_beta=True, alpha_random=True,
                            random_seed=random_seed)
+        if design is not None:
+            if isinstance(design, pd.DataFrame):
+                design = design.to_numpy()
+        self._type_dset = IMCDataSet(self._CT_np, design)
 
     def fit_type(self, max_epochs = 100, learning_rate = 1e-2, 
         batch_size = 1024, num_repeats = 5) -> None:
@@ -246,7 +250,7 @@ class Astir:
         type_models = [CellTypeModel(self._CT_np, self._type_dict, \
                 self._N, self._G_t, self._C_t, self._type_mat, \
                 self._include_beta, self._design, int(seed)) for seed in seeds]
-        gs = [m.fit(max_epochs, learning_rate, batch_size) for m in type_models]
+        gs = [m.fit(self._type_dset, max_epochs, learning_rate, batch_size) for m in type_models]
         losses = [m.get_losses()[-10:].mean() for m in type_models]
 
         best_ind = np.argmin(losses)
