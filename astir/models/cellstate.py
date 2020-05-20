@@ -43,22 +43,25 @@ class CellStateModel:
         }
         # Implement Gaussian noise to alpha?
         if self.alpha_random:
-            self.initializations["alpha"] = np.zeros((self.N, self.C)) + \
+            self.initializations["z"] = np.zeros((self.N, self.C)) + \
                                             np.random.normal(loc=0, scale=0.5)
         else:
-            self.initializations["alpha"] = np.zeros((self.N, self.C))
+            self.initializations["z"] = np.zeros((self.N, self.C))
 
         # Include beta or not
         if self.include_beta:
-            self.initializations["log_beta"] = np.log(
+            self.initializations["log_w"] = np.log(
                 np.random.uniform(low=0, high=1.5, size=(self.C, self.G)))
 
-        self.variables = {}
-        for param_name, param in self.initializations.items():
-            self.variables[param_name] = Variable(
-                torch.from_numpy(self.initializations[param_name].copy()),
-                requires_grad=True
-            )
+        self.variables = {n: Variable(torch.from_numpy(i.copy()),
+                          requires_grad=True)
+                          for (n, i) in self.initializations.items()}
+
+        # for param_name, param in self.initializations.items():
+        #     self.variables[param_name] = Variable(
+        #         torch.from_numpy(self.initializations[param_name].copy()),
+        #         requires_grad=True
+        #     )
 
         self.data = {
             "rho": torch.from_numpy(self.state_mat.T).double().to(self.device),
@@ -70,8 +73,8 @@ class CellStateModel:
         """
         log_sigma = self.variables["log_sigma"]
         mu = self.variables["mu"]
-        alpha = self.variables["alpha"]
-        log_beta = self.variables["log_beta"]
+        alpha = self.variables["z"]
+        log_beta = self.variables["log_w"]
 
         rho = self.data["rho"]
         Y = self.data["Y"]
@@ -90,8 +93,7 @@ class CellStateModel:
         loss = log_p_y.sum() + prior_alpha.sum() + prior_sigma.sum()
         return -loss
 
-    def __init__(self, Y_np, state_dict, N, G, C,
-                 state_mat, design=None,
+    def __init__(self, Y_np, state_dict, N, G, C, state_mat,
                  include_beta=True, alpha_random=True,
                  random_seed=42):
         """ Initialize a Cell State Model
@@ -139,15 +141,11 @@ class CellStateModel:
         self.Y_np = self.Y_np / (self.Y_np.std(0))
 
         self.optimizer = None
+        self.losses = None
 
-        # if design is not None:
-        #     if isinstance(design, pd.DataFrame):
-        #         design = design.to_numpy()
-        #
-        # self.dset = IMCDataSet(self.CT_np, design)
-        #
-        # self.recog = RecognitionNet(self.C, self.G)
-        #
+        # Convergence flag
+        self._is_converged = False
+
         self._param_init()
 
     def fit(self, n_epochs, lr=1e-2, delta_loss=1e-3,
@@ -161,8 +159,9 @@ class CellStateModel:
         :param delta_loss: stops iteration once the loss rate reaches
         delta_loss, defaults to 0.001
         :type delta_loss: float, optional
-        :param delta_loss_batch:
-        :type delta_loss_batch:
+        :param delta_loss_batch: the batch size  to consider delta loss,
+        defaults to 10
+        :type delta_loss_batch: int, optional
 
         :return: np.array of shape (n_iter,) that contains the losses after
         each iteration where the last element of the numpy array is the loss
@@ -173,13 +172,21 @@ class CellStateModel:
             warnings.warn("Delta loss batch size is greater than the number "
                           "of epochs")
 
+        losses = np.empty(n_epochs)
+
         opt_params = list(self.variables.values())
+
+        # Create an optimizer if there is no optimizer
         if self.optimizer is None:
             self.optimizer = torch.optim.Adam(opt_params, lr=lr)
 
-        losses = np.empty(n_epochs)
+        # Returns early if the model has already converged
+        if self._is_converged:
+            return losses[:0]
 
         prev_mean = None
+        curr_mean = None
+        curr_delta_loss = None
         delta_cond_met = False
 
         for ep in range(n_epochs):
@@ -208,12 +215,45 @@ class CellStateModel:
 
             if delta_cond_met:
                 losses = losses[0:ep+1]
+                self._is_converged = True
                 break
 
         if not delta_cond_met:
             warnings.warn("Reached max iter but not converged")
 
+        if self.losses is None:
+            self.losses = losses
+        else:
+            self.losses = np.append(self.losses, losses)
+
         return losses
+
+    def get_losses(self) -> np.array:
+        """ Getter for losses
+
+        :return: a numpy array of losses for each training iteration the
+        model runs
+        :rtype: np.array
+        """
+        return self.losses
+
+    def is_converged(self) -> bool:
+        """ Returns True if the model converged
+
+        :return: self._is_converged
+        :rtype: bool
+        """
+        return self._is_converged
+
+    def __str__(self) -> str:
+        """ String representation for CellStateModel.
+
+        :return: summary for CellStateModel object
+        :rtype: str
+        """
+        return "CellStateModel object with " + str(self.Y_np.shape[1]) + \
+            " columns of cell states, " + \
+            str(self.Y_np.shape[0]) + " rows."
 
 
 class NotClassifiableError(RuntimeError):
@@ -224,50 +264,3 @@ class NotClassifiableError(RuntimeError):
 
 class InvalidInputError(RuntimeError):
     pass
-
-
-# if __name__ == "__main__":
-#     import yaml
-#
-#     pd.set_option("max_rows", None)
-#
-#     expr_csv = "sce.csv"
-#     marker_yaml = "jackson-2020-markers.yml"
-#
-#     df_gex = pd.read_csv(expr_csv, index_col=0)
-#     with open(marker_yaml, 'r') as stream:
-#         marker_dict = yaml.safe_load(stream)
-#
-#     state_dict = marker_dict["cell_states"]
-#     marker_genes = sorted(list(
-#         set([l for s in state_dict.values() for l in s])))
-#     state_names = list(state_dict.keys())
-#
-#     Y_np = df_gex[marker_genes].to_numpy()
-#
-#     N = df_gex.shape[0]
-#     G = len(marker_genes)
-#     C = len(state_names)
-#
-#     state_mat = np.zeros(shape=(G, C))
-#
-#     for g, gene in enumerate(marker_genes):
-#         for ct, state in enumerate(state_names):
-#             if gene in state_dict[state]:
-#                 state_mat[g, ct] = 1
-#
-#     model = CellStateModel(Y_np=Y_np, state_dict=state_dict,
-#                            N=N, G=G, C=C,
-#                            state_mat=state_mat, design=None,
-#                            include_beta=True, alpha_random=True,
-#                            random_seed=42)
-#
-#     losses = model.fit(n_epochs=100, delta_loss=1e-3, delta_loss_batch=10,
-#                        lr=0.01)
-#     # losses2 = model.fit(n_epochs=100, delta_loss=1e-3, delta_loss_batch=10)
-#     # losses = np.append(losses, losses2)
-#
-#     pf_losses = pd.DataFrame(losses)
-#     print(pf_losses)
-
-
