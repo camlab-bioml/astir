@@ -44,7 +44,7 @@ class CellTypeModel:
     :param variables: parameters that is to be optimized
     :param include_beta: [summery]
     """
-    def _param_init(self, dset) -> None:
+    def _param_init(self, P) -> None:
         """Initialize parameters and design matrices.
         """
 
@@ -71,7 +71,6 @@ class CellTypeModel:
         }
 
         # Add additional columns of mu for anything in the design matrix
-        P = dset.design.shape[1]
         self.initializations['mu'] = torch.cat( \
             [self.initializations['mu'], torch.zeros((self.G, P-1)).double()],
             1)
@@ -177,7 +176,7 @@ class CellTypeModel:
         self.recog = RecognitionNet(self.C, self.G)
 
     def fit(self, dset, max_epochs = 10, learning_rate = 1e-2, 
-        batch_size = 24) -> None:
+        batch_size = 24, delta_loss = 0.001) -> None:
         """Fit the model.
 
         :param epochs: [description], defaults to 100
@@ -187,7 +186,8 @@ class CellTypeModel:
         :param batch_size: [description], defaults to 1024
         :type batch_size: int, optional
         """
-        self._param_init(dset)
+        P = dset.design.shape[1]
+        self._param_init(P)
         ## Make dataloader
         dataloader = DataLoader(dset, batch_size=min(batch_size, self.N),\
             shuffle=True)
@@ -217,7 +217,8 @@ class CellTypeModel:
             if losses.shape[0] > 0:
                 per = abs((l - losses[-1]) / losses[-1])
             losses = np.append(losses, l)
-            if per <= 0.0001:
+            if per <= delta_loss:
+                self._is_converged = True
                 print("Reached convergence -- breaking from training loop")
                 break
             print(f"loss: {l} \t % change: {100*per}")
@@ -226,8 +227,6 @@ class CellTypeModel:
         g = self.recog.forward(dset.X).detach().numpy()
         self.losses = losses
         print("Done!")
-        if per <= 0.0001:
-            self._is_converged = True
         return g
     
     def get_losses(self) -> float:
@@ -240,16 +239,6 @@ class CellTypeModel:
 
     def is_converged(self) -> bool:
         return self._is_converged
-
-    def __str__(self) -> str:
-        """ String representation for Astir.
-
-        :return: summary for Astir object
-        :rtype: str
-        """
-        return "Astir object with " + str(self.Y_np.shape[1]) + \
-            " columns of cell types, " + \
-            str(self.Y_np.shape[0]) + " rows."
 
 
 ## NotClassifiableError: an error to be raised when the dataset fails 
