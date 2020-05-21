@@ -27,7 +27,9 @@ from astir.models.recognet import RecognitionNet
 class Astir:
     r"""Create an Astir object
 
-    :param df_gex: A `pd.DataFrame` holding single-cell expression data (cell by gene)
+    :param df_gex: A `pd.DataFrame` holding single-cell expression data, 
+        where rows are cells and columns are proteins. Column names refer to
+        protein names and row names refer to cell identifiers.
     :param marker_dict: A dictionary holding cell type and state information
     :param design: An (optional) `pd.DataFrame` that represents a design matrix for the samples
     :param random_seed: The random seed to set
@@ -38,10 +40,11 @@ class Astir:
 
     """
     def __init__(self, 
-                df_gex: pd.DataFrame, marker_dict: Dict,
-                design = None,
-                random_seed = 1234,
-                include_beta = True) -> None:
+                df_gex: pd.DataFrame, 
+                marker_dict: Dict,
+                design: pd.DataFrame = None,
+                random_seed: int = 1234,
+                include_beta: bool = True) -> None:
 
         if not isinstance(random_seed, int):
             raise NotClassifiableError(\

@@ -65,3 +65,50 @@ def from_csv_dir_yaml(input_dir: str, marker_yaml: str, random_seed = 1234, incl
         marker_dict = yaml.safe_load(stream)
 
     return Astir(df_gex, marker_dict, design, random_seed, include_beta)
+
+def from_loompy_yaml(loom_file: str,
+    marker_yaml: str,
+    protein_name_attr: str = 'protein',
+    cell_name_attr: str = 'cell_name',
+    batch_name_attr: str = 'batch',
+    random_seed: int = 1234,
+    include_beta: bool = False):
+    """Create an Astir object from a loom file and a marker yaml
+
+    :param loom_file: Path to a loom file, where rows correspond to proteins and columns to cells
+    :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state      
+        entries. See documention.
+    :param protein_name_attr: The attribute (key) in the row attributes that identifies the protein names 
+        (required to match with the marker gene information)
+    :param cell_name_attr: The attribute (key) in the column attributes that identifies the name of each cell
+    :param batch_name_attr: The attribute (key) in the column attributes that identifies the batch. A design matrix
+        will be built using this (if present) using a one-hot encoding to control for batch.
+    :param random_seed: The random seed to be used to initialize variables
+    :param include_beta: Deprecated
+
+    :returns: An object of class `astir.Astir` using data imported from the loom files
+
+    .. todo:: This function is memory inefficient and goes against the philosophy of loom files. Should be improved
+    """
+    batch_list = None
+    with loompy.connect(loom_file) as ds:
+        df_gex = pd.DataFrame(ds[:,:].T)
+        df_gex.columns = ds.ra[protein_name_attr]
+
+        if cell_name_attr in ds.ca.keys():
+            df_gex.index = ds.ca[cell_name_attr]
+        
+        if batch_name_attr in ds.ca.keys():
+            batch_list = ds.ca[batch_name_attr]
+
+    design = None
+
+    if batch_list is not None:
+        design = OneHotEncoder().fit_transform(batch_list.reshape(-1,1)).todense()
+        design = design[:,:-1] # remove final column
+        design = np.concatenate([np.ones((design.shape[0],1)), design], axis=1)
+        
+    with open(marker_yaml, 'r') as stream:
+        marker_dict = yaml.safe_load(stream)
+
+    return Astir(df_gex, marker_dict, design, random_seed, include_beta)
