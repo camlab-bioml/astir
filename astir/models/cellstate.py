@@ -32,14 +32,23 @@ class CellStateModel:
     :param alpha_random: adds Gaussian noise to alpha initialization if True
     otherwise alpha is initialized to zeros
     """
-    def __init__(self, Y_np, state_dict, N, G, C,
-                 state_mat, design=None,
-                 include_beta=True, alpha_random=True,
-                 random_seed=42):
+
+    def __init__(
+        self,
+        Y_np,
+        state_dict,
+        N,
+        G,
+        C,
+        state_mat,
+        design=None,
+        include_beta=True,
+        alpha_random=True,
+        random_seed=42,
+    ):
 
         if not isinstance(random_seed, int):
-            raise NotClassifiableError(\
-                "Random seed is expected to be an integer.")
+            raise NotClassifiableError("Random seed is expected to be an integer.")
         # Setting random seeds
         torch.manual_seed(random_seed)
         torch.cuda.manual_seed(random_seed)
@@ -51,8 +60,7 @@ class CellStateModel:
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else
-                                   'cpu')
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.state_dict = state_dict
 
@@ -79,27 +87,30 @@ class CellStateModel:
         """
         self.initializations = {
             "log_sigma": np.log(self.Y_np.std()).reshape(1),
-            "mu": self.Y_np.mean(0).reshape(1, -1)
+            "mu": self.Y_np.mean(0).reshape(1, -1),
         }
         # Implement Gaussian noise to alpha?
         if self.alpha_random:
-            self.initializations["z"] = np.zeros((self.N, self.C)) + \
-                                            np.random.normal(loc=0, scale=0.5)
+            self.initializations["z"] = np.zeros((self.N, self.C)) + np.random.normal(
+                loc=0, scale=0.5
+            )
         else:
             self.initializations["z"] = np.zeros((self.N, self.C))
 
         # Include beta or not
         if self.include_beta:
             self.initializations["log_w"] = np.log(
-                np.random.uniform(low=0, high=1.5, size=(self.C, self.G)))
+                np.random.uniform(low=0, high=1.5, size=(self.C, self.G))
+            )
 
-        self.variables = {n: Variable(torch.from_numpy(i.copy()),
-                          requires_grad=True)
-                          for (n, i) in self.initializations.items()}
+        self.variables = {
+            n: Variable(torch.from_numpy(i.copy()), requires_grad=True)
+            for (n, i) in self.initializations.items()
+        }
 
         self.data = {
             "rho": torch.from_numpy(self.state_mat.T).double().to(self.device),
-            "Y": torch.from_numpy(self.Y_np).to(self.device)
+            "Y": torch.from_numpy(self.Y_np).to(self.device),
         }
 
     def _forward(self):
@@ -119,16 +130,13 @@ class CellStateModel:
         dist = Normal(mean, torch.exp(log_sigma).reshape(1, -1))
 
         log_p_y = dist.log_prob(Y)
-        prior_alpha = Normal(torch.zeros(1),
-                             0.5 * torch.ones(1)).log_prob(alpha)
-        prior_sigma = Normal(torch.zeros(1),
-                             0.5 * torch.ones(1)).log_prob(log_sigma)
+        prior_alpha = Normal(torch.zeros(1), 0.5 * torch.ones(1)).log_prob(alpha)
+        prior_sigma = Normal(torch.zeros(1), 0.5 * torch.ones(1)).log_prob(log_sigma)
 
         loss = log_p_y.sum() + prior_alpha.sum() + prior_sigma.sum()
         return -loss
 
-    def fit(self, n_epochs, lr=1e-2, delta_loss=1e-3,
-            delta_loss_batch=10) -> np.array:
+    def fit(self, n_epochs, lr=1e-2, delta_loss=1e-3, delta_loss_batch=10) -> np.array:
         """ Train loops
 
         :param n_epochs: number of train loop iterations
@@ -148,8 +156,9 @@ class CellStateModel:
         :rtype: np.array
         """
         if delta_loss_batch >= n_epochs:
-            warnings.warn("Delta loss batch size is greater than the number "
-                          "of epochs")
+            warnings.warn(
+                "Delta loss batch size is greater than the number " "of epochs"
+            )
 
         losses = np.empty(n_epochs)
 
@@ -193,7 +202,7 @@ class CellStateModel:
                 prev_mean = curr_mean
 
             if delta_cond_met:
-                losses = losses[0:ep+1]
+                losses = losses[0 : ep + 1]
                 self._is_converged = True
                 break
 
@@ -227,14 +236,19 @@ class CellStateModel:
         :return: summary for CellStateModel object
         :rtype: str
         """
-        return "CellStateModel object with " + str(self.Y_np.shape[1]) + \
-            " columns of cell states, " + \
-            str(self.Y_np.shape[0]) + " rows."
+        return (
+            "CellStateModel object with "
+            + str(self.Y_np.shape[1])
+            + " columns of cell states, "
+            + str(self.Y_np.shape[0])
+            + " rows."
+        )
 
 
 class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
     """
+
     pass
 
 

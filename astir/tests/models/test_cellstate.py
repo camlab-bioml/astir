@@ -14,26 +14,27 @@ class TestCellStateModel(TestCase):
     This class assumes that all data initializating functions in Astir class
     are working
     """
+
     def __init__(self, *args, **kwargs):
         super(TestCellStateModel, self).__init__(*args, **kwargs)
 
-        self.expr_csv_file = \
-            os.path.join(os.path.dirname(__file__),
-                         '../test-data/sce.csv')
-        self.marker_yaml_file = \
-            os.path.join(os.path.dirname(__file__),
-                         '../test-data/jackson-2020-markers'
-                         '.yml')
+        self.expr_csv_file = os.path.join(
+            os.path.dirname(__file__), "../test-data/sce.csv"
+        )
+        self.marker_yaml_file = os.path.join(
+            os.path.dirname(__file__), "../test-data/jackson-2020-markers" ".yml"
+        )
 
         self.expr = pd.read_csv(self.expr_csv_file)
-        with open(self.marker_yaml_file, 'r') as stream:
+        with open(self.marker_yaml_file, "r") as stream:
             self.marker_dict = yaml.safe_load(stream)
 
         self.random_seed = 42
         self.state_dict = self.marker_dict["cell_states"]
 
-        self.marker_genes = sorted(list(
-            set([l for s in self.state_dict.values() for l in s])))
+        self.marker_genes = sorted(
+            list(set([l for s in self.state_dict.values() for l in s]))
+        )
         self.Y_np = self.expr[self.marker_genes].to_numpy()
 
         self.N = self.expr.shape[0]
@@ -47,12 +48,17 @@ class TestCellStateModel(TestCase):
                 if gene in self.state_dict[state]:
                     state_mat[g, ct] = 1
 
-        self.model = CellStateModel(Y_np=self.Y_np,
-                                    state_dict=self.state_dict,
-                                    N=self.N, G=self.G, C=self.C,
-                                    state_mat=state_mat,
-                                    include_beta=True, alpha_random=True,
-                                    random_seed=self.random_seed)
+        self.model = CellStateModel(
+            Y_np=self.Y_np,
+            state_dict=self.state_dict,
+            N=self.N,
+            G=self.G,
+            C=self.C,
+            state_mat=state_mat,
+            include_beta=True,
+            alpha_random=True,
+            random_seed=self.random_seed,
+        )
 
     def test_basic_instance_creation(self):
         """ Testing if the instance is created or not

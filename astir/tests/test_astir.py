@@ -7,22 +7,29 @@ import numpy as np
 from astir import Astir
 from astir.data_readers import from_csv_yaml, from_csv_dir_yaml
 
-class TestAstir(TestCase):
 
+class TestAstir(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestAstir, self).__init__(*args, **kwargs)
 
-        self.expr_csv_file = os.path.join(os.path.dirname(__file__), 'test-data/test_data.csv')
-        self.marker_yaml_file = os.path.join(os.path.dirname(__file__), 'test-data/jackson-2020-markers.yml')
-        self.design_file = os.path.join(os.path.dirname(__file__), 'test-data/design.csv')
-        self.test_dir = os.path.join(os.path.dirname(__file__), 'test-data/test-dir-read')
+        self.expr_csv_file = os.path.join(
+            os.path.dirname(__file__), "test-data/test_data.csv"
+        )
+        self.marker_yaml_file = os.path.join(
+            os.path.dirname(__file__), "test-data/jackson-2020-markers.yml"
+        )
+        self.design_file = os.path.join(
+            os.path.dirname(__file__), "test-data/design.csv"
+        )
+        self.test_dir = os.path.join(
+            os.path.dirname(__file__), "test-data/test-dir-read"
+        )
 
         self.expr = pd.read_csv(self.expr_csv_file)
-        with open(self.marker_yaml_file, 'r') as stream:
+        with open(self.marker_yaml_file, "r") as stream:
             self.marker_dict = yaml.safe_load(stream)
 
         self.a = Astir(self.expr, self.marker_dict)
-
 
     def test_basic_instance_creation(self):
 
@@ -49,10 +56,12 @@ class TestAstir(TestCase):
 
     def test_csv_reading_with_design(self):
 
-        a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file, design_csv=self.design_file)
+        a = from_csv_yaml(
+            self.expr_csv_file, self.marker_yaml_file, design_csv=self.design_file
+        )
 
         self.assertIsInstance(a, Astir)
-    
+
     def test_fitting_type(self):
 
         epochs = 200
@@ -64,25 +73,25 @@ class TestAstir(TestCase):
         self.assertTrue(assignments.shape[0] == self.expr.shape[0])
 
     def test_no_overlap(self):
-        bad_file = os.path.join(os.path.dirname(__file__), 'test-data/bad_data.csv')
+        bad_file = os.path.join(os.path.dirname(__file__), "test-data/bad_data.csv")
         bad_data = pd.read_csv(bad_file)
         raised = False
         try:
             test = Astir(bad_data, self.marker_dict)
-        except(RuntimeError):
+        except (RuntimeError):
             raised = True
         self.assertTrue(raised == True)
 
     def missing_marker(self):
-        bad_marker = os.path.join(os.path.dirname(__file__), 'test-data/bad_marker.yml')
-        with open(bad_marker, 'r') as stream:
+        bad_marker = os.path.join(os.path.dirname(__file__), "test-data/bad_marker.yml")
+        with open(bad_marker, "r") as stream:
             bad_dict = yaml.safe_load(stream)
         raised = False
         try:
             test = Astir(bad_data, self.marker_dict)
-        except(RuntimeError):
+        except (RuntimeError):
             raised = True
-        self.assertTrue(raised == True)   
+        self.assertTrue(raised == True)
 
     # # Uncomment below test functions to test private variables
     # # Commented it out because these tests can be highly overlapping with
@@ -94,13 +103,20 @@ class TestAstir(TestCase):
         expected_state_dict = self.marker_dict["cell_states"]
         actual_state_dict = self.a._state_dict
 
-        expected_state_dict = {i: sorted(j) if isinstance(j, list) else j
-                               for i, j in expected_state_dict.items()}
-        actual_state_dict = {i: sorted(j) if isinstance(j, list) else j
-                             for i, j in actual_state_dict.items()}
+        expected_state_dict = {
+            i: sorted(j) if isinstance(j, list) else j
+            for i, j in expected_state_dict.items()
+        }
+        actual_state_dict = {
+            i: sorted(j) if isinstance(j, list) else j
+            for i, j in actual_state_dict.items()
+        }
 
-        self.assertDictEqual(expected_state_dict, actual_state_dict,
-                             "state_dict is different from its expected value")
+        self.assertDictEqual(
+            expected_state_dict,
+            actual_state_dict,
+            "state_dict is different from its expected value",
+        )
 
     def test_state_names(self):
         """ Test _state_names field
@@ -108,19 +124,22 @@ class TestAstir(TestCase):
         expected_state_names = sorted(self.marker_dict["cell_states"].keys())
         actual_state_names = sorted(self.a._cell_states)
 
-        self.assertListEqual(expected_state_names, actual_state_names,
-                             "unexpected state_names value")
+        self.assertListEqual(
+            expected_state_names, actual_state_names, "unexpected state_names value"
+        )
 
     def test_state_marker_genes(self):
         """ Test _mstate_genes field
         """
         state_dict = self.marker_dict["cell_states"]
-        expected_marker_genes = sorted(list(
-            set([l for s in state_dict.values() for l in s])))
+        expected_marker_genes = sorted(
+            list(set([l for s in state_dict.values() for l in s]))
+        )
         actual_marker_genes = sorted(self.a._mstate_genes)
 
-        self.assertListEqual(expected_marker_genes, actual_marker_genes,
-                             "unexpected marker_genes value")
+        self.assertListEqual(
+            expected_marker_genes, actual_marker_genes, "unexpected marker_genes value"
+        )
 
     def test_constant_N(self):
         """ Test constant N
@@ -149,8 +168,9 @@ class TestAstir(TestCase):
         expected_core_names = sorted(self.expr.index)
         actual_core_names = sorted(self.a._core_names)
 
-        self.assertListEqual(expected_core_names, actual_core_names,
-                             "unexpected _core_names value")
+        self.assertListEqual(
+            expected_core_names, actual_core_names, "unexpected _core_names value"
+        )
 
     def test_expr_gene_names(self):
         """ Test _expression_genes
@@ -158,15 +178,15 @@ class TestAstir(TestCase):
         expected_gene_names = sorted(self.expr.columns)
         actual_gene_names = sorted(self.a._expression_genes)
 
-        self.assertListEqual(expected_gene_names, actual_gene_names,
-                             "unexpected _expression_genes value")
+        self.assertListEqual(
+            expected_gene_names, actual_gene_names, "unexpected _expression_genes value"
+        )
 
     def test_state_mat(self):
         """ Test state_mat variable
         """
         state_dict = self.marker_dict["cell_states"]
-        marker_genes = list(
-                    set([l for s in state_dict.values() for l in s]))
+        marker_genes = list(set([l for s in state_dict.values() for l in s]))
         state_names = state_dict.keys()
         G = len([item for l in state_dict.values() for item in l])
         C = len(self.marker_dict["cell_states"])
@@ -188,9 +208,7 @@ class TestAstir(TestCase):
         state_assignments = self.a.get_cellstates()
 
         if self.a._state_ast.is_converged():
-            self.assertTrue(state_assignments.shape[0] ==
-                            len(self.a._core_names))
-            self.assertTrue(state_assignments.shape[1] ==
-                            len(self.a._cell_states))
+            self.assertTrue(state_assignments.shape[0] == len(self.a._core_names))
+            self.assertTrue(state_assignments.shape[1] == len(self.a._cell_states))
         else:
             self.assertIsNone(state_assignments)
