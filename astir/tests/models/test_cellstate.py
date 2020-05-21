@@ -1,3 +1,4 @@
+import warnings
 from unittest import TestCase
 import pandas as pd
 import os
@@ -41,12 +42,12 @@ class TestCellStateModel(TestCase):
         self.G = len([item for l in self.state_dict.values() for item in l])
         self.C = len(self.marker_dict["cell_states"])
 
-        state_mat = np.zeros(shape=(self.G, self.C))
+        self.state_mat = np.zeros(shape=(self.G, self.C))
 
         for g, gene in enumerate(self.marker_genes):
             for ct, state in enumerate(self.marker_dict["cell_states"].keys()):
                 if gene in self.state_dict[state]:
-                    state_mat[g, ct] = 1
+                    self.state_mat[g, ct] = 1
 
         self.model = CellStateModel(
             Y_np=self.Y_np,
@@ -54,7 +55,7 @@ class TestCellStateModel(TestCase):
             N=self.N,
             G=self.G,
             C=self.C,
-            state_mat=state_mat,
+            state_mat=self.state_mat,
             include_beta=True,
             alpha_random=True,
             random_seed=self.random_seed,
@@ -79,3 +80,71 @@ class TestCellStateModel(TestCase):
         """ Test initial optimizer
         """
         self.assertIsNone(self.model.optimizer)
+
+    def test_same_seed_same_result(self):
+        """ Test whether the loss after one epoch one two different models
+        with the same random seed have the
+        """
+        warnings.filterwarnings("ignore", category=UserWarning)
+        model1 = CellStateModel(
+            Y_np=self.Y_np,
+            state_dict=self.state_dict,
+            N=self.N,
+            G=self.G,
+            C=self.C,
+            state_mat=self.state_mat,
+            include_beta=True,
+            alpha_random=True,
+            random_seed=42,
+        )
+
+        model2 = CellStateModel(
+            Y_np=self.Y_np,
+            state_dict=self.state_dict,
+            N=self.N,
+            G=self.G,
+            C=self.C,
+            state_mat=self.state_mat,
+            include_beta=True,
+            alpha_random=True,
+            random_seed=42,
+        )
+
+        model1_loss = model1.fit(max_epochs=1)
+        model2_loss = model2.fit(max_epochs=1)
+
+        self.assertTrue(np.abs(model1_loss - model2_loss)[0] < 1e-6)
+
+    def test_diff_seed_diff_result(self):
+        """ Test whether the loss after one epoch one two different models
+        with the same random seed have the
+        """
+        warnings.filterwarnings("ignore", category=UserWarning)
+        model1 = CellStateModel(
+            Y_np=self.Y_np,
+            state_dict=self.state_dict,
+            N=self.N,
+            G=self.G,
+            C=self.C,
+            state_mat=self.state_mat,
+            include_beta=True,
+            alpha_random=True,
+            random_seed=42,
+        )
+
+        model2 = CellStateModel(
+            Y_np=self.Y_np,
+            state_dict=self.state_dict,
+            N=self.N,
+            G=self.G,
+            C=self.C,
+            state_mat=self.state_mat,
+            include_beta=True,
+            alpha_random=True,
+            random_seed=1234,
+        )
+
+        model1_loss = model1.fit(max_epochs=1)
+        model2_loss = model2.fit(max_epochs=1)
+
+        self.assertFalse(np.abs(model1_loss - model2_loss)[0] < 1e-6)

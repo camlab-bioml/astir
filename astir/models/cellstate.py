@@ -142,7 +142,7 @@ class CellStateModel:
         :param lr: the learning rate, defaults to 0.01
         :param delta_loss: stops iteration once the loss rate reaches
             delta_loss, defaults to 0.001
-        :param delta_loss_batch: the batch size  to consider delta loss,
+        :param delta_loss_batch: the batch size to consider delta loss,
             defaults to 10
 
         :return: np.array of shape (n_iter,) that contains the losses after
@@ -152,7 +152,7 @@ class CellStateModel:
         """
         if delta_loss_batch >= max_epochs:
             warnings.warn(
-                "Delta loss batch size is greater than the number " "of epochs"
+                "Delta loss batch size is greater than the number of epochs"
             )
 
         losses = np.empty(max_epochs)

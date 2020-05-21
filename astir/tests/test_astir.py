@@ -1,11 +1,16 @@
 from unittest import TestCase
 import pandas as pd
 import os
+
+import pytest
 import yaml
 import numpy as np
+import warnings
 
 from astir import Astir
 from astir.data_readers import from_csv_yaml, from_csv_dir_yaml
+
+import os, contextlib
 
 
 class TestAstir(TestCase):
@@ -65,7 +70,9 @@ class TestAstir(TestCase):
     def test_fitting_type(self):
 
         epochs = 200
-        self.a.fit_type(max_epochs=epochs)
+        with open(os.devnull, 'w') as devnull:
+            with contextlib.redirect_stdout(devnull):
+                self.a.fit_type(max_epochs=epochs)
 
         assignments = self.a.get_celltypes()
         losses = self.a.get_type_losses()
@@ -212,3 +219,38 @@ class TestAstir(TestCase):
             self.assertTrue(state_assignments.shape[1] == len(self.a._cell_states))
         else:
             self.assertIsNone(state_assignments)
+
+    def test_cellstate_same_seed_same_result(self):
+        """ Test whether the loss after one epoch one two different models
+        with the same random seed have the same losses after one epochs
+        """
+        warnings.filterwarnings("ignore", category=UserWarning)
+        model1 = Astir(df_gex=self.expr, marker_dict=self.marker_dict,
+                       design=None, random_seed=42, include_beta=True)
+        model2 = Astir(df_gex=self.expr, marker_dict=self.marker_dict,
+                       design=None, random_seed=42, include_beta=True)
+
+        model1.fit_state(max_epochs=1)
+        model1_loss = model1.get_state_losses()
+        model2.fit_state(max_epochs=1)
+        model2_loss = model2.get_state_losses()
+
+        self.assertTrue(np.abs(model1_loss - model2_loss)[0] < 1e-6)
+
+    # @pytest.mark.filterwarnings("ignore")
+    def test_cellstate_diff_seed_diff_result(self):
+        """ Test whether the loss after one epoch one two different models
+        with the different random seed have different losses after one epoch
+        """
+        warnings.filterwarnings("ignore", category=UserWarning)
+        model1 = Astir(df_gex=self.expr, marker_dict=self.marker_dict,
+                       design=None, random_seed=42, include_beta=True)
+        model2 = Astir(df_gex=self.expr, marker_dict=self.marker_dict,
+                       design=None, random_seed=1234, include_beta=True)
+
+        model1.fit_state(max_epochs=1)
+        model1_loss = model1.get_state_losses()
+        model2.fit_state(max_epochs=1)
+        model2_loss = model2.get_state_losses()
+
+        self.assertFalse(np.abs(model1_loss - model2_loss)[0] < 1e-6)
