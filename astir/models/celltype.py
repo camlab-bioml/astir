@@ -28,7 +28,7 @@ class CellTypeModel:
     """Loads a .csv expression file and a .yaml marker file.
 
     :raises NotClassifiableError: raised when the input gene expression 
-    data or the marker is not classifiable
+        data or the marker is not classifiable
 
     :param assignments: cell type assignment probabilities
     :param losses: losses after optimization

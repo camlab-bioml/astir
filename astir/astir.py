@@ -79,7 +79,7 @@ class Astir:
         self._CT_np, self._CS_np = self._get_classifiable_genes(df_gex)
 
         self.random_seed = random_seed
-        
+
         self._state_ast = None
         self._state_assignments = None
 
@@ -180,7 +180,7 @@ class Astir:
             warnings.warn("Classified type genes are less than marked genes.")
         if CS_np.shape[1] < len(self._mstate_genes):
             warnings.warn("Classified state genes are less than marked genes.")
-       
+
         return CT_np, CS_np
 
     def _construct_type_mat(self) -> np.array:
@@ -213,7 +213,6 @@ class Astir:
                     state_mat[g, ct] = 1
 
         return state_mat
-
 
     def fit_type(self, max_epochs = 10, learning_rate = 1e-2, batch_size = 24, delta_loss = 0.001, n_inits = 5) -> None:
         """Run Variational Bayes to infer cell types
@@ -250,17 +249,18 @@ class Astir:
         self._type_assignments.index = self._core_names
 
     def fit_state(self, n_epochs=100, learning_rate=1e-2, n_init_params=5,
-                  delta_loss=1e-3, delta_loss_batch=10, batch_size=1024):
-        """Run Variational Bayes to infer cell states
+                  delta_loss=1e-3, delta_loss_batch=10, batch_size=1024) -> \
+            None:
+        """ Run Variational Bayes to infer cell states
 
         :param n_epochs: number of epochs, defaults to 100
         :param learning_rate: the learning rate, defaults to 1e-2
         :param n_init_params: the number of initial parameters to compare,
-        defaults to 5
+            defaults to 5
         :param delta_loss: stops iteration once the loss rate reaches
-        delta_loss, defaults to 0.001
+            delta_loss, defaults to 0.001
         :param delta_loss_batch: the batch size  to consider delta loss,
-        defaults to 10
+            defaults to 10
         :param batch_size: the batch size, defaults to 1024
         """
         self._cellstate_models = []

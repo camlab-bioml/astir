@@ -30,7 +30,7 @@ class CellStateModel:
     :param include_beta: model parameter that measures with arbitrary unit,
         by how much protein g contributes to pathway p
     :param alpha_random: adds Gaussian noise to alpha initialization if True
-    otherwise alpha is initialized to zeros
+        otherwise alpha is initialized to zeros
     """
     def __init__(self, Y_np, state_dict, N, G, C,
                  state_mat, design=None,
@@ -136,15 +136,15 @@ class CellStateModel:
         :param lr: the learning rate, defaults to 0.01
         :type lr: float, optional
         :param delta_loss: stops iteration once the loss rate reaches
-        delta_loss, defaults to 0.001
+            delta_loss, defaults to 0.001
         :type delta_loss: float, optional
         :param delta_loss_batch: the batch size  to consider delta loss,
-        defaults to 10
+            defaults to 10
         :type delta_loss_batch: int, optional
 
         :return: np.array of shape (n_iter,) that contains the losses after
-        each iteration where the last element of the numpy array is the loss
-        after n_iter iterations
+            each iteration where the last element of the numpy array is the loss
+            after n_iter iterations
         :rtype: np.array
         """
         if delta_loss_batch >= n_epochs:
@@ -208,7 +208,7 @@ class CellStateModel:
         """ Getter for losses
 
         :return: a numpy array of losses for each training iteration the
-        model runs
+            model runs
         :rtype: np.array
         """
         return self.losses
