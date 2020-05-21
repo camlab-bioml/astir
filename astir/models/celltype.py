@@ -176,7 +176,7 @@ class CellTypeModel:
         self.recog = RecognitionNet(self.C, self.G)
 
     def fit(self, dset, max_epochs = 10, learning_rate = 1e-2, 
-        batch_size = 24) -> None:
+        batch_size = 24, delta_loss = 0.001) -> None:
         """Fit the model.
 
         :param epochs: [description], defaults to 100
@@ -217,7 +217,7 @@ class CellTypeModel:
             if losses.shape[0] > 0:
                 per = abs((l - losses[-1]) / losses[-1])
             losses = np.append(losses, l)
-            if per <= 0.0001:
+            if per <= delta_loss:
                 self._is_converged = True
                 print("Reached convergence -- breaking from training loop")
                 break
