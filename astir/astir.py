@@ -217,6 +217,14 @@ class Astir:
 
 
     def fit_type(self, max_epochs = 10, learning_rate = 1e-2, batch_size = 24, num_repeats = 5) -> None:
+        """Run Variational Bayes to infer cell types
+
+        :param max_epochs: Maximum number of epochs to train
+        :param learning_rate: ADAM optimizer learning rate
+        :param batch_size: Minibatch size
+        :param num_repeats: Number of random initializations
+
+        """
         if max_epochs < 2:
             raise NotClassifiableError("max_eppchs should be at least 2")
         seeds = np.random.randint(1, 100000000, num_repeats)
@@ -244,23 +252,17 @@ class Astir:
 
     def fit_state(self, n_epochs=100, learning_rate=1e-2, n_init_params=5,
                   delta_loss=1e-3, delta_loss_batch=10, batch_size=1024):
-        """ Fitting CellStateModel
+        """Run Variational Bayes to infer cell states
 
         :param n_epochs: number of epochs, defaults to 100
-        :type n_epochs: int, optional
         :param learning_rate: the learning rate, defaults to 1e-2
-        :type learning_rate: float, optional
         :param n_init_params: the number of initial parameters to compare,
         defaults to 5
-        :type n_init_params: int, optional
         :param delta_loss: stops iteration once the loss rate reaches
         delta_loss, defaults to 0.001
-        :type delta_loss: float, optional
         :param delta_loss_batch: the batch size  to consider delta loss,
         defaults to 10
-        :type delta_loss_batch: int, optional
         :param batch_size: the batch size, defaults to 1024
-        :type batch_size: int, optional
         """
         self._cellstate_models = []
         self._cellstate_losses = []
