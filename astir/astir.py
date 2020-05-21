@@ -325,7 +325,7 @@ class Astir:
             # Fitting the model
             n_init_epochs = min(max_epochs, 100)
             losses = model.fit(
-                n_epochs=n_init_epochs,
+                max_epochs=n_init_epochs,
                 lr=learning_rate,
                 delta_loss=delta_loss,
                 delta_loss_batch=delta_loss_batch,
@@ -346,7 +346,7 @@ class Astir:
         n_epoch_remaining = max(max_epochs - n_epochs_done, 0)
 
         self._state_ast.fit(
-            n_epochs=n_epoch_remaining,
+            max_epochs=n_epoch_remaining,
             lr=learning_rate,
             delta_loss=delta_loss,
             delta_loss_batch=delta_loss_batch,
