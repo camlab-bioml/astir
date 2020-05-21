@@ -27,11 +27,11 @@ from astir.models.recognet import RecognitionNet
 class CellTypeModel:
     """Loads a .csv expression file and a .yaml marker file.
 
-    :raises NotClassifiableError: raised when the input gene expression
-        data or the marker is not classifiable
+    :raises NotClassifiableError: raised when the input gene expression 
+    data or the marker is not classifiable
 
     :param assignments: cell type assignment probabilities
-    :param losses:losses after optimization
+    :param losses: losses after optimization
     :param type_dict: dictionary mapping cell type
         to the corresponding genes
     :param state_dict: dictionary mapping cell state
@@ -114,7 +114,8 @@ class CellTypeModel:
         p = torch.sigmoid(self.variables["p"])
         corr_mat = torch.einsum('gc,hc->cgh', self.data['rho'] * p, self.data['rho'] * p) * \
             (1 - torch.eye(self.G)) + torch.eye(self.G)
-        self.cov_mat = torch.einsum('i,j->ij', torch.exp(self.variables["log_sigma"]), torch.exp(self.variables["log_sigma"]))
+        self.cov_mat = torch.einsum('g,h->gh', torch.exp(self.variables["log_sigma"]), torch.exp(self.variables["log_sigma"])) +\
+            1e-6 * torch.eye(self.G)
         self.cov_mat = self.cov_mat * corr_mat
 
         dist = MultivariateNormal(loc=torch.exp(mean).permute(0,2,1), covariance_matrix=self.cov_mat)
@@ -175,8 +176,8 @@ class CellTypeModel:
 
         self.recog = RecognitionNet(self.C, self.G)
 
-    def fit(self, dset, max_epochs = 100, learning_rate = 1e-2, 
-        batch_size = 1024) -> None:
+    def fit(self, dset, max_epochs = 10, learning_rate = 1e-2, 
+        batch_size = 24) -> None:
         """Fit the model.
 
         :param epochs: [description], defaults to 100
@@ -218,8 +219,9 @@ class CellTypeModel:
             losses = np.append(losses, l)
             if per <= 0.0001:
                 self._is_converged = True
+                print("Reached convergence -- breaking from training loop")
                 break
-            print(l)
+            print(f"loss: {l} \t % change: {100*per}")
 
         ## Save output
         g = self.recog.forward(dset.X).detach().numpy()

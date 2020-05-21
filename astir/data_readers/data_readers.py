@@ -10,7 +10,16 @@ from sklearn.preprocessing import OneHotEncoder
 from astir.astir import Astir
 
 
-def from_csv_yaml(csv_input, marker_yaml, design_csv = None, random_seed = 1234, include_beta = False):
+def from_csv_yaml(csv_input: str, marker_yaml: str, design_csv = None, random_seed = 1234, include_beta = False):
+    """Create an Astir object from an expression CSV and marker YAML
+
+    :param csv_input: Path to input csv containing expression for cells (rows) by proteins (columns). First column is 
+        cell identifier, and additional column names are gene identifiers.
+    :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state      
+        entries. See documention.
+    :param design_csv: Path to design matrix as a CSV. Rows should be cells, and columns covariates. First column is cell 
+        identifier, and additional column names are covariate identifiers.
+    """
     df_gex = pd.read_csv(csv_input, index_col = 0)
 
     design = None
@@ -28,6 +37,17 @@ def anndata_reader(read_ann, marker_yaml, random_seed = 1234):
 
 
 def from_csv_dir_yaml(input_dir: str, marker_yaml: str, random_seed = 1234, include_beta=False):
+    """Create an Astir object a directory containing multiple csv files
+
+    TODO add text explaining concatenation
+
+    :param input_dir: Path to a directory containing multiple CSV files, each in the format expected by
+        `from_csv_yaml`
+    :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state      
+        entries. See documention.
+    :param design_csv: Path to design matrix as a CSV. Rows should be cells, and columns covariates. First column is cell 
+        identifier, and additional column names are covariate identifiers.
+    """
     # Parse the input directory
     csv_files = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith("csv")]
 

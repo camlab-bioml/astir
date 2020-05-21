@@ -25,28 +25,67 @@ from astir.models.recognet import RecognitionNet
 
 
 class Astir:
-    """Loads a .csv expression file and a .yaml marker file.
+    r"""Create an Astir object
+
+    :param df_gex: A `pd.DataFrame` holding single-cell expression data (cell by gene)
+    :param marker_dict: A dictionary holding cell type and state information
+    :param design: An (optional) `pd.DataFrame` that represents a design matrix for the samples
+    :param random_seed: The random seed to set
+    :param include_beta: Deprecated
 
     :raises NotClassifiableError: raised when the input gene expression
         data or the marker is not classifiable
 
-    :param assignments: cell type assignment probabilities
-    :param losses:losses after optimization
-    :param type_dict: dictionary mapping cell type
-        to the corresponding genes
-    :param state_dict: dictionary mapping cell state
-        to the corresponding genes
-    :param cell_types: list of all cell types from marker
-    :param mtype_genes: list of all cell type genes from marker
-    :param mstate_genes: list of all cell state genes from marker
-    :param N: number of rows of data
-    :param G: number of cell type genes
-    :param C: number of cell types
-    :param initializations: initialization parameters
-    :param data: parameters that is not to be optimized
-    :param variables: parameters that is to be optimized
-    :param include_beta: [summery]
     """
+    def __init__(self, 
+                df_gex: pd.DataFrame, marker_dict: Dict,
+                design = None,
+                random_seed = 1234,
+                include_beta = True) -> None:
+
+        if not isinstance(random_seed, int):
+            raise NotClassifiableError(\
+                "Random seed is expected to be an integer.")
+        torch.manual_seed(random_seed)
+
+        self._design = design
+        self._include_beta = include_beta
+
+        self._type_assignments = None
+        self._state_assignments = None
+
+        self._type_dict, self._state_dict = self._sanitize_dict(marker_dict)
+
+        self._cell_types = list(self._type_dict.keys())
+        self._cell_states = list(self._state_dict.keys())
+    
+        self._mtype_genes = list(set([l for s in self._type_dict.values() \
+            for l in s]))
+        self._mstate_genes = list(set([l for s in self._state_dict.values() \
+            for l in s]))
+
+        self._N, self._G_t, self._G_s, self._C_t, self._C_s = \
+            self._sanitize_gex(df_gex)
+
+        # Read input data
+        self._core_names = list(df_gex.index)
+        self._expression_genes = list(df_gex.columns)
+
+        self._type_mat = self._construct_type_mat()
+        self._state_mat = self._construct_state_mat()
+        self._CT_np, self._CS_np = self._get_classifiable_genes(df_gex)
+
+        self.random_seed = random_seed
+        self._state_ast = \
+            CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
+                           N=self._N, G=self._G_s, C=self._C_s,
+                           state_mat=self._state_mat, design=None,
+                           include_beta=True, alpha_random=True,
+                           random_seed=random_seed)
+        if design is not None:
+            if isinstance(design, pd.DataFrame):
+                design = design.to_numpy()
+        self._type_dset = IMCDataSet(self._CT_np, design)
 
     def _sanitize_dict(self, marker_dict: Dict[str, dict]) -> Tuple[dict, dict]:
         """Sanitizes the marker dictionary.
@@ -176,74 +215,16 @@ class Astir:
 
         return state_mat
 
-    def __init__(self, 
-                df_gex: pd.DataFrame, marker_dict: Dict,
-                design = None,
-                random_seed = 1234,
-                include_beta = True) -> None:
-        """Initializes an Astir object
 
-        :param df_gex: the input gene expression dataframe
-        :type df_gex: pd.DataFrame
-        :param marker_dict: the gene marker dictionary
-        :type marker_dict: Dict
+    def fit_type(self, max_epochs = 10, learning_rate = 1e-2, batch_size = 24, num_repeats = 5) -> None:
+        """Run Variational Bayes to infer cell types
 
-        :param design: [description], defaults to None
-        :type design: [type], optional
-        :param random_seed: seed number to reproduce results, defaults to 1234
-        :type random_seed: int, optional
-        :param include_beta: [description], defaults to True
-        :type include_beta: bool, optional
+        :param max_epochs: Maximum number of epochs to train
+        :param learning_rate: ADAM optimizer learning rate
+        :param batch_size: Minibatch size
+        :param num_repeats: Number of random initializations
 
-        :raises NotClassifiableError: raised when randon seed is not an integer
         """
-        if not isinstance(random_seed, int):
-            raise NotClassifiableError(\
-                "Random seed is expected to be an integer.")
-        torch.manual_seed(random_seed)
-
-        self._design = design
-        self._include_beta = include_beta
-
-        self._type_assignments = None
-        self._state_assignments = None
-
-        self._type_dict, self._state_dict = self._sanitize_dict(marker_dict)
-
-        self._cell_types = list(self._type_dict.keys())
-        self._cell_states = list(self._state_dict.keys())
-    
-        self._mtype_genes = list(set([l for s in self._type_dict.values() \
-            for l in s]))
-        self._mstate_genes = list(set([l for s in self._state_dict.values() \
-            for l in s]))
-
-        self._N, self._G_t, self._G_s, self._C_t, self._C_s = \
-            self._sanitize_gex(df_gex)
-
-        # Read input data
-        self._core_names = list(df_gex.index)
-        self._expression_genes = list(df_gex.columns)
-
-        self._type_mat = self._construct_type_mat()
-        self._state_mat = self._construct_state_mat()
-        self._CT_np, self._CS_np = self._get_classifiable_genes(df_gex)
-
-        # self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
-        #     self._N, self._G_t, self._C_t, type_mat, include_beta, design)
-        self._state_ast = \
-            CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
-                           N=self._N, G=self._G_s, C=self._C_s,
-                           state_mat=self._state_mat, design=None,
-                           include_beta=True, alpha_random=True,
-                           random_seed=random_seed)
-        if design is not None:
-            if isinstance(design, pd.DataFrame):
-                design = design.to_numpy()
-        self._type_dset = IMCDataSet(self._CT_np, design)
-
-    def fit_type(self, max_epochs = 10, learning_rate = 1e-2, 
-        batch_size = 24, num_repeats = 5) -> None:
         if max_epochs < 2:
             raise NotClassifiableError("max_eppchs should be at least 2")
         seeds = np.random.randint(1, 100000000, num_repeats)
@@ -268,10 +249,69 @@ class Astir:
         self._type_assignments = pd.DataFrame(g)
         self._type_assignments.columns = self._cell_types + ['Other']
         self._type_assignments.index = self._core_names
-    
-    # def fit_state(self, epochs = 100, learning_rate = 1e-2, 
-    #     batch_size = 1024) -> None:
-    #         self._state_ast.fit(epochs, learning_rate, batch_size)
+
+    def fit_state(self, n_epochs=100, learning_rate=1e-2, n_init_params=5,
+                  delta_loss=1e-3, delta_loss_batch=10, batch_size=1024):
+        """Run Variational Bayes to infer cell states
+
+        :param n_epochs: number of epochs, defaults to 100
+        :param learning_rate: the learning rate, defaults to 1e-2
+        :param n_init_params: the number of initial parameters to compare,
+        defaults to 5
+        :param delta_loss: stops iteration once the loss rate reaches
+        delta_loss, defaults to 0.001
+        :param delta_loss_batch: the batch size  to consider delta loss,
+        defaults to 10
+        :param batch_size: the batch size, defaults to 1024
+        """
+        self._cellstate_models = []
+        self._cellstate_losses = []
+
+        for i in range(n_init_params):
+            # Initializing a model
+            model = \
+                CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
+                               N=self._N, G=self._G_s, C=self._C_s,
+                               state_mat=self._state_mat,
+                               include_beta=True, alpha_random=True,
+                               random_seed=(self.random_seed + i))
+
+            # Fitting the model
+            n_init_epochs = min(n_epochs, 100)
+            losses = model.fit(n_epochs=n_init_epochs, lr=learning_rate,
+                               delta_loss=delta_loss,
+                               delta_loss_batch=delta_loss_batch)
+            if losses.size < delta_loss_batch:
+                raise Exception("Must choose a smaller delta loss batch size")
+            self._cellstate_losses.append(losses)
+            self._cellstate_models.append(model)
+
+        last_delta_losses_mean = np.array([
+            losses[-delta_loss_batch:].mean()
+            for losses in self._cellstate_losses
+        ])
+
+        best_model_index = np.argmin(last_delta_losses_mean)
+
+        self._state_ast = self._cellstate_models[best_model_index]
+        n_epochs_done = self._cellstate_losses[best_model_index].size
+        n_epoch_remaining = max(n_epochs - n_epochs_done, 0)
+
+        self._state_ast.fit(n_epochs=n_epoch_remaining,
+                            lr=learning_rate, delta_loss=delta_loss,
+                            delta_loss_batch=delta_loss_batch)
+
+        # Warns the user if the model has not converged
+        if not self._state_ast.is_converged():
+            msg = "Maximum epochs reached. More iteration may be needed to" +\
+                " complete the training."
+            warnings.warn(msg)
+
+        g = self._state_ast.variables["z"].detach().numpy()
+
+        self._state_assignments = pd.DataFrame(g)
+        self._state_assignments.columns = self._cell_states
+        self._state_assignments.index = self._core_names
 
     def get_celltypes(self) -> pd.DataFrame:
         """[summary]
@@ -281,13 +321,15 @@ class Astir:
         """
         return self._type_assignments
 
-    # def get_cellstates(self) -> pd.DataFrame:
-    #     """[summary]
+    def get_cellstates(self) -> pd.DataFrame:
+        """ Gets state assignment output from training state model
 
-    #     Returns:
-    #         [type] -- [description]
-    #     """
-    #     return self._state_ast.get_assignments()
+        :return: state assignments
+        :rtype: pd.DataFrame
+        """
+        if self._state_ast is None:
+            raise Exception("The state model has not been trained yet")
+        return self._state_assignments
     
     def get_type_losses(self) -> float:
         """[summary]
@@ -297,13 +339,14 @@ class Astir:
         """
         return self._type_ast.get_losses()
 
-    # def get_state_losses(self) -> float:
-    #     """[summary]
+    def get_state_losses(self) -> float:
+        """ Getter for losses
 
-    #     Returns:
-    #         [type] -- [description]
-    #     """
-    #     return self._state_ast.get_losses()
+        :return: a numpy array of losses for each training iteration the
+        model runs
+        :rtype: np.array
+        """
+        return self._state_ast.get_losses()
 
     def type_to_csv(self, output_csv: str) -> None:
         """[summary]
@@ -313,13 +356,14 @@ class Astir:
         """
         self._type_assignments.to_csv(output_csv)
 
-    # def state_to_csv(self, output_csv: str) -> None:
-    #     """[summary]
+    def state_to_csv(self, output_csv: str) -> None:
+        """ Writes state assignment output from training state model in csv
+        file
 
-    #     Arguments:
-    #         output_csv {[type]} -- [description]
-    #     """
-    #     self._state_ast.to_csv(output_csv)
+        :param output_csv: path to output csv
+        :type output_csv: str, required
+        """
+        self._state_assignments.to_csv(output_csv)
     
     def __str__(self) -> str:
         return "Astir object with " + str(self._CT_np.shape[1]) + \
@@ -335,3 +379,23 @@ class NotClassifiableError(RuntimeError):
     """
     pass
 
+
+
+
+# KC removed
+    # :param assignments: cell type assignment probabilities
+    # :param losses: losses after optimization
+    # :param type_dict: dictionary mapping cell type
+    #     to the corresponding genes
+    # :param state_dict: dictionary mapping cell state
+    #     to the corresponding genes
+    # :param cell_types: list of all cell types from marker
+    # :param mtype_genes: list of all cell type genes from marker
+    # :param mstate_genes: list of all cell state genes from marker
+    # :param N: number of rows of data
+    # :param G: number of cell type genes
+    # :param C: number of cell types
+    # :param initializations: initialization parameters
+    # :param data: parameters that is not to be optimized
+    # :param variables: parameters that is to be optimized
+    # :param include_beta: [summery]
