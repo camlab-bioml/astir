@@ -242,7 +242,7 @@ class Astir:
         :param max_epochs: Maximum number of epochs to train
         :param learning_rate: ADAM optimizer learning rate
         :param batch_size: Minibatch size
-        :param num_repeats: Number of random initializations
+        :param n_inits: Number of random initializations
 
         """
         if max_epochs < 2:
