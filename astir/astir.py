@@ -288,12 +288,11 @@ class Astir:
 
     def fit_state(
         self,
-        n_epochs=100,
+        max_epochs=100,
         learning_rate=1e-2,
-        n_init_params=5,
+        n_init=5,
         delta_loss=1e-3,
         delta_loss_batch=10,
-        batch_size=1024,
     ):
         """Run Variational Bayes to infer cell states
 
@@ -324,7 +323,7 @@ class Astir:
             )
 
             # Fitting the model
-            n_init_epochs = min(n_epochs, 100)
+            n_init_epochs = min(max_epochs, 100)
             losses = model.fit(
                 n_epochs=n_init_epochs,
                 lr=learning_rate,
