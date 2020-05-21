@@ -102,7 +102,7 @@ class Astir:
         keys = list(marker_dict.keys())
         if not len(keys) == 2:
             raise NotClassifiableError(
-                "Marker file does not follow the " + "required format."
+                "Marker file does not follow the required format."
             )
         ct = re.compile("cell[^a-zA-Z0-9]*type", re.IGNORECASE)
         cs = re.compile("cell[^a-zA-Z0-9]*state", re.IGNORECASE)
@@ -248,7 +248,7 @@ class Astir:
         seeds = np.random.randint(1, 100000000, n_inits)
         type_models = [
             CellTypeModel(
-                self._CT_np,
+                self._type_dset,
                 self._type_dict,
                 self._N,
                 self._G_t,
@@ -261,7 +261,7 @@ class Astir:
             for seed in seeds
         ]
         gs = [
-            m.fit(self._type_dset, max_epochs, learning_rate, batch_size, delta_loss)
+            m.fit(max_epochs, learning_rate, batch_size, delta_loss)
             for m in type_models
         ]
         losses = [m.get_losses()[-2:].mean() for m in type_models]
