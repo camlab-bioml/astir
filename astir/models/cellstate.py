@@ -41,12 +41,10 @@ class CellStateModel:
         G,
         C,
         state_mat,
-        design=None,
         include_beta=True,
         alpha_random=True,
         random_seed=42,
     ):
-
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
         # Setting random seeds
@@ -141,15 +139,11 @@ class CellStateModel:
         """ Train loops
 
         :param max_epochs: number of train loop iterations
-        :type max_epochs: int, required
         :param lr: the learning rate, defaults to 0.01
-        :type lr: float, optional
         :param delta_loss: stops iteration once the loss rate reaches
             delta_loss, defaults to 0.001
-        :type delta_loss: float, optional
         :param delta_loss_batch: the batch size  to consider delta loss,
             defaults to 10
-        :type delta_loss_batch: int, optional
 
         :return: np.array of shape (n_iter,) that contains the losses after
             each iteration where the last element of the numpy array is the loss
