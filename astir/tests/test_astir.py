@@ -180,3 +180,17 @@ class TestAstir(TestCase):
         actual_state_mat = self.a._state_mat
 
         np.testing.assert_array_equal(expected_state_mat, actual_state_mat)
+
+    def test_get_cellstates(self):
+        """ Tests get_cellstates()
+        """
+        self.a.fit_state(n_epochs=500)
+        state_assignments = self.a.get_cellstates()
+
+        if self.a._state_ast.is_converged():
+            self.assertTrue(state_assignments.shape[0] ==
+                            len(self.a._core_names))
+            self.assertTrue(state_assignments.shape[1] ==
+                            len(self.a._cell_states))
+        else:
+            self.assertIsNone(state_assignments)
