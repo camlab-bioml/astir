@@ -136,11 +136,12 @@ class CellStateModel:
         loss = log_p_y.sum() + prior_alpha.sum() + prior_sigma.sum()
         return -loss
 
-    def fit(self, n_epochs, lr=1e-2, delta_loss=1e-3, delta_loss_batch=10) -> np.array:
+    def fit(self, max_epochs, lr=1e-2, delta_loss=1e-3, delta_loss_batch=10) \
+            -> np.array:
         """ Train loops
 
-        :param n_epochs: number of train loop iterations
-        :type n_epochs: int, required
+        :param max_epochs: number of train loop iterations
+        :type max_epochs: int, required
         :param lr: the learning rate, defaults to 0.01
         :type lr: float, optional
         :param delta_loss: stops iteration once the loss rate reaches
@@ -155,12 +156,12 @@ class CellStateModel:
             after n_iter iterations
         :rtype: np.array
         """
-        if delta_loss_batch >= n_epochs:
+        if delta_loss_batch >= max_epochs:
             warnings.warn(
                 "Delta loss batch size is greater than the number " "of epochs"
             )
 
-        losses = np.empty(n_epochs)
+        losses = np.empty(max_epochs)
 
         opt_params = list(self.variables.values())
 
@@ -177,7 +178,7 @@ class CellStateModel:
         curr_delta_loss = None
         delta_cond_met = False
 
-        for ep in range(n_epochs):
+        for ep in range(max_epochs):
             self.optimizer.zero_grad()
 
             # Forward pass & Compute loss
