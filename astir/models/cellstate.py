@@ -213,9 +213,9 @@ class CellStateModel:
                 losses = losses[0:ep+1]
                 self._is_converged = True
                 break
-
-        if not delta_cond_met:
-            warnings.warn("Reached max iter but not converged")
+        #
+        # if not delta_cond_met:
+        #     warnings.warn("Reached max iter but not converged")
 
         if self.losses is None:
             self.losses = losses
