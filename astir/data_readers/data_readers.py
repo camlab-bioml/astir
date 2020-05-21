@@ -2,10 +2,12 @@ import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-import pandas as pd
 import yaml
 import os
+import loompy
+
 import numpy as np
+import pandas as pd
 
 from sklearn.preprocessing import OneHotEncoder
 from astir.astir import Astir
