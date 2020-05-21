@@ -177,8 +177,6 @@ class Astir:
             warnings.warn("Classified type genes are less than marked genes.")
         if CS_np.shape[1] < len(self._mstate_genes):
             warnings.warn("Classified state genes are less than marked genes.")
-        if CT_np.shape[1] + CS_np.shape[1] < len(self._expression_genes):
-            warnings.warn("Classified type and state genes are less than the expression genes in the input data.")
         
         return CT_np, CS_np
 
