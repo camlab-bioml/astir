@@ -11,7 +11,7 @@ astir: Automated Assignment of Single-cell Identity
    :hidden:
 
    installation
-   tutorials/index
+   development
 
 .. toctree::
    :maxdepth: 1
