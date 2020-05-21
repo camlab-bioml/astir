@@ -25,28 +25,68 @@ from astir.models.recognet import RecognitionNet
 
 
 class Astir:
-    """Loads a .csv expression file and a .yaml marker file.
+    r"""Create an Astir object
+
+    :param df_gex: A `pd.DataFrame` holding single-cell expression data (cell by gene)
+    :param marker_dict: A dictionary holding cell type and state information
+    :param design: An (optional) `pd.DataFrame` that represents a design matrix for the samples
+    :param random_seed: The random seed to set
+    :param include_beta: Deprecated
 
     :raises NotClassifiableError: raised when the input gene expression
         data or the marker is not classifiable
 
-    :param assignments: cell type assignment probabilities
-    :param losses:losses after optimization
-    :param type_dict: dictionary mapping cell type
-        to the corresponding genes
-    :param state_dict: dictionary mapping cell state
-        to the corresponding genes
-    :param cell_types: list of all cell types from marker
-    :param mtype_genes: list of all cell type genes from marker
-    :param mstate_genes: list of all cell state genes from marker
-    :param N: number of rows of data
-    :param G: number of cell type genes
-    :param C: number of cell types
-    :param initializations: initialization parameters
-    :param data: parameters that is not to be optimized
-    :param variables: parameters that is to be optimized
-    :param include_beta: [summery]
     """
+    def __init__(self, 
+                df_gex: pd.DataFrame, marker_dict: Dict,
+                design = None,
+                random_seed = 1234,
+                include_beta = True) -> None:
+
+        if not isinstance(random_seed, int):
+            raise NotClassifiableError(\
+                "Random seed is expected to be an integer.")
+        torch.manual_seed(random_seed)
+
+        self._design = design
+        self._include_beta = include_beta
+
+        self._type_assignments = None
+        self._state_assignments = None
+
+        self._type_dict, self._state_dict = self._sanitize_dict(marker_dict)
+
+        self._cell_types = list(self._type_dict.keys())
+        self._cell_states = list(self._state_dict.keys())
+    
+        self._mtype_genes = list(set([l for s in self._type_dict.values() \
+            for l in s]))
+        self._mstate_genes = list(set([l for s in self._state_dict.values() \
+            for l in s]))
+
+        self._N, self._G_t, self._G_s, self._C_t, self._C_s = \
+            self._sanitize_gex(df_gex)
+
+        # Read input data
+        self._core_names = list(df_gex.index)
+        self._expression_genes = list(df_gex.columns)
+
+        self._type_mat = self._construct_type_mat()
+        self._state_mat = self._construct_state_mat()
+        self._CT_np, self._CS_np = self._get_classifiable_genes(df_gex)
+
+        # self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
+        #     self._N, self._G_t, self._C_t, type_mat, include_beta, design)
+        self._state_ast = \
+            CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
+                           N=self._N, G=self._G_s, C=self._C_s,
+                           state_mat=self._state_mat, design=None,
+                           include_beta=True, alpha_random=True,
+                           random_seed=random_seed)
+        if design is not None:
+            if isinstance(design, pd.DataFrame):
+                design = design.to_numpy()
+        self._type_dset = IMCDataSet(self._CT_np, design)
 
     def _sanitize_dict(self, marker_dict: Dict[str, dict]) -> Tuple[dict, dict]:
         """Sanitizes the marker dictionary.
@@ -176,74 +216,8 @@ class Astir:
 
         return state_mat
 
-    def __init__(self, 
-                df_gex: pd.DataFrame, marker_dict: Dict,
-                design = None,
-                random_seed = 1234,
-                include_beta = True) -> None:
-        """Initializes an Astir object
 
-        :param df_gex: the input gene expression dataframe
-        :type df_gex: pd.DataFrame
-        :param marker_dict: the gene marker dictionary
-        :type marker_dict: Dict
-
-        :param design: [description], defaults to None
-        :type design: [type], optional
-        :param random_seed: seed number to reproduce results, defaults to 1234
-        :type random_seed: int, optional
-        :param include_beta: [description], defaults to True
-        :type include_beta: bool, optional
-
-        :raises NotClassifiableError: raised when randon seed is not an integer
-        """
-        if not isinstance(random_seed, int):
-            raise NotClassifiableError(\
-                "Random seed is expected to be an integer.")
-        torch.manual_seed(random_seed)
-
-        self._design = design
-        self._include_beta = include_beta
-
-        self._type_assignments = None
-        self._state_assignments = None
-
-        self._type_dict, self._state_dict = self._sanitize_dict(marker_dict)
-
-        self._cell_types = list(self._type_dict.keys())
-        self._cell_states = list(self._state_dict.keys())
-    
-        self._mtype_genes = list(set([l for s in self._type_dict.values() \
-            for l in s]))
-        self._mstate_genes = list(set([l for s in self._state_dict.values() \
-            for l in s]))
-
-        self._N, self._G_t, self._G_s, self._C_t, self._C_s = \
-            self._sanitize_gex(df_gex)
-
-        # Read input data
-        self._core_names = list(df_gex.index)
-        self._expression_genes = list(df_gex.columns)
-
-        self._type_mat = self._construct_type_mat()
-        self._state_mat = self._construct_state_mat()
-        self._CT_np, self._CS_np = self._get_classifiable_genes(df_gex)
-
-        # self._type_ast = CellTypeModel(self._CT_np, self._type_dict, \
-        #     self._N, self._G_t, self._C_t, type_mat, include_beta, design)
-        self._state_ast = \
-            CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
-                           N=self._N, G=self._G_s, C=self._C_s,
-                           state_mat=self._state_mat, design=None,
-                           include_beta=True, alpha_random=True,
-                           random_seed=random_seed)
-        if design is not None:
-            if isinstance(design, pd.DataFrame):
-                design = design.to_numpy()
-        self._type_dset = IMCDataSet(self._CT_np, design)
-
-    def fit_type(self, max_epochs = 10, learning_rate = 1e-2, 
-        batch_size = 24, num_repeats = 5) -> None:
+    def fit_type(self, max_epochs = 10, learning_rate = 1e-2, batch_size = 24, num_repeats = 5) -> None:
         if max_epochs < 2:
             raise NotClassifiableError("max_eppchs should be at least 2")
         seeds = np.random.randint(1, 100000000, num_repeats)
@@ -335,3 +309,23 @@ class NotClassifiableError(RuntimeError):
     """
     pass
 
+
+
+
+# KC removed
+    # :param assignments: cell type assignment probabilities
+    # :param losses: losses after optimization
+    # :param type_dict: dictionary mapping cell type
+    #     to the corresponding genes
+    # :param state_dict: dictionary mapping cell state
+    #     to the corresponding genes
+    # :param cell_types: list of all cell types from marker
+    # :param mtype_genes: list of all cell type genes from marker
+    # :param mstate_genes: list of all cell state genes from marker
+    # :param N: number of rows of data
+    # :param G: number of cell type genes
+    # :param C: number of cell types
+    # :param initializations: initialization parameters
+    # :param data: parameters that is not to be optimized
+    # :param variables: parameters that is to be optimized
+    # :param include_beta: [summery]

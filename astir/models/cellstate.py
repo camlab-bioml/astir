@@ -22,18 +22,64 @@ from sklearn.decomposition import PCA
 
 
 class CellStateModel:
-    """ Cell State Model
+    """Cell state model
 
-    :raises NotClassifiableError: raised when the input gene expression
-        data or the marker is not classifiable
-
-    :param initializations: initialization of parameters
-    :type initializations: List[Dict[str, np.array]]
-    :param data: parameters that are not optimized
-    :type data: Dict[str, torch.Tensor]
-    :param variables: parameters that are optimized
-    :type variables: List[Dict[str, torch.Tensor]]
+    :param df_gex: the input gene expression dataframe
+    :param marker_dict: the gene marker dictionary
+    :param random_seed: seed number to reproduce results, defaults to 1234
+    :param include_beta: model parameter that measures with arbitrary unit,
+        by how much protein g contributes to pathway p
+    :param alpha_random: adds Gaussian noise to alpha initialization if True
+    otherwise alpha is initialized to zeros
     """
+    def __init__(self, Y_np, state_dict, N, G, C,
+                 state_mat, design=None,
+                 include_beta=True, alpha_random=True,
+                 random_seed=42):
+
+        if not isinstance(random_seed, int):
+            raise NotClassifiableError(\
+                "Random seed is expected to be an integer.")
+        # Setting random seeds
+        torch.manual_seed(random_seed)
+        torch.cuda.manual_seed(random_seed)
+        torch.cuda.manual_seed_all(random_seed)
+        np.random.seed(random_seed)
+        random.seed(random_seed)
+        torch.manual_seed(random_seed)
+
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+
+        self.device = torch.device('cuda' if torch.cuda.is_available() else
+                                   'cpu')
+
+        self.state_dict = state_dict
+
+        self.N, self.G, self.C = N, G, C
+
+        self.include_beta = include_beta
+        self.alpha_random = alpha_random
+
+        self.state_mat = state_mat
+        self.Y_np = Y_np
+        # Rescale data so that the model is not gene specific
+        self.Y_np = self.Y_np / (self.Y_np.std(0))
+
+        self.optimizer = None
+
+        # if design is not None:
+        #     if isinstance(design, pd.DataFrame):
+        #         design = design.to_numpy()
+        #
+        # self.dset = IMCDataSet(self.CT_np, design)
+        #
+        # self.recog = RecognitionNet(self.C, self.G)
+        #
+        self._param_init()
+
+
+
     def _param_init(self) -> None:
         """ Initialize sets of parameters
         """
@@ -90,65 +136,6 @@ class CellStateModel:
         loss = log_p_y.sum() + prior_alpha.sum() + prior_sigma.sum()
         return -loss
 
-    def __init__(self, Y_np, state_dict, N, G, C,
-                 state_mat, design=None,
-                 include_beta=True, alpha_random=True,
-                 random_seed=42):
-        """ Initialize a Cell State Model
-
-        :param df_gex: the input gene expression dataframe
-        :type df_gex: pd.DataFrame
-        :param marker_dict: the gene marker dictionary
-        :type marker_dict: Dict
-        :param random_seed: seed number to reproduce results, defaults to 1234
-        :type random_seed: int, optional
-        :param include_beta: model parameter that measures with arbitrary unit,
-         by how much protein g contributes to pathway p
-        :type include_beta: bool, optional
-        :param alpha_random: adds Gaussian noise to alpha initialization if True
-        otherwise alpha is initialized to zeros
-        :type alpha_random: bool, optional, defaults to True
-        """
-        if not isinstance(random_seed, int):
-            raise NotClassifiableError(\
-                "Random seed is expected to be an integer.")
-        # Setting random seeds
-        torch.manual_seed(random_seed)
-        torch.cuda.manual_seed(random_seed)
-        torch.cuda.manual_seed_all(random_seed)
-        np.random.seed(random_seed)
-        random.seed(random_seed)
-        torch.manual_seed(random_seed)
-
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
-
-        self.device = torch.device('cuda' if torch.cuda.is_available() else
-                                   'cpu')
-
-        self.state_dict = state_dict
-
-        self.N, self.G, self.C = N, G, C
-
-        self.include_beta = include_beta
-        self.alpha_random = alpha_random
-
-        self.state_mat = state_mat
-        self.Y_np = Y_np
-        # Rescale data so that the model is not gene specific
-        self.Y_np = self.Y_np / (self.Y_np.std(0))
-
-        self.optimizer = None
-
-        # if design is not None:
-        #     if isinstance(design, pd.DataFrame):
-        #         design = design.to_numpy()
-        #
-        # self.dset = IMCDataSet(self.CT_np, design)
-        #
-        # self.recog = RecognitionNet(self.C, self.G)
-        #
-        self._param_init()
 
     def fit(self, n_epochs, lr=1e-2, delta_loss=1e-3,
             delta_loss_batch=10) -> np.array:

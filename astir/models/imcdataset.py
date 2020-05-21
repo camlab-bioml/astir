@@ -7,6 +7,9 @@ from sklearn.preprocessing import StandardScaler
 
 ## Dataset class: for loading IMC datasets
 class IMCDataSet(Dataset):
+    """Pytorch holder for numpy data
+
+    """
     
     def __init__(self, Y_np: np.array, design: np.array) -> None:
         self.Y = torch.from_numpy(Y_np)
