@@ -5,7 +5,7 @@ import yaml
 import numpy as np
 
 from astir import Astir
-from astir.data_readers import from_csv_yaml
+from astir.data_readers import from_csv_yaml, from_csv_dir_yaml
 
 class TestAstir(TestCase):
 
@@ -15,6 +15,7 @@ class TestAstir(TestCase):
         self.expr_csv_file = os.path.join(os.path.dirname(__file__), 'test-data/test_data.csv')
         self.marker_yaml_file = os.path.join(os.path.dirname(__file__), 'test-data/jackson-2020-markers.yml')
         self.design_file = os.path.join(os.path.dirname(__file__), 'test-data/design.csv')
+        self.test_dir = os.path.join(os.path.dirname(__file__), 'test-data/test-dir-read')
 
         self.expr = pd.read_csv(self.expr_csv_file)
         with open(self.marker_yaml_file, 'r') as stream:
@@ -34,6 +35,18 @@ class TestAstir(TestCase):
 
         self.assertIsInstance(a, Astir)
 
+    def test_dir_reading(self):
+
+        a = from_csv_dir_yaml(self.test_dir, self.marker_yaml_file)
+
+        self.assertIsInstance(a, Astir)
+
+        ## Make sure the design matrix has been constructed correctly
+        self.assertTrue(a._design.shape[0] == a._CT_np.shape[0])
+        files = os.listdir(self.test_dir)
+        files = [f for f in files if f.endswith(".csv")]
+        self.assertTrue(a._design.shape[1] == len(files))
+
     def test_csv_reading_with_design(self):
 
         a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file, design_csv=self.design_file)
@@ -49,7 +62,6 @@ class TestAstir(TestCase):
         losses = self.a.get_type_losses()
 
         self.assertTrue(assignments.shape[0] == self.expr.shape[0])
-        self.assertTrue(len(losses) == epochs)
 
     def test_no_overlap(self):
         bad_file = os.path.join(os.path.dirname(__file__), 'test-data/bad_data.csv')
@@ -168,3 +180,17 @@ class TestAstir(TestCase):
         actual_state_mat = self.a._state_mat
 
         np.testing.assert_array_equal(expected_state_mat, actual_state_mat)
+
+    def test_get_cellstates(self):
+        """ Tests get_cellstates()
+        """
+        self.a.fit_state(n_epochs=500)
+        state_assignments = self.a.get_cellstates()
+
+        if self.a._state_ast.is_converged():
+            self.assertTrue(state_assignments.shape[0] ==
+                            len(self.a._core_names))
+            self.assertTrue(state_assignments.shape[1] ==
+                            len(self.a._cell_states))
+        else:
+            self.assertIsNone(state_assignments)

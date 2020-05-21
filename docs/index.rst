@@ -1,17 +1,26 @@
-.. astir documentation master file, created by
-   sphinx-quickstart on Fri May 15 14:25:48 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
-Welcome to astir's documentation!
+
+astir
 =================================
 
+astir: Automated Assignment of Single-cell Identity 
+
+
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :hidden:
 
-   about
+   installation
+   tutorials/index
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Package Reference
+   :hidden:
+
+   astir
+   astir.data_readers
+   astir.models
 
 
 Indices and tables
