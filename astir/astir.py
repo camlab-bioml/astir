@@ -76,12 +76,10 @@ class Astir:
         self._CT_np, self._CS_np = self._get_classifiable_genes(df_gex)
 
         self.random_seed = random_seed
-        self._state_ast = \
-            CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
-                           N=self._N, G=self._G_s, C=self._C_s,
-                           state_mat=self._state_mat, design=None,
-                           include_beta=True, alpha_random=True,
-                           random_seed=random_seed)
+        
+        self._state_ast = None
+        self._state_assignments = None
+
         if design is not None:
             if isinstance(design, pd.DataFrame):
                 design = design.to_numpy()
@@ -179,9 +177,7 @@ class Astir:
             warnings.warn("Classified type genes are less than marked genes.")
         if CS_np.shape[1] < len(self._mstate_genes):
             warnings.warn("Classified state genes are less than marked genes.")
-        if CT_np.shape[1] + CS_np.shape[1] < len(self._expression_genes):
-            warnings.warn("Classified type and state genes are less than the expression genes in the input data.")
-        
+       
         return CT_np, CS_np
 
     def _construct_type_mat(self) -> np.array:

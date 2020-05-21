@@ -72,17 +72,7 @@ class CellStateModel:
         # Convergence flag
         self._is_converged = False
 
-        # if design is not None:
-        #     if isinstance(design, pd.DataFrame):
-        #         design = design.to_numpy()
-        #
-        # self.dset = IMCDataSet(self.CT_np, design)
-        #
-        # self.recog = RecognitionNet(self.C, self.G)
-        #
         self._param_init()
-
-
 
     def _param_init(self) -> None:
         """ Initialize sets of parameters
@@ -106,12 +96,6 @@ class CellStateModel:
         self.variables = {n: Variable(torch.from_numpy(i.copy()),
                           requires_grad=True)
                           for (n, i) in self.initializations.items()}
-
-        # for param_name, param in self.initializations.items():
-        #     self.variables[param_name] = Variable(
-        #         torch.from_numpy(self.initializations[param_name].copy()),
-        #         requires_grad=True
-        #     )
 
         self.data = {
             "rho": torch.from_numpy(self.state_mat.T).double().to(self.device),
@@ -142,7 +126,6 @@ class CellStateModel:
 
         loss = log_p_y.sum() + prior_alpha.sum() + prior_sigma.sum()
         return -loss
-
 
     def fit(self, n_epochs, lr=1e-2, delta_loss=1e-3,
             delta_loss_batch=10) -> np.array:
@@ -213,9 +196,6 @@ class CellStateModel:
                 losses = losses[0:ep+1]
                 self._is_converged = True
                 break
-
-        if not delta_cond_met:
-            warnings.warn("Reached max iter but not converged")
 
         if self.losses is None:
             self.losses = losses
