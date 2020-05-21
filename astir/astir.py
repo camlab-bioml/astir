@@ -245,25 +245,24 @@ class Astir:
         self._type_assignments.columns = self._cell_types + ['Other']
         self._type_assignments.index = self._core_names
 
-    def fit_state(self, n_epochs=100, learning_rate=1e-2, n_init_params=5,
-                  delta_loss=1e-3, delta_loss_batch=10, batch_size=1024) -> \
+    def fit_state(self, max_epochs=100, learning_rate=1e-2, n_init=5,
+                  delta_loss=1e-3, delta_loss_batch=10) -> \
             None:
         """ Run Variational Bayes to infer cell states
 
-        :param n_epochs: number of epochs, defaults to 100
+        :param max_epochs: number of epochs, defaults to 100
         :param learning_rate: the learning rate, defaults to 1e-2
-        :param n_init_params: the number of initial parameters to compare,
+        :param n_init: the number of initial parameters to compare,
             defaults to 5
         :param delta_loss: stops iteration once the loss rate reaches
             delta_loss, defaults to 0.001
         :param delta_loss_batch: the batch size  to consider delta loss,
             defaults to 10
-        :param batch_size: the batch size, defaults to 1024
         """
         self._cellstate_models = []
         self._cellstate_losses = []
 
-        for i in range(n_init_params):
+        for i in range(n_init):
             # Initializing a model
             model = \
                 CellStateModel(Y_np=self._CS_np, state_dict=self._state_dict,
@@ -273,7 +272,7 @@ class Astir:
                                random_seed=(self.random_seed + i))
 
             # Fitting the model
-            n_init_epochs = min(n_epochs, 100)
+            n_init_epochs = min(max_epochs, 100)
             losses = model.fit(n_epochs=n_init_epochs, lr=learning_rate,
                                delta_loss=delta_loss,
                                delta_loss_batch=delta_loss_batch)
@@ -291,7 +290,7 @@ class Astir:
 
         self._state_ast = self._cellstate_models[best_model_index]
         n_epochs_done = self._cellstate_losses[best_model_index].size
-        n_epoch_remaining = max(n_epochs - n_epochs_done, 0)
+        n_epoch_remaining = max(max_epochs - n_epochs_done, 0)
 
         self._state_ast.fit(n_epochs=n_epoch_remaining,
                             lr=learning_rate, delta_loss=delta_loss,
