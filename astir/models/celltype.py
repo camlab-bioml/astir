@@ -114,7 +114,8 @@ class CellTypeModel:
         p = torch.sigmoid(self.variables["p"])
         corr_mat = torch.einsum('gc,hc->cgh', self.data['rho'] * p, self.data['rho'] * p) * \
             (1 - torch.eye(self.G)) + torch.eye(self.G)
-        self.cov_mat = torch.einsum('i,j->ij', torch.exp(self.variables["log_sigma"]), torch.exp(self.variables["log_sigma"]))
+        self.cov_mat = torch.einsum('g,h->gh', torch.exp(self.variables["log_sigma"]), torch.exp(self.variables["log_sigma"])) +\
+            1e-6 * torch.eye(self.G)
         self.cov_mat = self.cov_mat * corr_mat
 
         dist = MultivariateNormal(loc=torch.exp(mean).permute(0,2,1), covariance_matrix=self.cov_mat)
