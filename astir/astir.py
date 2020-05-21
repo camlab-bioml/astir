@@ -246,8 +246,7 @@ class Astir:
             delta_loss, defaults to 0.001
         :param n_inits: Number of random initializations
         """
-        if max_epochs < 2:
-            raise NotClassifiableError("max_eppchs should be at least 2")
+        np.random.seed(self.random_seed)
         seeds = np.random.randint(1, 100000000, n_init)
         type_models = [
             CellTypeModel(
@@ -267,7 +266,10 @@ class Astir:
             m.fit(max_epochs, learning_rate, batch_size, delta_loss)
             for m in type_models
         ]
-        losses = [m.get_losses()[-2:].mean() for m in type_models]
+        if max_epochs >= 2:
+            losses = [m.get_losses()[-2:].mean() for m in type_models]
+        else:
+            losses = [m.get_losses()[0] for m in type_models]
 
         best_ind = np.argmin(losses)
         self._type_ast = type_models[best_ind]

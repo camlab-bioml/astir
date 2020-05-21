@@ -220,18 +220,40 @@ class TestAstir(TestCase):
         else:
             self.assertIsNone(state_assignments)
 
-    def test_type_random_seed(self):
-        """Test if random_seed is set well.
+    def test_celltype_same_seed_same_result(self):
+        """ Test whether the loss after one epoch one two different models
+        with the same random seed have the same losses after one epochs
         """
-        ast1_a = Astir(self.expr, self.marker_dict, random_seed=10089)
-        ast1_b = Astir(self.expr, self.marker_dict, random_seed=10089)
-        ast2 = Astir(self.expr, self.marker_dict, random_seed=123)
-        ast1_a.fit_type(max_epochs = 10, n_init = 1)
-        ast1_b.fit_type(max_epochs = 10, n_init = 1)
-        ast2.fit_type(max_epochs = 10, n_init = 1)
-        
-        self.assertTrue(ast1_a.get_type_losses()[-1] - ast1_b.get_type_losses()[-1] < 1e-6)
-        self.assertTrue(ast1_a.get_type_losses()[-1] - ast2.get_type_losses()[-1] > 1e-6)
+        warnings.filterwarnings("ignore", category=UserWarning)
+        model1 = Astir(df_gex=self.expr, marker_dict=self.marker_dict,
+                       design=None, random_seed=42, include_beta=True)
+        model2 = Astir(df_gex=self.expr, marker_dict=self.marker_dict,
+                       design=None, random_seed=42, include_beta=True)
+
+        model1.fit_type(max_epochs=1)
+        model1_loss = model1.get_type_losses()
+        model2.fit_type(max_epochs=1)
+        model2_loss = model2.get_type_losses()
+
+        self.assertTrue(np.abs(model1_loss - model2_loss)[0] < 1e-6)
+
+    # @pytest.mark.filterwarnings("ignore")
+    def test_celltype_diff_seed_diff_result(self):
+        """ Test whether the loss after one epoch one two different models
+        with the different random seed have different losses after one epoch
+        """
+        warnings.filterwarnings("ignore", category=UserWarning)
+        model1 = Astir(df_gex=self.expr, marker_dict=self.marker_dict,
+                       design=None, random_seed=42, include_beta=True)
+        model2 = Astir(df_gex=self.expr, marker_dict=self.marker_dict,
+                       design=None, random_seed=1234, include_beta=True)
+
+        model1.fit_type(max_epochs=1)
+        model1_loss = model1.get_type_losses()
+        model2.fit_type(max_epochs=1)
+        model2_loss = model2.get_type_losses()
+
+        self.assertFalse(np.abs(model1_loss - model2_loss)[0] < 1e-6)
         
 
     def test_cellstate_same_seed_same_result(self):
