@@ -234,7 +234,7 @@ class Astir:
         max_epochs=10,
         learning_rate=1e-2,
         batch_size=24,
-        delta_loss=0.001,
+        delta_loss=1e-3,
         n_inits=5,
     ) -> None:
         """Run Variational Bayes to infer cell types
@@ -242,8 +242,9 @@ class Astir:
         :param max_epochs: Maximum number of epochs to train
         :param learning_rate: ADAM optimizer learning rate
         :param batch_size: Minibatch size
+        :param delta_loss: stops iteration once the loss rate reaches
+            delta_loss, defaults to 0.001
         :param n_inits: Number of random initializations
-
         """
         if max_epochs < 2:
             raise NotClassifiableError("max_eppchs should be at least 2")
