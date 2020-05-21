@@ -217,6 +217,7 @@ class CellTypeModel:
                 per = abs((l - losses[-1]) / losses[-1])
             losses = np.append(losses, l)
             if per <= 0.0001:
+                self._is_converged = True
                 break
             print(l)
 
@@ -224,8 +225,6 @@ class CellTypeModel:
         g = self.recog.forward(dset.X).detach().numpy()
         self.losses = losses
         print("Done!")
-        if per <= 0.0001:
-            self._is_converged = True
         return g
     
     def get_losses(self) -> float:
@@ -238,16 +237,6 @@ class CellTypeModel:
 
     def is_converged(self) -> bool:
         return self._is_converged
-
-    def __str__(self) -> str:
-        """ String representation for Astir.
-
-        :return: summary for Astir object
-        :rtype: str
-        """
-        return "Astir object with " + str(self.Y_np.shape[1]) + \
-            " columns of cell types, " + \
-            str(self.Y_np.shape[0]) + " rows."
 
 
 ## NotClassifiableError: an error to be raised when the dataset fails 
