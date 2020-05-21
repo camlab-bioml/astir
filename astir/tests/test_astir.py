@@ -88,7 +88,7 @@ class TestAstir(TestCase):
             bad_dict = yaml.safe_load(stream)
         raised = False
         try:
-            test = Astir(bad_data, self.marker_dict)
+            test = Astir(self.expr, bad_dict)
         except (RuntimeError):
             raised = True
         self.assertTrue(raised == True)
@@ -212,3 +212,18 @@ class TestAstir(TestCase):
             self.assertTrue(state_assignments.shape[1] == len(self.a._cell_states))
         else:
             self.assertIsNone(state_assignments)
+
+    def test_type_random_seed(self):
+        """Test if random_seed is set well.
+        """
+        ast1_a = Astir(self.expr, self.marker_dict, random_seed=10089)
+        ast1_b = Astir(self.expr, self.marker_dict, random_seed=10089)
+        ast2 = Astir(self.expr, self.marker_dict, random_seed=123)
+        ast1_a.fit_type(max_epochs = 10, n_init = 1)
+        ast1_b.fit_type(max_epochs = 10, n_init = 1)
+        ast2.fit_type(max_epochs = 10, n_init = 1)
+        
+        self.assertTrue(ast1_a.get_type_losses()[-1] - ast1_b.get_type_losses()[-1] < 1e-6)
+        self.assertTrue(ast1_a.get_type_losses()[-1] - ast2.get_type_losses()[-1] > 1e-6)
+        
+

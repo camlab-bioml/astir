@@ -18,10 +18,10 @@ import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import StandardScaler
 
-from astir.models.celltype import CellTypeModel
-from astir.models.cellstate import CellStateModel
-from astir.models.imcdataset import IMCDataSet
-from astir.models.recognet import RecognitionNet
+from .models.celltype import CellTypeModel
+from .models.cellstate import CellStateModel
+from .models.imcdataset import IMCDataSet
+from .models.recognet import RecognitionNet
 
 
 class Astir:
@@ -235,7 +235,7 @@ class Astir:
         learning_rate=1e-2,
         batch_size=24,
         delta_loss=1e-3,
-        n_inits=5,
+        n_init=5,
     ) -> None:
         """Run Variational Bayes to infer cell types
 
@@ -248,7 +248,7 @@ class Astir:
         """
         if max_epochs < 2:
             raise NotClassifiableError("max_eppchs should be at least 2")
-        seeds = np.random.randint(1, 100000000, n_inits)
+        seeds = np.random.randint(1, 100000000, n_init)
         type_models = [
             CellTypeModel(
                 self._type_dset,
@@ -385,15 +385,15 @@ class Astir:
             raise Exception("The state model has not been trained yet")
         return self._state_assignments
 
-    def get_type_losses(self) -> float:
+    def get_type_losses(self) -> np.array:
         """[summary]
 
         :return: self.losses
-        :rtype: float
+        :rtype: np.array
         """
         return self._type_ast.get_losses()
 
-    def get_state_losses(self) -> float:
+    def get_state_losses(self) -> np.array:
         """ Getter for losses
 
         :return: a numpy array of losses for each training iteration the
