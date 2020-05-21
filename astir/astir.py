@@ -27,7 +27,9 @@ from astir.models.recognet import RecognitionNet
 class Astir:
     r"""Create an Astir object
 
-    :param df_gex: A `pd.DataFrame` holding single-cell expression data (cell by gene)
+    :param df_gex: A `pd.DataFrame` holding single-cell expression data, 
+        where rows are cells and columns are proteins. Column names refer to
+        protein names and row names refer to cell identifiers.
     :param marker_dict: A dictionary holding cell type and state information
     :param design: An (optional) `pd.DataFrame` that represents a design matrix for the samples
     :param random_seed: The random seed to set
@@ -295,20 +297,19 @@ class Astir:
     ):
         """Run Variational Bayes to infer cell states
 
-        :param n_epochs: number of epochs, defaults to 100
+        :param max_epochs: number of epochs, defaults to 100
         :param learning_rate: the learning rate, defaults to 1e-2
-        :param n_init_params: the number of initial parameters to compare,
-        defaults to 5
+        :param n_init: the number of initial parameters to compare,
+            defaults to 5
         :param delta_loss: stops iteration once the loss rate reaches
-        delta_loss, defaults to 0.001
+            delta_loss, defaults to 0.001
         :param delta_loss_batch: the batch size  to consider delta loss,
-        defaults to 10
-        :param batch_size: the batch size, defaults to 1024
+            defaults to 10
         """
         self._cellstate_models = []
         self._cellstate_losses = []
 
-        for i in range(n_init_params):
+        for i in range(n_init):
             # Initializing a model
             model = CellStateModel(
                 Y_np=self._CS_np,
@@ -343,7 +344,7 @@ class Astir:
 
         self._state_ast = self._cellstate_models[best_model_index]
         n_epochs_done = self._cellstate_losses[best_model_index].size
-        n_epoch_remaining = max(n_epochs - n_epochs_done, 0)
+        n_epoch_remaining = max(max_epochs - n_epochs_done, 0)
 
         self._state_ast.fit(
             n_epochs=n_epoch_remaining,

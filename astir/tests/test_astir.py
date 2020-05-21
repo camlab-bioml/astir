@@ -204,7 +204,7 @@ class TestAstir(TestCase):
     def test_get_cellstates(self):
         """ Tests get_cellstates()
         """
-        self.a.fit_state(n_epochs=500)
+        self.a.fit_state(max_epochs=500)
         state_assignments = self.a.get_cellstates()
 
         if self.a._state_ast.is_converged():
