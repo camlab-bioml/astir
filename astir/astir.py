@@ -309,6 +309,11 @@ class Astir:
         self._cellstate_models = []
         self._cellstate_losses = []
 
+        if delta_loss_batch >= max_epochs:
+            warnings.warn(
+                "Delta loss batch size is greater than the number of epochs"
+            )
+
         for i in range(n_init):
             # Initializing a model
             model = CellStateModel(
@@ -331,8 +336,7 @@ class Astir:
                 delta_loss=delta_loss,
                 delta_loss_batch=delta_loss_batch,
             )
-            if losses.size < delta_loss_batch:
-                raise Exception("Must choose a smaller delta loss batch size")
+
             self._cellstate_losses.append(losses)
             self._cellstate_models.append(model)
 
