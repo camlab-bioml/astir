@@ -8,6 +8,7 @@ import re
 from typing import Tuple, List, Dict
 import warnings
 
+
 import torch
 from torch.autograd import Variable
 from torch.distributions import Normal, StudentT, MultivariateNormal
@@ -20,7 +21,7 @@ import numpy as np
 
 from sklearn.preprocessing import StandardScaler
 
-from astir.models.imcdataset import IMCDataSet
+from astir.models.scdataset import SCDataset
 from astir.models.recognet import RecognitionNet
 
 
@@ -47,10 +48,8 @@ class CellTypeModel:
 
     def __init__(
         self,
-        dset: IMCDataSet,
+        dset: SCDataset,
         type_dict: Dict,
-        N: int,
-        G: int,
         C: int,
         type_mat: np.array,
         include_beta=False,
@@ -83,7 +82,7 @@ class CellTypeModel:
 
         self._dset = dset
         self.type_dict = type_dict
-        self.N, self.G, self.C = N, G, C
+        self.C = C
 
         # Does this model use separate beta?
         self.include_beta = include_beta
@@ -94,52 +93,52 @@ class CellTypeModel:
             if isinstance(design, pd.DataFrame):
                 design = design.to_numpy()
 
-        self.recog = RecognitionNet(self.C, self.G)
+        self.recog = RecognitionNet(self.C, self._dset.get_protein_amount())
 
     def _param_init(self) -> None:
         """Initialize parameters and design matrices.
         """
 
         # Establish data
-        self.data = {
+        self._data = {
             "log_alpha": torch.log(torch.ones(self.C + 1) / (self.C + 1)),
             "rho": torch.from_numpy(self.marker_mat),
         }
 
-
+        G = self._dset.get_protein_amount()
         # Initialize mu, log_delta
         t = torch.distributions.Normal(torch.tensor(0.0), torch.tensor(0.2))
-        log_delta_init = t.sample((self.G, self.C + 1))
+        log_delta_init = t.sample((G, self.C + 1))
 
         # mu_init = torch.from_numpy(np.log(Y_np.mean(0).copy()))
-        mu_init = torch.log(self._dset.Y.mean(0))
-        mu_init = mu_init - (self.data["rho"] * torch.exp(log_delta_init)).mean(1)
+        mu_init = torch.log(self._dset.get_mu())
+        mu_init = mu_init - (self._data["rho"] * torch.exp(log_delta_init)).mean(1)
         mu_init = mu_init.reshape(-1, 1)
 
         # Create initialization dictionary
-        self.initializations = {
+        self._initializations = {
             "mu": mu_init,
             # "log_sigma": torch.from_numpy(np.log(Y_np.std(0)).copy()),
-            "log_sigma": torch.log(self._dset.Y.std(0)),
+            "log_sigma": torch.log(self._dset.get_sigma()),
             "log_delta": log_delta_init,
-            "p": torch.zeros(self.G, self.C + 1),
+            "p": torch.zeros(G, self.C + 1),
         }
 
         P = self._dset.design.shape[1]
         # Add additional columns of mu for anything in the design matrix
-        self.initializations["mu"] = torch.cat(
-            [self.initializations["mu"], torch.zeros((self.G, P - 1)).double()], 1
+        self._initializations["mu"] = torch.cat(
+            [self._initializations["mu"], torch.zeros((G, P - 1)).double()], 1
         )
 
         # Create trainable variables
-        self.variables = {
+        self._variables = {
             n: Variable(v, requires_grad=True)
-            for (n, v) in self.initializations.items()
+            for (n, v) in self._initializations.items()
         }
 
         if self.include_beta:
-            self.variables["beta"] = Variable(
-                torch.zeros(self.G, self.C + 1), requires_grad=True
+            self._variables["beta"] = Variable(
+                torch.zeros(G, self.C + 1), requires_grad=True
             )
 
     ## Declare pytorch forward fn
@@ -158,31 +157,32 @@ class CellTypeModel:
         :return: [description]
         :rtype: torch.Tensor
         """
-        Y_spread = Y.reshape(-1, self.G, 1).repeat(1, 1, self.C + 1)
+        G = self._dset.get_protein_amount()
+        Y_spread = Y.reshape(-1, G, 1).repeat(1, 1, self.C + 1)
 
-        delta_tilde = torch.exp(self.variables["log_delta"])  # + np.log(0.5)
-        mean = delta_tilde * self.data["rho"]
-        mean2 = torch.matmul(design, self.variables["mu"].T)  ## N x P * P x G
-        mean2 = mean2.reshape(-1, self.G, 1).repeat(1, 1, self.C + 1)
+        delta_tilde = torch.exp(self._variables["log_delta"])  # + np.log(0.5)
+        mean = delta_tilde * self._data["rho"]
+        mean2 = torch.matmul(design, self._variables["mu"].T)  ## N x P * P x G
+        mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, self.C + 1)
         mean = mean + mean2
 
         if self.include_beta:
             with torch.no_grad():
-                min_delta = torch.min(delta_tilde, 1).values.reshape((self.G, 1))
-            mean = mean + min_delta * torch.tanh(self.variables["beta"]) * (
-                1 - self.data["rho"]
+                min_delta = torch.min(delta_tilde, 1).values.reshape((G, 1))
+            mean = mean + min_delta * torch.tanh(self._variables["beta"]) * (
+                1 - self._data["rho"]
             )
 
         # now do the variance modelling
-        p = torch.sigmoid(self.variables["p"])
+        p = torch.sigmoid(self._variables["p"])
         corr_mat = torch.einsum(
-            "gc,hc->cgh", self.data["rho"] * p, self.data["rho"] * p
-        ) * (1 - torch.eye(self.G)) + torch.eye(self.G)
+            "gc,hc->cgh", self._data["rho"] * p, self._data["rho"] * p
+        ) * (1 - torch.eye(G)) + torch.eye(G)
         self.cov_mat = torch.einsum(
             "g,h->gh",
-            torch.exp(self.variables["log_sigma"]),
-            torch.exp(self.variables["log_sigma"]),
-        ) + 1e-6 * torch.eye(self.G)
+            torch.exp(self._variables["log_sigma"]),
+            torch.exp(self._variables["log_sigma"]),
+        ) + 1e-6 * torch.eye(G)
         self.cov_mat = self.cov_mat * corr_mat
 
         dist = MultivariateNormal(
@@ -195,7 +195,7 @@ class CellTypeModel:
         # log_p_y_on_c = log_p_y.sum(1)
         gamma = self.recog.forward(X)
         elbo = (
-            gamma * (log_p_y_on_c + self.data["log_alpha"] - torch.log(gamma))
+            gamma * (log_p_y_on_c + self._data["log_alpha"] - torch.log(gamma))
         ).sum()
 
         return -elbo
@@ -214,17 +214,18 @@ class CellTypeModel:
         """
         self._param_init()
         ## Make dataloader
-        dataloader = DataLoader(self._dset, batch_size=min(batch_size, self.N), shuffle=True)
+        dataloader = DataLoader(self._dset, batch_size=min(batch_size, 
+            len(self._dset)), shuffle=True)
 
         ## Run training loop
         losses = np.empty(0)
         per = 1
 
         ## Construct optimizer
-        opt_params = list(self.variables.values()) + list(self.recog.parameters())
+        opt_params = list(self._variables.values()) + list(self.recog.parameters())
 
         if self.include_beta:
-            opt_params = opt_params + [self.variables["beta"]]
+            opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
         for ep in range(max_epochs):
@@ -235,7 +236,8 @@ class CellTypeModel:
                 L = self._forward(Y, X, design)
                 L.backward()
                 optimizer.step()
-            l = self._forward(self._dset.Y, self._dset.X, self._dset.design).detach().numpy()
+            l = self._forward(self._dset.get_exprs(), self._dset.get_exprs_X(), 
+                self._dset.design).detach().numpy()
             if losses.shape[0] > 0:
                 per = abs((l - losses[-1]) / losses[-1])
             losses = np.append(losses, l)
@@ -246,7 +248,7 @@ class CellTypeModel:
             print(f"loss: {l} \t % change: {100*per}")
 
         ## Save output
-        g = self.recog.forward(self._dset.X).detach().numpy()
+        g = self.recog.forward(self._dset.get_exprs_X()).detach().numpy()
         self.losses = losses
         print("Done!")
         return g

@@ -22,6 +22,7 @@ from .models.celltype import CellTypeModel
 from .models.cellstate import CellStateModel
 from .models.imcdataset import IMCDataSet
 from .models.recognet import RecognitionNet
+from .models.scdataset import SCDataset
 
 
 class Astir:
@@ -42,7 +43,7 @@ class Astir:
 
     def __init__(
         self,
-        df_gex: pd.DataFrame,
+        input_expr,
         marker_dict: Dict,
         design=None,
         random_seed=1234,
@@ -64,20 +65,22 @@ class Astir:
         self._cell_types = list(self._type_dict.keys())
         self._cell_states = list(self._state_dict.keys())
 
-        self._mtype_genes = list(set([l for s in self._type_dict.values() for l in s]))
-        self._mstate_genes = list(
-            set([l for s in self._state_dict.values() for l in s])
-        )
+        self._C_t, self._C_s = self._sanitize_proteins()
 
-        self._N, self._G_t, self._G_s, self._C_t, self._C_s = self._sanitize_gex(df_gex)
-
-        # Read input data
-        self._core_names = list(df_gex.index)
-        self._expression_genes = list(df_gex.columns)
+        if isinstance(input_expr, SCDataset):
+            self.dset = input_expr
+        else:
+            mtype_proteins = list(
+                set([l for s in self._type_dict.values() for l in s])
+            )
+            mstate_proteins = list(
+                set([l for s in self._state_dict.values() for l in s])
+            )
+            self._type_dset = SCDataset(input_expr, mtype_proteins, design)
+            self._state_dset = SCDataset(input_expr, mstate_proteins, design)
 
         self._type_mat = self._construct_type_mat()
         self._state_mat = self._construct_state_mat()
-        self._CT_np, self._CS_np = self._get_classifiable_genes(df_gex)
 
         self.random_seed = random_seed
 
@@ -87,7 +90,6 @@ class Astir:
         if design is not None:
             if isinstance(design, pd.DataFrame):
                 design = design.to_numpy()
-        self._type_dset = IMCDataSet(self._CT_np, design)
 
     def _sanitize_dict(self, marker_dict: Dict[str, dict]) -> Tuple[dict, dict]:
         """Sanitizes the marker dictionary.
@@ -126,7 +128,7 @@ class Astir:
             )
         return type_dict, state_dict
 
-    def _sanitize_gex(self, df_gex: pd.DataFrame) -> Tuple[int, int, int]:
+    def _sanitize_proteins(self) -> Tuple[int, int]:
         """ Sanitizes the inputed gene expression dataframe.
 
         :param df_gex: dataframe read from the input .csv file
@@ -139,16 +141,8 @@ class Astir:
              types
         :rtype: Tuple[int, int, int]
         """
-        N = df_gex.shape[0]
-        G_t = len(self._mtype_genes)
-        G_s = len(self._mstate_genes)
         C_t = len(self._cell_types)
         C_s = len(self._cell_states)
-        if N <= 0:
-            raise NotClassifiableError(
-                "Classification failed. There "
-                + "should be at least one row of data to be classified."
-            )
         if C_t <= 1:
             raise NotClassifiableError(
                 "Classification failed. There "
@@ -159,44 +153,44 @@ class Astir:
                 "Classification failed. There "
                 + "should be at least two cell states to classify the data into."
             )
-        return N, G_t, G_s, C_t, C_s
+        return C_t, C_s
 
-    def _get_classifiable_genes(
-        self, df_gex: pd.DataFrame
-    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        """Return the classifiable data which contains a subset of genes from
-            the marker and the input data.
+    # def _get_classifiable_genes(
+    #     self, df_gex: pd.DataFrame
+    # ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    #     """Return the classifiable data which contains a subset of genes from
+    #         the marker and the input data.
 
-        :raises NotClassifiableError: raised when there is no overlap between the
-            inputed type or state gene and the marker type or state gene
+    #     :raises NotClassifiableError: raised when there is no overlap between the
+    #         inputed type or state gene and the marker type or state gene
 
-        :return: classifiable cell type data
-            and cell state data
-        :rtype: Tuple[pd.Dataframe, pd.Dataframe]
-        """
-        ## This should also be done to cell_states
-        try:
-            CT_np = df_gex[self._mtype_genes].to_numpy()
-        except (KeyError):
-            raise NotClassifiableError(
-                "Classification failed. There's no "
-                + "overlap between marked genes and expression genes to "
-                + "classify among cell types."
-            )
-        try:
-            CS_np = df_gex[self._mstate_genes].to_numpy()
-        except (KeyError):
-            raise NotClassifiableError(
-                "Classification failed. There's no "
-                + "overlap between marked genes and expression genes to "
-                + "classify among cell types."
-            )
-        if CT_np.shape[1] < len(self._mtype_genes):
-            warnings.warn("Classified type genes are less than marked genes.")
-        if CS_np.shape[1] < len(self._mstate_genes):
-            warnings.warn("Classified state genes are less than marked genes.")
+    #     :return: classifiable cell type data
+    #         and cell state data
+    #     :rtype: Tuple[pd.Dataframe, pd.Dataframe]
+    #     """
+    #     ## This should also be done to cell_states
+    #     try:
+    #         CT_np = df_gex[self._mtype_genes].to_numpy()
+    #     except (KeyError):
+    #         raise NotClassifiableError(
+    #             "Classification failed. There's no "
+    #             + "overlap between marked genes and expression genes to "
+    #             + "classify among cell types."
+    #         )
+    #     try:
+    #         CS_np = df_gex[self._mstate_genes].to_numpy()
+    #     except (KeyError):
+    #         raise NotClassifiableError(
+    #             "Classification failed. There's no "
+    #             + "overlap between marked genes and expression genes to "
+    #             + "classify among cell types."
+    #         )
+    #     if CT_np.shape[1] < len(self._mtype_genes):
+    #         warnings.warn("Classified type genes are less than marked genes.")
+    #     if CS_np.shape[1] < len(self._mstate_genes):
+    #         warnings.warn("Classified state genes are less than marked genes.")
 
-        return CT_np, CS_np
+    #     return CT_np, CS_np
 
     def _construct_type_mat(self) -> np.array:
         """ Constructs a matrix representing the marker information.
@@ -204,14 +198,15 @@ class Astir:
         :return: constructed matrix
         :rtype: np.array
         """
-        type_mat = np.zeros(shape=(self._G_t, self._C_t + 1))
-        for g in range(self._G_t):
+        Gt = self._type_dset.get_protein_amount()
+        type_proteins = self._type_dset.get_proteins()
+        type_mat = np.zeros(shape=(Gt, self._C_t + 1))
+        for g in range(Gt):
             for ct in range(self._C_t):
-                gene = self._mtype_genes[g]
+                gene = type_proteins[g]
                 cell_type = self._cell_types[ct]
                 if gene in self._type_dict[cell_type]:
                     type_mat[g, ct] = 1
-
         return type_mat
 
     def _construct_state_mat(self) -> np.array:
@@ -220,9 +215,9 @@ class Astir:
         :return: constructed matrix
         :rtype: np.array
         """
-        state_mat = np.zeros(shape=(self._G_s, self._C_s))
-
-        for g, gene in enumerate(self._mstate_genes):
+        state_mat = np.zeros(shape=(self._state_dset.get_protein_amount(), self._C_s))
+        state_proteins = self._state_dset.get_proteins()
+        for g, gene in enumerate(state_proteins):
             for ct, state in enumerate(self._cell_states):
                 if gene in self._state_dict[state]:
                     state_mat[g, ct] = 1
@@ -252,13 +247,11 @@ class Astir:
             CellTypeModel(
                 self._type_dset,
                 self._type_dict,
-                self._N,
-                self._G_t,
                 self._C_t,
                 self._type_mat,
                 self._include_beta,
                 self._design,
-                int(seed),
+                int(seed)
             )
             for seed in seeds
         ]
@@ -287,7 +280,7 @@ class Astir:
 
         self._type_assignments = pd.DataFrame(g)
         self._type_assignments.columns = self._cell_types + ["Other"]
-        self._type_assignments.index = self._core_names
+        self._type_assignments.index = self._type_dset.get_cells()
 
     def fit_state(
         self,
@@ -319,10 +312,10 @@ class Astir:
         for i in range(n_init):
             # Initializing a model
             model = CellStateModel(
-                Y_np=self._CS_np,
+                Y_np=self._state_dset.get_exprs().numpy(),
                 state_dict=self._state_dict,
-                N=self._N,
-                G=self._G_s,
+                N=len(self._state_dset),
+                G=self._state_dset.get_protein_amount(),
                 C=self._C_s,
                 state_mat=self._state_mat,
                 include_beta=True,
@@ -336,7 +329,7 @@ class Astir:
                 max_epochs=n_init_epochs,
                 lr=learning_rate,
                 delta_loss=delta_loss,
-                delta_loss_batch=delta_loss_batch,
+                delta_loss_batch=delta_loss_batch
             )
 
             self._cellstate_losses.append(losses)
@@ -371,7 +364,7 @@ class Astir:
 
         self._state_assignments = pd.DataFrame(g)
         self._state_assignments.columns = self._cell_states
-        self._state_assignments.index = self._core_names
+        self._state_assignments.index = self._state_dset.get_cells()
 
     def get_celltypes(self) -> pd.DataFrame:
         """[summary]
@@ -428,11 +421,11 @@ class Astir:
     def __str__(self) -> str:
         return (
             "Astir object with "
-            + str(self._CT_np.shape[1])
+            + str(self._type_dset.get_class_amount())
             + " columns of cell types, "
-            + str(self._CS_np.shape[1])
+            + str(self._state_dset.get_class_amount())
             + " columns of cell states and "
-            + str(self._CT_np.shape[0])
+            + str(len(self._type_dset))
             + " rows."
         )
 
@@ -442,7 +435,6 @@ class Astir:
 class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
     """
-
     pass
 
 
