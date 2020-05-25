@@ -214,11 +214,9 @@ class TestAstir(TestCase):
         self.a.fit_state(max_epochs=2)
         state_assignments = self.a.get_cellstates()
 
-        if self.a._state_ast.is_converged():
-            self.assertTrue(state_assignments.shape[0] == len(self.a._core_names))
-            self.assertTrue(state_assignments.shape[1] == len(self.a._cell_states))
-        # else:
-        #     self.assertIsNone(state_assignments)
+        self.assertTrue(state_assignments.shape[0] == len(self.a._core_names))
+        self.assertTrue(state_assignments.shape[1] == len(self.a._cell_states))
+
 
     def test_celltype_same_seed_same_result(self):
         """ Test whether the loss after one epoch one two different models
