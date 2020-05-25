@@ -7,6 +7,7 @@
 import re
 from typing import Tuple, List, Dict
 import warnings
+from tqdm import tqdm
 
 
 import torch
@@ -228,7 +229,7 @@ class CellTypeModel:
             opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
-        for ep in range(max_epochs):
+        for ep in tqdm(range(max_epochs)):
             L = None
             for batch in dataloader:
                 Y, X, design = batch
@@ -245,11 +246,11 @@ class CellTypeModel:
                 self._is_converged = True
                 print("Reached convergence -- breaking from training loop")
                 break
-            print(f"loss: {l} \t % change: {100*per}")
 
         ## Save output
         g = self.recog.forward(self._dset.get_exprs_X()).detach().numpy()
         self.losses = losses
+        print(f"loss: {losses[-1]} \t % change: {100*per}")
         print("Done!")
         return g
 
