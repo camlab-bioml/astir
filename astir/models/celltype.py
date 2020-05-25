@@ -36,8 +36,6 @@ class CellTypeModel:
     :param losses: losses after optimization
     :param type_dict: dictionary mapping cell type
         to the corresponding genes
-    :param state_dict: dictionary mapping cell state
-        to the corresponding genes
     :param N: number of rows of data
     :param G: number of cell type genes
     :param C: number of cell types
@@ -50,9 +48,6 @@ class CellTypeModel:
     def __init__(
         self,
         dset: SCDataset,
-        type_dict: Dict,
-        C: int,
-        type_mat: np.array,
         include_beta=False,
         design=None,
         random_seed=1234,
@@ -80,36 +75,36 @@ class CellTypeModel:
         self.losses = None  # losses after optimization
         self._is_converged = False
         self.cov_mat = None  # temporary -- remove
+        self._data = None
+        self._variables = None
+        self._losses = None
 
         self._dset = dset
-        self.type_dict = type_dict
-        self.C = C
 
         # Does this model use separate beta?
         self.include_beta = include_beta
 
-        self.marker_mat = type_mat
+        # if design is not None:
+        #     if isinstance(design, pd.DataFrame):
+        #         design = design.to_numpy()
 
-        if design is not None:
-            if isinstance(design, pd.DataFrame):
-                design = design.to_numpy()
-
-        self.recog = RecognitionNet(self.C, self._dset.get_protein_amount())
+        self._recog = RecognitionNet(dset.get_class_amount(), dset.get_protein_amount())
 
     def _param_init(self) -> None:
         """Initialize parameters and design matrices.
         """
+        G = self._dset.get_protein_amount()
+        C = self._dset.get_class_amount()
 
         # Establish data
         self._data = {
-            "log_alpha": torch.log(torch.ones(self.C + 1) / (self.C + 1)),
-            "rho": torch.from_numpy(self.marker_mat),
+            "log_alpha": torch.log(torch.ones(C + 1) / (C + 1)),
+            "rho": torch.from_numpy(self._dset.get_marker_mat()),
         }
 
-        G = self._dset.get_protein_amount()
         # Initialize mu, log_delta
         t = torch.distributions.Normal(torch.tensor(0.0), torch.tensor(0.2))
-        log_delta_init = t.sample((G, self.C + 1))
+        log_delta_init = t.sample((G, C + 1))
 
         # mu_init = torch.from_numpy(np.log(Y_np.mean(0).copy()))
         mu_init = torch.log(self._dset.get_mu())
@@ -117,29 +112,29 @@ class CellTypeModel:
         mu_init = mu_init.reshape(-1, 1)
 
         # Create initialization dictionary
-        self._initializations = {
+        initializations = {
             "mu": mu_init,
             # "log_sigma": torch.from_numpy(np.log(Y_np.std(0)).copy()),
             "log_sigma": torch.log(self._dset.get_sigma()),
             "log_delta": log_delta_init,
-            "p": torch.zeros(G, self.C + 1),
+            "p": torch.zeros(G, C + 1),
         }
 
         P = self._dset.design.shape[1]
         # Add additional columns of mu for anything in the design matrix
-        self._initializations["mu"] = torch.cat(
-            [self._initializations["mu"], torch.zeros((G, P - 1)).double()], 1
+        initializations["mu"] = torch.cat(
+            [initializations["mu"], torch.zeros((G, P - 1)).double()], 1
         )
 
         # Create trainable variables
         self._variables = {
             n: Variable(v, requires_grad=True)
-            for (n, v) in self._initializations.items()
+            for (n, v) in initializations.items()
         }
 
         if self.include_beta:
             self._variables["beta"] = Variable(
-                torch.zeros(G, self.C + 1), requires_grad=True
+                torch.zeros(G, C + 1), requires_grad=True
             )
 
     ## Declare pytorch forward fn
@@ -159,12 +154,13 @@ class CellTypeModel:
         :rtype: torch.Tensor
         """
         G = self._dset.get_protein_amount()
-        Y_spread = Y.reshape(-1, G, 1).repeat(1, 1, self.C + 1)
+        C = self._dset.get_class_amount()
+        Y_spread = Y.reshape(-1, G, 1).repeat(1, 1, C + 1)
 
         delta_tilde = torch.exp(self._variables["log_delta"])  # + np.log(0.5)
         mean = delta_tilde * self._data["rho"]
         mean2 = torch.matmul(design, self._variables["mu"].T)  ## N x P * P x G
-        mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, self.C + 1)
+        mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, C + 1)
         mean = mean + mean2
 
         if self.include_beta:
@@ -194,7 +190,7 @@ class CellTypeModel:
 
         log_p_y_on_c = dist.log_prob(Y_spread.permute(0, 2, 1))
         # log_p_y_on_c = log_p_y.sum(1)
-        gamma = self.recog.forward(X)
+        gamma = self._recog.forward(X)
         elbo = (
             gamma * (log_p_y_on_c + self._data["log_alpha"] - torch.log(gamma))
         ).sum()
@@ -223,7 +219,7 @@ class CellTypeModel:
         per = 1
 
         ## Construct optimizer
-        opt_params = list(self._variables.values()) + list(self.recog.parameters())
+        opt_params = list(self._variables.values()) + list(self._recog.parameters())
 
         if self.include_beta:
             opt_params = opt_params + [self._variables["beta"]]
@@ -248,8 +244,8 @@ class CellTypeModel:
                 break
 
         ## Save output
-        g = self.recog.forward(self._dset.get_exprs_X()).detach().numpy()
-        self.losses = losses
+        g = self._recog.forward(self._dset.get_exprs_X()).detach().numpy()
+        self._losses = losses
         print(f"loss: {losses[-1]} \t % change: {100*per}")
         print("Done!")
         return g
@@ -260,7 +256,9 @@ class CellTypeModel:
         :return: self.losses
         :rtype: float
         """
-        return self.losses
+        if self._losses is None:
+            raise Exception("The type model has not been trained yet")
+        return self._losses
 
     def is_converged(self) -> bool:
         return self._is_converged
@@ -271,5 +269,4 @@ class CellTypeModel:
 class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
     """
-
     pass

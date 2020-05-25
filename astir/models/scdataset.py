@@ -1,6 +1,6 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import numpy as np
 import pandas as pd
@@ -14,8 +14,19 @@ class SCDataset(Dataset):
     """Pytorch holder for numpy data
     """
 
-    def __init__(self, expr_input, m_proteins: List[str], design: np.array) -> None:
-        self._m_proteins = m_proteins
+    def __init__(self, expr_input, marker_dict: Dict[str, str], design: np.array) -> None:
+        self._marker_dict = marker_dict
+        self._m_proteins = list(
+                set([l for s in marker_dict.values() for l in s])
+            )
+        self._classes = list(marker_dict.keys())
+        ## sanitize proteins
+        if len(self._classes) <= 1:
+                raise NotClassifiableError(
+                    "Classification failed. There "
+                    + "should be at least two cell classes to classify the data into."
+                )
+        self._marker_mat = self._construct_marker_mat()
         if isinstance(expr_input, pd.DataFrame):
             self._exprs, self._exprs_X = self._process_df_input(expr_input)
             self._expr_proteins = list(expr_input.columns)
@@ -25,7 +36,7 @@ class SCDataset(Dataset):
             self._core_names = expr_input[2]
             self._exprs, self._exprs_X = self._process_np_input(expr_input[0])
         self.design = self._fix_design(design)
-
+        ## sanitize df
         if self._exprs.shape[0] <= 0:
             raise NotClassifiableError(
                 "Classification failed. There "
@@ -63,7 +74,20 @@ class SCDataset(Dataset):
         X = StandardScaler().fit_transform(Y_np)
         return torch.from_numpy(Y_np), torch.from_numpy(X)
 
+    def _construct_marker_mat(self):
+        G = self.get_protein_amount()
+        C = self.get_class_amount()
+        marker_mat = np.zeros(shape=(G, C + 1))
+        for g in range(G):
+            for c in range(C):
+                protein = self._m_proteins[g]
+                cell_class = self._classes[c]
+                if protein in self._marker_dict[cell_class]:
+                    marker_mat[g, c] = 1
+        return marker_mat
+
     def __len__(self) -> int:
+        # N
         return self._exprs.shape[0]
 
     def __getitem__(self, idx):
@@ -89,6 +113,9 @@ class SCDataset(Dataset):
     def get_exprs_X(self):
         return self._exprs_X
 
+    def get_marker_mat(self):
+        return self._marker_mat
+
     def get_mu(self):
         return self._exprs.mean(0)
 
@@ -96,9 +123,11 @@ class SCDataset(Dataset):
         return self._exprs.std(0)
 
     def get_class_amount(self):
-        return self._exprs.shape[1]
+        ## C
+        return len(self._classes)
 
     def get_protein_amount(self):
+        ## G
         return len(self._m_proteins)
 
     def get_proteins(self):
@@ -106,6 +135,9 @@ class SCDataset(Dataset):
 
     def get_cells(self):
         return self._core_names
+
+    def get_classes(self):
+        return self._classes
 
 
 class NotClassifiableError(RuntimeError):

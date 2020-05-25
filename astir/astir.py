@@ -53,43 +53,33 @@ class Astir:
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
         torch.manual_seed(random_seed)
-
-        self._design = design
-        self._include_beta = include_beta
-
-        self._type_assignments = None
-        self._state_assignments = None
-
-        self._type_dict, self._state_dict = self._sanitize_dict(marker_dict)
-
-        self._cell_types = list(self._type_dict.keys())
-        self._cell_states = list(self._state_dict.keys())
-
-        self._C_t, self._C_s = self._sanitize_proteins()
-
-        if isinstance(input_expr, SCDataset):
-            self.dset = input_expr
-        else:
-            mtype_proteins = list(
-                set([l for s in self._type_dict.values() for l in s])
-            )
-            mstate_proteins = list(
-                set([l for s in self._state_dict.values() for l in s])
-            )
-            self._type_dset = SCDataset(input_expr, mtype_proteins, design)
-            self._state_dset = SCDataset(input_expr, mstate_proteins, design)
-
-        self._type_mat = self._construct_type_mat()
-        self._state_mat = self._construct_state_mat()
-
         self.random_seed = random_seed
 
-        self._state_ast = None
-        self._state_assignments = None
+        self._type_ast, self._state_ast = None, None
+        self._type_assignments, self._state_assignments = None, None
+
+        type_dict, state_dict = self._sanitize_dict(marker_dict)
+
+        # self._cell_types = list(self._type_dict.keys())
+        # self._cell_states = list(self._state_dict.keys())
+
+        # self._C_t, self._C_s = self._sanitize_proteins()
+
+        if isinstance(input_expr, tuple):
+            self._type_dset, self._state_dset = input_expr[0], input_expr[1]
+        else:
+            self._type_dset = SCDataset(input_expr, type_dict, design)
+            self._state_dset = SCDataset(input_expr, state_dict, design)
+
+        # self._type_mat = self._construct_type_mat()
+        # self._state_mat = self._construct_state_mat()
 
         if design is not None:
             if isinstance(design, pd.DataFrame):
                 design = design.to_numpy()
+
+        self._design = design
+        self._include_beta = include_beta
 
     def _sanitize_dict(self, marker_dict: Dict[str, dict]) -> Tuple[dict, dict]:
         """Sanitizes the marker dictionary.
@@ -128,32 +118,32 @@ class Astir:
             )
         return type_dict, state_dict
 
-    def _sanitize_proteins(self) -> Tuple[int, int]:
-        """ Sanitizes the inputed gene expression dataframe.
+    # def _sanitize_proteins(self) -> Tuple[int, int]:
+    #     """ Sanitizes the inputed gene expression dataframe.
 
-        :param df_gex: dataframe read from the input .csv file
-        :type df_gex: pd.DataFrame
+    #     :param df_gex: dataframe read from the input .csv file
+    #     :type df_gex: pd.DataFrame
 
-        :raises NotClassifiableError: raised when the input information is not 
-             sufficient for the classification.
+    #     :raises NotClassifiableError: raised when the input information is not 
+    #          sufficient for the classification.
 
-        :return: # of rows, # of marker genes, # of cell
-             types
-        :rtype: Tuple[int, int, int]
-        """
-        C_t = len(self._cell_types)
-        C_s = len(self._cell_states)
-        if C_t <= 1:
-            raise NotClassifiableError(
-                "Classification failed. There "
-                + "should be at least two cell types to classify the data into."
-            )
-        if C_s <= 1:
-            raise NotClassifiableError(
-                "Classification failed. There "
-                + "should be at least two cell states to classify the data into."
-            )
-        return C_t, C_s
+    #     :return: # of rows, # of marker genes, # of cell
+    #          types
+    #     :rtype: Tuple[int, int, int]
+    #     """
+    #     C_t = len(self._cell_types)
+    #     C_s = len(self._cell_states)
+    #     if C_t <= 1:
+    #         raise NotClassifiableError(
+    #             "Classification failed. There "
+    #             + "should be at least two cell types to classify the data into."
+    #         )
+    #     if C_s <= 1:
+    #         raise NotClassifiableError(
+    #             "Classification failed. There "
+    #             + "should be at least two cell states to classify the data into."
+    #         )
+    #     return C_t, C_s
 
     # def _get_classifiable_genes(
     #     self, df_gex: pd.DataFrame
@@ -192,37 +182,37 @@ class Astir:
 
     #     return CT_np, CS_np
 
-    def _construct_type_mat(self) -> np.array:
-        """ Constructs a matrix representing the marker information.
+    # def _construct_type_mat(self) -> np.array:
+    #     """ Constructs a matrix representing the marker information.
 
-        :return: constructed matrix
-        :rtype: np.array
-        """
-        Gt = self._type_dset.get_protein_amount()
-        type_proteins = self._type_dset.get_proteins()
-        type_mat = np.zeros(shape=(Gt, self._C_t + 1))
-        for g in range(Gt):
-            for ct in range(self._C_t):
-                gene = type_proteins[g]
-                cell_type = self._cell_types[ct]
-                if gene in self._type_dict[cell_type]:
-                    type_mat[g, ct] = 1
-        return type_mat
+    #     :return: constructed matrix
+    #     :rtype: np.array
+    #     """
+    #     Gt = self._type_dset.get_protein_amount()
+    #     type_proteins = self._type_dset.get_proteins()
+    #     type_mat = np.zeros(shape=(Gt, self._C_t + 1))
+    #     for g in range(Gt):
+    #         for ct in range(self._C_t):
+    #             gene = type_proteins[g]
+    #             cell_type = self._cell_types[ct]
+    #             if gene in self._type_dict[cell_type]:
+    #                 type_mat[g, ct] = 1
+    #     return type_mat
 
-    def _construct_state_mat(self) -> np.array:
-        """ Constructs a matrix representing the marker information.
+    # def _construct_state_mat(self) -> np.array:
+    #     """ Constructs a matrix representing the marker information.
 
-        :return: constructed matrix
-        :rtype: np.array
-        """
-        state_mat = np.zeros(shape=(self._state_dset.get_protein_amount(), self._C_s))
-        state_proteins = self._state_dset.get_proteins()
-        for g, gene in enumerate(state_proteins):
-            for ct, state in enumerate(self._cell_states):
-                if gene in self._state_dict[state]:
-                    state_mat[g, ct] = 1
+    #     :return: constructed matrix
+    #     :rtype: np.array
+    #     """
+    #     state_mat = np.zeros(shape=(self._state_dset.get_protein_amount(), self._C_s))
+    #     state_proteins = self._state_dset.get_proteins()
+    #     for g, gene in enumerate(state_proteins):
+    #         for ct, state in enumerate(self._cell_states):
+    #             if gene in self._state_dict[state]:
+    #                 state_mat[g, ct] = 1
 
-        return state_mat
+    #     return state_mat
 
     def fit_type(
         self,
@@ -246,9 +236,6 @@ class Astir:
         type_models = [
             CellTypeModel(
                 self._type_dset,
-                self._type_dict,
-                self._C_t,
-                self._type_mat,
                 self._include_beta,
                 self._design,
                 int(seed)
@@ -272,14 +259,13 @@ class Astir:
                 + " complete the training."
             )
             warnings.warn(msg)
-        g = gs[best_ind]
 
         # plt.plot(self._type_ast.get_losses())
         # plt.ylabel('losses')
         # plt.show()
 
-        self._type_assignments = pd.DataFrame(g)
-        self._type_assignments.columns = self._cell_types + ["Other"]
+        self._type_assignments = pd.DataFrame(gs[best_ind])
+        self._type_assignments.columns = self._type_dset.get_classes() + ["Other"]
         self._type_assignments.index = self._type_dset.get_cells()
 
     def fit_state(
@@ -324,9 +310,6 @@ class Astir:
             # )
             model = CellStateModel(
                 dset=self._state_dset,
-                state_dict=self._state_dict,
-                C=self._C_s,
-                state_mat=self._state_mat,
                 include_beta=True,
                 alpha_random=True,
                 random_seed=(self.random_seed + i),
@@ -381,6 +364,8 @@ class Astir:
         :return: self.assignments
         :rtype: pd.DataFrame
         """
+        if self._type_assignments is None:
+            raise Exception("The type model has not been trained yet")
         return self._type_assignments
 
     def get_cellstates(self) -> pd.DataFrame:
@@ -389,7 +374,7 @@ class Astir:
         :return: state assignments
         :rtype: pd.DataFrame
         """
-        if self._state_ast is None:
+        if self._state_assignments is None:
             raise Exception("The state model has not been trained yet")
         return self._state_assignments
 
@@ -399,6 +384,8 @@ class Astir:
         :return: self.losses
         :rtype: np.array
         """
+        if self._type_ast is None:
+            raise Exception("The type model has not been trained yet")
         return self._type_ast.get_losses()
 
     def get_state_losses(self) -> np.array:
@@ -408,6 +395,8 @@ class Astir:
         model runs
         :rtype: np.array
         """
+        if self._state_ast is None:
+            raise Exception("The state model has not been trained yet")
         return self._state_ast.get_losses()
 
     def type_to_csv(self, output_csv: str) -> None:
@@ -416,6 +405,8 @@ class Astir:
         :param output_csv: name for the output .csv file
         :type output_csv: str
         """
+        if self._type_assignments is None:
+            raise Exception("The type model has not been trained yet")
         self._type_assignments.to_csv(output_csv)
 
     def state_to_csv(self, output_csv: str) -> None:
@@ -425,6 +416,8 @@ class Astir:
         :param output_csv: path to output csv
         :type output_csv: str, required
         """
+        if self._state_assignments is None:
+            raise Exception("The state model has not been trained yet")
         self._state_assignments.to_csv(output_csv)
 
     def __str__(self) -> str:

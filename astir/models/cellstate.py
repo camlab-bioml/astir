@@ -67,6 +67,7 @@ class CellStateModel:
         self.alpha_random = alpha_random
 
         self.state_mat = state_mat
+        self._dset = dset
         self.Y_np = dset.get_exprs()
         # Rescale data so that the model is not gene specific
         self.Y_np = self.Y_np / (self.Y_np.std(0))
@@ -83,31 +84,32 @@ class CellStateModel:
         """ Initialize sets of parameters
         """
         self.initializations = {
-            "log_sigma": np.log(self.Y_np.std()).reshape(1),
-            "mu": self.Y_np.mean(0).reshape(1, -1),
+            "log_sigma": torch.log(self._dset.get_sigma()),
+            "mu": torch.reshape(self._dset.get_mu(), (1, -1)),
         }
         # Implement Gaussian noise to alpha?
         if self.alpha_random:
-            self.initializations["z"] = np.zeros((len(self.N), self.C)) + np.random.normal(
-                loc=0, scale=0.5
-            )
+            # self.initializations["z"] = torch.zeros((len(self._dset), self.C)) + torch.random.normal(
+            #     loc=0, scale=0.5)
+            d = torch.distributions.Normal(torch.tensor(0.0), torch.tensor(0.))
+            self.initializations["z"] = d.sample((len(self._dset), self.C))
         else:
-            self.initializations["z"] = np.zeros((self.N, self.C))
+            self.initializations["z"] = torch.zeros((len(self._dset), self.C))
 
         # Include beta or not
         if self.include_beta:
-            self.initializations["log_w"] = np.log(
-                np.random.uniform(low=0, high=1.5, size=(self.C, self.G))
-            )
+            d = torch.distributions.Uniform(torch.tensor(0.0), torch.tensor(1.5))
+            self.initializations["log_w"] = torch.log(
+                d.sample((self.C, self._dset.get_protein_amount())))
 
         self.variables = {
-            n: Variable(torch.from_numpy(i.copy()), requires_grad=True)
+            n: Variable(i, requires_grad=True)
             for (n, i) in self.initializations.items()
         }
 
         self.data = {
             "rho": torch.from_numpy(self.state_mat.T).double().to(self.device),
-            "Y": torch.from_numpy(self.Y_np).to(self.device),
+            "Y": self._dset.get_exprs().to(self.device),
         }
 
     def _forward(self):
