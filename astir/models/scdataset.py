@@ -106,6 +106,9 @@ class SCDataset(Dataset):
                 + "must equal number of rows of expression data"
             )
         return d
+
+    def rescale(self):
+        self._exprs = self._exprs / (self.get_sigma())
         
     def get_exprs(self):
         return self._exprs

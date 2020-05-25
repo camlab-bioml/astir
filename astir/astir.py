@@ -60,19 +60,11 @@ class Astir:
 
         type_dict, state_dict = self._sanitize_dict(marker_dict)
 
-        # self._cell_types = list(self._type_dict.keys())
-        # self._cell_states = list(self._state_dict.keys())
-
-        # self._C_t, self._C_s = self._sanitize_proteins()
-
         if isinstance(input_expr, tuple):
             self._type_dset, self._state_dset = input_expr[0], input_expr[1]
         else:
             self._type_dset = SCDataset(input_expr, type_dict, design)
             self._state_dset = SCDataset(input_expr, state_dict, design)
-
-        # self._type_mat = self._construct_type_mat()
-        # self._state_mat = self._construct_state_mat()
 
         if design is not None:
             if isinstance(design, pd.DataFrame):
@@ -117,102 +109,6 @@ class Astir:
                 "Can't find cell state dictionary" + " in the marker file."
             )
         return type_dict, state_dict
-
-    # def _sanitize_proteins(self) -> Tuple[int, int]:
-    #     """ Sanitizes the inputed gene expression dataframe.
-
-    #     :param df_gex: dataframe read from the input .csv file
-    #     :type df_gex: pd.DataFrame
-
-    #     :raises NotClassifiableError: raised when the input information is not 
-    #          sufficient for the classification.
-
-    #     :return: # of rows, # of marker genes, # of cell
-    #          types
-    #     :rtype: Tuple[int, int, int]
-    #     """
-    #     C_t = len(self._cell_types)
-    #     C_s = len(self._cell_states)
-    #     if C_t <= 1:
-    #         raise NotClassifiableError(
-    #             "Classification failed. There "
-    #             + "should be at least two cell types to classify the data into."
-    #         )
-    #     if C_s <= 1:
-    #         raise NotClassifiableError(
-    #             "Classification failed. There "
-    #             + "should be at least two cell states to classify the data into."
-    #         )
-    #     return C_t, C_s
-
-    # def _get_classifiable_genes(
-    #     self, df_gex: pd.DataFrame
-    # ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    #     """Return the classifiable data which contains a subset of genes from
-    #         the marker and the input data.
-
-    #     :raises NotClassifiableError: raised when there is no overlap between the
-    #         inputed type or state gene and the marker type or state gene
-
-    #     :return: classifiable cell type data
-    #         and cell state data
-    #     :rtype: Tuple[pd.Dataframe, pd.Dataframe]
-    #     """
-    #     ## This should also be done to cell_states
-    #     try:
-    #         CT_np = df_gex[self._mtype_genes].to_numpy()
-    #     except (KeyError):
-    #         raise NotClassifiableError(
-    #             "Classification failed. There's no "
-    #             + "overlap between marked genes and expression genes to "
-    #             + "classify among cell types."
-    #         )
-    #     try:
-    #         CS_np = df_gex[self._mstate_genes].to_numpy()
-    #     except (KeyError):
-    #         raise NotClassifiableError(
-    #             "Classification failed. There's no "
-    #             + "overlap between marked genes and expression genes to "
-    #             + "classify among cell types."
-    #         )
-    #     if CT_np.shape[1] < len(self._mtype_genes):
-    #         warnings.warn("Classified type genes are less than marked genes.")
-    #     if CS_np.shape[1] < len(self._mstate_genes):
-    #         warnings.warn("Classified state genes are less than marked genes.")
-
-    #     return CT_np, CS_np
-
-    # def _construct_type_mat(self) -> np.array:
-    #     """ Constructs a matrix representing the marker information.
-
-    #     :return: constructed matrix
-    #     :rtype: np.array
-    #     """
-    #     Gt = self._type_dset.get_protein_amount()
-    #     type_proteins = self._type_dset.get_proteins()
-    #     type_mat = np.zeros(shape=(Gt, self._C_t + 1))
-    #     for g in range(Gt):
-    #         for ct in range(self._C_t):
-    #             gene = type_proteins[g]
-    #             cell_type = self._cell_types[ct]
-    #             if gene in self._type_dict[cell_type]:
-    #                 type_mat[g, ct] = 1
-    #     return type_mat
-
-    # def _construct_state_mat(self) -> np.array:
-    #     """ Constructs a matrix representing the marker information.
-
-    #     :return: constructed matrix
-    #     :rtype: np.array
-    #     """
-    #     state_mat = np.zeros(shape=(self._state_dset.get_protein_amount(), self._C_s))
-    #     state_proteins = self._state_dset.get_proteins()
-    #     for g, gene in enumerate(state_proteins):
-    #         for ct, state in enumerate(self._cell_states):
-    #             if gene in self._state_dict[state]:
-    #                 state_mat[g, ct] = 1
-
-    #     return state_mat
 
     def fit_type(
         self,
@@ -287,8 +183,8 @@ class Astir:
         :param delta_loss_batch: the batch size  to consider delta loss,
             defaults to 10
         """
-        self._cellstate_models = []
-        self._cellstate_losses = []
+        cellstate_models = []
+        cellstate_losses = []
 
         if delta_loss_batch >= max_epochs:
             warnings.warn(
@@ -324,17 +220,17 @@ class Astir:
                 delta_loss_batch=delta_loss_batch
             )
 
-            self._cellstate_losses.append(losses)
-            self._cellstate_models.append(model)
+            cellstate_losses.append(losses)
+            cellstate_models.append(model)
 
         last_delta_losses_mean = np.array(
-            [losses[-delta_loss_batch:].mean() for losses in self._cellstate_losses]
+            [losses[-delta_loss_batch:].mean() for losses in cellstate_losses]
         )
 
         best_model_index = np.argmin(last_delta_losses_mean)
 
-        self._state_ast = self._cellstate_models[best_model_index]
-        n_epochs_done = self._cellstate_losses[best_model_index].size
+        self._state_ast = cellstate_models[best_model_index]
+        n_epochs_done = cellstate_losses[best_model_index].size
         n_epoch_remaining = max(max_epochs - n_epochs_done, 0)
 
         self._state_ast.fit(
@@ -355,7 +251,7 @@ class Astir:
         g = self._state_ast.variables["z"].detach().numpy()
 
         self._state_assignments = pd.DataFrame(g)
-        self._state_assignments.columns = self._cell_states
+        self._state_assignments.columns = self._state_dset.get_classes()
         self._state_assignments.index = self._state_dset.get_cells()
 
     def get_celltypes(self) -> pd.DataFrame:

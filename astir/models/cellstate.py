@@ -37,9 +37,6 @@ class CellStateModel:
     def __init__(
         self,
         dset,
-        state_dict,
-        C,
-        state_mat,
         include_beta=True,
         alpha_random=True,
         random_seed=42,
@@ -57,71 +54,67 @@ class CellStateModel:
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.state_dict = state_dict
+        self._include_beta = include_beta
+        self._alpha_random = alpha_random
 
-        self.N, self.G, self.C = len(dset), dset.get_protein_amount(), C
-
-        self.include_beta = include_beta
-        self.alpha_random = alpha_random
-
-        self.state_mat = state_mat
+       # Rescale data so that the model is not gene specific
+        dset.rescale()
         self._dset = dset
-        self.Y_np = dset.get_exprs()
-        # Rescale data so that the model is not gene specific
-        self.Y_np = self.Y_np / (self.Y_np.std(0))
 
-        self.optimizer = None
-        self.losses = None
+        self._optimizer = None
+        self._losses = None
+        self._variables = None
+        self._data = None
 
         # Convergence flag
         self._is_converged = False
 
-        self._param_init()
-
     def _param_init(self) -> None:
         """ Initialize sets of parameters
         """
-        self.initializations = {
+        N = len(self._dset)
+        C = self._dset.get_class_amount()
+        initializations = {
             "log_sigma": torch.log(self._dset.get_sigma()),
             "mu": torch.reshape(self._dset.get_mu(), (1, -1)),
         }
         # Implement Gaussian noise to alpha?
-        if self.alpha_random:
+        if self._alpha_random:
             # self.initializations["z"] = torch.zeros((len(self._dset), self.C)) + torch.random.normal(
             #     loc=0, scale=0.5)
             d = torch.distributions.Normal(torch.tensor(0.0), torch.tensor(0.))
-            self.initializations["z"] = d.sample((len(self._dset), self.C))
+            initializations["z"] = d.sample((N, C))
         else:
-            self.initializations["z"] = torch.zeros((len(self._dset), self.C))
+            initializations["z"] = torch.zeros((N, C))
 
         # Include beta or not
-        if self.include_beta:
+        if self._include_beta:
             d = torch.distributions.Uniform(torch.tensor(0.0), torch.tensor(1.5))
-            self.initializations["log_w"] = torch.log(
-                d.sample((self.C, self._dset.get_protein_amount())))
+            initializations["log_w"] = torch.log(
+                d.sample((C, self._dset.get_protein_amount())))
 
-        self.variables = {
+        self._variables = {
             n: Variable(i, requires_grad=True)
-            for (n, i) in self.initializations.items()
+            for (n, i) in initializations.items()
         }
 
-        self.data = {
-            "rho": torch.from_numpy(self.state_mat.T).double().to(self.device),
-            "Y": self._dset.get_exprs().to(self.device),
+        self._data = {
+            "rho": torch.from_numpy(self._dset.get_marker_mat().T).double().to(self._device),
+            "Y": self._dset.get_exprs().to(self._device),
         }
 
     def _forward(self):
         """ One forward pass
         """
-        log_sigma = self.variables["log_sigma"]
-        mu = self.variables["mu"]
-        alpha = self.variables["z"]
-        log_beta = self.variables["log_w"]
+        log_sigma = self._variables["log_sigma"]
+        mu = self._variables["mu"]
+        alpha = self._variables["z"]
+        log_beta = self._variables["log_w"]
 
-        rho = self.data["rho"]
-        Y = self.data["Y"]
+        rho = self._data["rho"]
+        Y = self._data["Y"]
 
         rho_beta = torch.mul(rho, torch.exp(log_beta))
         mean = mu + torch.matmul(alpha, rho_beta)
@@ -151,6 +144,7 @@ class CellStateModel:
             after n_iter iterations
         :rtype: np.array
         """
+        self._param_init()
         if delta_loss_batch >= max_epochs:
             warnings.warn(
                 "Delta loss batch size is greater than the number of epochs"
@@ -158,11 +152,11 @@ class CellStateModel:
 
         losses = np.empty(max_epochs)
 
-        opt_params = list(self.variables.values())
+        opt_params = list(self._variables.values())
 
         # Create an optimizer if there is no optimizer
-        if self.optimizer is None:
-            self.optimizer = torch.optim.Adam(opt_params, lr=lr)
+        if self._optimizer is None:
+            self._optimizer = torch.optim.Adam(opt_params, lr=lr)
 
         # Returns early if the model has already converged
         if self._is_converged:
@@ -174,7 +168,7 @@ class CellStateModel:
         delta_cond_met = False
 
         for ep in tqdm(range(max_epochs)):
-            self.optimizer.zero_grad()
+            self._optimizer.zero_grad()
 
             # Forward pass & Compute loss
             loss = self._forward()
@@ -183,7 +177,7 @@ class CellStateModel:
             loss.backward()
 
             # Update parameters
-            self.optimizer.step()
+            self._optimizer.step()
 
             l = loss.detach().numpy()
             losses[ep] = l
@@ -202,10 +196,10 @@ class CellStateModel:
                 self._is_converged = True
                 break
 
-        if self.losses is None:
-            self.losses = losses
+        if self._losses is None:
+            self._losses = losses
         else:
-            self.losses = np.append(self.losses, losses)
+            self._losses = np.append(self._losses, losses)
 
         return losses
 
@@ -216,7 +210,9 @@ class CellStateModel:
             model runs
         :rtype: np.array
         """
-        return self.losses
+        if self._losses is None:
+            raise Exception("The state model has not been trained yet")
+        return self._losses
 
     def is_converged(self) -> bool:
         """ Returns True if the model converged
@@ -225,20 +221,6 @@ class CellStateModel:
         :rtype: bool
         """
         return self._is_converged
-
-    def __str__(self) -> str:
-        """ String representation for CellStateModel.
-
-        :return: summary for CellStateModel object
-        :rtype: str
-        """
-        return (
-            "CellStateModel object with "
-            + str(self.Y_np.shape[1])
-            + " columns of cell states, "
-            + str(self.Y_np.shape[0])
-            + " rows."
-        )
 
 
 class NotClassifiableError(RuntimeError):
