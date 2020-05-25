@@ -69,7 +69,7 @@ class TestAstir(TestCase):
 
     def test_fitting_type(self):
 
-        epochs = 200
+        epochs = 2
         with open(os.devnull, 'w') as devnull:
             with contextlib.redirect_stdout(devnull):
                 self.a.fit_type(max_epochs=epochs)
@@ -211,14 +211,12 @@ class TestAstir(TestCase):
     def test_get_cellstates(self):
         """ Tests get_cellstates()
         """
-        self.a.fit_state(max_epochs=500)
+        self.a.fit_state(max_epochs=2)
         state_assignments = self.a.get_cellstates()
 
-        if self.a._state_ast.is_converged():
-            self.assertTrue(state_assignments.shape[0] == len(self.a._core_names))
-            self.assertTrue(state_assignments.shape[1] == len(self.a._cell_states))
-        else:
-            self.assertIsNone(state_assignments)
+        self.assertTrue(state_assignments.shape[0] == len(self.a._core_names))
+        self.assertTrue(state_assignments.shape[1] == len(self.a._cell_states))
+
 
     def test_celltype_same_seed_same_result(self):
         """ Test whether the loss after one epoch one two different models
@@ -230,12 +228,12 @@ class TestAstir(TestCase):
         model2 = Astir(df_gex=self.expr, marker_dict=self.marker_dict,
                        design=None, random_seed=42, include_beta=True)
 
-        model1.fit_type(max_epochs=1)
+        model1.fit_type(max_epochs=10)
         model1_loss = model1.get_type_losses()
-        model2.fit_type(max_epochs=1)
+        model2.fit_type(max_epochs=10)
         model2_loss = model2.get_type_losses()
 
-        self.assertTrue(np.abs(model1_loss - model2_loss)[0] < 1e-6)
+        self.assertTrue(np.abs(model1_loss - model2_loss)[-1] < 1e-6)
 
     # @pytest.mark.filterwarnings("ignore")
     def test_celltype_diff_seed_diff_result(self):
@@ -248,12 +246,12 @@ class TestAstir(TestCase):
         model2 = Astir(df_gex=self.expr, marker_dict=self.marker_dict,
                        design=None, random_seed=1234, include_beta=True)
 
-        model1.fit_type(max_epochs=1)
+        model1.fit_type(max_epochs=10)
         model1_loss = model1.get_type_losses()
-        model2.fit_type(max_epochs=1)
+        model2.fit_type(max_epochs=10)
         model2_loss = model2.get_type_losses()
 
-        self.assertFalse(np.abs(model1_loss - model2_loss)[0] < 1e-6)
+        self.assertFalse(np.abs(model1_loss - model2_loss)[-1] < 1e-6)
         
 
     def test_cellstate_same_seed_same_result(self):
@@ -266,12 +264,12 @@ class TestAstir(TestCase):
         model2 = Astir(df_gex=self.expr, marker_dict=self.marker_dict,
                        design=None, random_seed=42, include_beta=True)
 
-        model1.fit_state(max_epochs=1)
+        model1.fit_state(max_epochs=5)
         model1_loss = model1.get_state_losses()
-        model2.fit_state(max_epochs=1)
+        model2.fit_state(max_epochs=5)
         model2_loss = model2.get_state_losses()
 
-        self.assertTrue(np.abs(model1_loss - model2_loss)[0] < 1e-6)
+        self.assertTrue(np.abs(model1_loss - model2_loss)[-1] < 1e-6)
 
     # @pytest.mark.filterwarnings("ignore")
     def test_cellstate_diff_seed_diff_result(self):
@@ -284,9 +282,9 @@ class TestAstir(TestCase):
         model2 = Astir(df_gex=self.expr, marker_dict=self.marker_dict,
                        design=None, random_seed=1234, include_beta=True)
 
-        model1.fit_state(max_epochs=1)
+        model1.fit_state(max_epochs=5)
         model1_loss = model1.get_state_losses()
-        model2.fit_state(max_epochs=1)
+        model2.fit_state(max_epochs=5)
         model2_loss = model2.get_state_losses()
 
-        self.assertFalse(np.abs(model1_loss - model2_loss)[0] < 1e-6)
+        self.assertFalse(np.abs(model1_loss - model2_loss)[-1] < 1e-6)
