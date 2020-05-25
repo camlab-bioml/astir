@@ -16,6 +16,7 @@ from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 import numpy as np
 import random
+from tqdm import tqdm
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -172,7 +173,7 @@ class CellStateModel:
         curr_delta_loss = None
         delta_cond_met = False
 
-        for ep in range(max_epochs):
+        for ep in tqdm(range(max_epochs)):
             self.optimizer.zero_grad()
 
             # Forward pass & Compute loss
