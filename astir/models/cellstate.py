@@ -36,10 +36,8 @@ class CellStateModel:
 
     def __init__(
         self,
-        Y_np,
+        dset,
         state_dict,
-        N,
-        G,
         C,
         state_mat,
         include_beta=True,
@@ -63,13 +61,13 @@ class CellStateModel:
 
         self.state_dict = state_dict
 
-        self.N, self.G, self.C = N, G, C
+        self.N, self.G, self.C = len(dset), dset.get_protein_amount(), C
 
         self.include_beta = include_beta
         self.alpha_random = alpha_random
 
         self.state_mat = state_mat
-        self.Y_np = Y_np
+        self.Y_np = dset.get_exprs()
         # Rescale data so that the model is not gene specific
         self.Y_np = self.Y_np / (self.Y_np.std(0))
 
@@ -90,7 +88,7 @@ class CellStateModel:
         }
         # Implement Gaussian noise to alpha?
         if self.alpha_random:
-            self.initializations["z"] = np.zeros((self.N, self.C)) + np.random.normal(
+            self.initializations["z"] = np.zeros((len(self.N), self.C)) + np.random.normal(
                 loc=0, scale=0.5
             )
         else:

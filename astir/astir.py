@@ -311,11 +311,20 @@ class Astir:
 
         for i in range(n_init):
             # Initializing a model
+            # model = CellStateModel(
+            #     Y_np=self._state_dset.get_exprs().numpy(),
+            #     state_dict=self._state_dict,
+            #     N=len(self._state_dset),
+            #     G=self._state_dset.get_protein_amount(),
+            #     C=self._C_s,
+            #     state_mat=self._state_mat,
+            #     include_beta=True,
+            #     alpha_random=True,
+            #     random_seed=(self.random_seed + i),
+            # )
             model = CellStateModel(
-                Y_np=self._state_dset.get_exprs().numpy(),
+                dset=self._state_dset,
                 state_dict=self._state_dict,
-                N=len(self._state_dset),
-                G=self._state_dset.get_protein_amount(),
                 C=self._C_s,
                 state_mat=self._state_mat,
                 include_beta=True,
