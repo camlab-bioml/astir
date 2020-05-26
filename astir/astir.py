@@ -60,15 +60,21 @@ class Astir:
 
         type_dict, state_dict = self._sanitize_dict(marker_dict)
 
-        if isinstance(input_expr, tuple):
-            self._type_dset, self._state_dset = input_expr[0], input_expr[1]
-        else:
-            self._type_dset = SCDataset(input_expr, type_dict, design)
-            self._state_dset = SCDataset(input_expr, state_dict, design)
-
         if design is not None:
             if isinstance(design, pd.DataFrame):
                 design = design.to_numpy()
+
+        if isinstance(input_expr, tuple):
+            self._type_dset, self._state_dset = input_expr[0], input_expr[1]
+        else:
+            self._type_dset = SCDataset(include_other_column=False,
+                                        expr_input=input_expr,
+                                        marker_dict=type_dict,
+                                        design=design)
+            self._state_dset = SCDataset(include_other_column=False,
+                                         expr_input=input_expr,
+                                         marker_dict=state_dict,
+                                         design=design)
 
         self._design = design
         self._include_beta = include_beta
@@ -248,7 +254,7 @@ class Astir:
             )
             warnings.warn(msg)
 
-        g = self._state_ast.variables["z"].detach().numpy()
+        g = self._state_ast._variables["z"].detach().numpy()
 
         self._state_assignments = pd.DataFrame(g)
         self._state_assignments.columns = self._state_dset.get_classes()
