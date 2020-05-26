@@ -24,7 +24,7 @@ class TestCellStateModel(TestCase):
             os.path.dirname(__file__), "../test-data/sce.csv"
         )
         self.marker_yaml_file = os.path.join(
-            os.path.dirname(__file__), "../test-data/jackson-2020-markers" ".yml"
+            os.path.dirname(__file__), "../test-data/jackson-2020-markers.yml"
         )
 
         input_expr = pd.read_csv(self.expr_csv_file)

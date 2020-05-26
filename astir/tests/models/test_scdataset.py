@@ -1,0 +1,181 @@
+import unittest
+import pandas as pd
+import yaml
+import torch
+import numpy as np
+
+from astir.models import CellStateModel
+from astir.data_readers import from_csv_yaml
+from astir.astir import SCDataset
+
+import os, contextlib
+
+
+class TestSCDataset(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super(TestSCDataset, self).__init__(*args, **kwargs)
+
+        self.expr_csv_file = os.path.join(
+            os.path.dirname(__file__), "../test-data/test_data.csv"
+        )
+
+        self.marker_yaml_file = os.path.join(
+            os.path.dirname(__file__), "../test-data/jackson-2020-markers.yml"
+        )
+
+        # Initializing expected values for unittesting
+        # self._param_init_expr_pd()
+        self.input_expr = pd.read_csv(self.expr_csv_file, index_col=0)
+        with open(self.marker_yaml_file, "r") as stream:
+            self.marker_dict = yaml.safe_load(stream)
+
+        self.state_markers = self.marker_dict["cell_states"]
+
+        self.marker_genes = list(
+            set([l for s in self.state_markers.values()
+                 for l in s])
+        )
+
+        self.expr = self.input_expr[self.marker_genes]
+
+        # Initializing the actual model
+        self.ds = SCDataset(
+            include_other_column=False,
+            expr_input=self.input_expr,
+            marker_dict=self.state_markers,
+            design=None
+        )
+
+    # def _param_init_expr_pd(self):
+    #     self.input_expr = pd.read_csv(self.expr_csv_file, index_col=0)
+    #     with open(self.marker_yaml_file, "r") as stream:
+    #         self.marker_dict = yaml.safe_load(stream)
+    #
+    #     self.state_markers = self.marker_dict["cell_states"]
+    #
+    #     self.marker_genes = list(
+    #         set([l for s in self.state_markers.values()
+    #              for l in s])
+    #     )
+    #
+    #     self.expr = self.input_expr[self.marker_genes]
+
+
+    def _expr_input_tuple(self):
+        pass
+
+    # def _expr_input_pd_dataframe(self):
+    #
+    #
+    # def _read_marker_yaml_file(self):
+    #
+    #
+    # def _cellstate_marker_genes(self):
+    #     self._read_marker_yaml_file()
+    #     self.state_markers = self.marker_dict["cell_states"]
+    #
+    #     self.marker_genes = list(
+    #             set([l for s in self.state_markers.values()
+    #                  for l in s])
+    #         )
+
+    # def _init_scdataset_cellstate_no_design(self):
+    #     self._read_marker_yaml_file()
+    #     self._expr_input_pd_dataframe()
+    #     self._cellstate_marker_genes()
+    #
+    #     self.ds = SCDataset(
+    #         include_other_column=False,
+    #         expr_input=self.input_expr,
+    #         marker_dict=self.state_markers,
+    #         design=None
+    #     )
+    #
+    #     self.expr = self.input_expr[self.marker_genes]
+
+    # def test_expr(self):
+    #     self._init_scdataset_cellstate_no_design()
+    #     print(torch.tensor(np.array(self.expr)))
+    #     print(self.ds.get_exprs())
+    #     self.assertEqual(self.expr, self.ds.get_exprs())
+
+    def test_basic_instance_creation(self):
+
+        self.assertIsInstance(self.ds, SCDataset)
+
+    def test_marker_genes(self):
+        """ Testing if _m_proteins field is declared correctly
+        Also tests get_proteins() and get_protein_amount() methods
+        """
+
+        self.assertEqual(len(self.marker_genes), self.ds.get_protein_amount())
+
+        self.assertEqual(sorted(self.marker_genes),
+                         sorted(self.ds.get_proteins()))
+
+    def test_len_constant_N(self):
+
+        self.assertEqual(self.expr.shape[0], len(self.ds))
+
+    # def test_get_item(self):
+    #     self._init_scdataset_cellstate_no_design()
+    #     print(self.expr)
+    #     if len(self.ds) > 0:
+    #         x, y, z = self.ds[0]
+    #         print(x)
+
+    def test_get_classes(self):
+        """ Testing if _classes field is declared correctly
+        Also tests get_classes() and get_class_amount() methods
+        """
+
+        self.assertEqual(len(self.state_markers.keys()),
+                         self.ds.get_class_amount())
+
+        self.assertEqual(sorted(self.state_markers.keys()),
+                         sorted(self.ds.get_classes()))
+
+    def test_marker_mat_not_include_other(self):
+        """
+        Also tests constant G and C
+        """
+        expected_G = len(self.marker_genes)
+        # actual_G = self.ds.get_protein_amount()
+
+        expected_C = len(self.state_markers)
+        # actual_C = self.ds.get_class_amount()
+
+        expected_marker_mat = torch.zeros((expected_G, expected_C))
+        actual_marker_mat = self.ds.get_marker_mat()
+
+        for g, protein in enumerate(self.marker_genes):
+            for c, state in enumerate(self.state_markers):
+                if protein in self.state_markers[state]:
+                    expected_marker_mat[g, c] = 1.0
+
+        self.assertTrue(torch.all(torch.eq(expected_marker_mat,
+                                   actual_marker_mat)).item())
+
+    # To implement: significant
+    # def test_marker_mat_include_other(self):
+    #     pass
+    #
+    # def test_fix_design_none(self):
+    #     pass
+    #
+    # def test_fix_design_not_none(self):
+    #     pass
+
+    # # To implement: but not significant
+    # def test_mu(self):
+    #     pass
+    #
+    # def test_sigma(self):
+    #     pass
+    #
+    # def test_rescale(self):
+    #     pass
+
+
+if __name__ == '__main__':
+    unittest.main()
