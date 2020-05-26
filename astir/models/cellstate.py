@@ -159,11 +159,7 @@ class CellStateModel:
         curr_delta_loss = None
         delta_cond_met = False
 
-        iterator = trange(
-            max_epochs,
-            desc="training astir",
-            unit="epochs",
-        )
+        iterator = trange(max_epochs, desc="training astir", unit="epochs",)
         for ep in iterator:
             self._optimizer.zero_grad()
 

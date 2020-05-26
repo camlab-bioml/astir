@@ -33,16 +33,15 @@ class TestCellStateModel(TestCase):
 
         state_dict = marker_dict["cell_states"]
 
-        self._dset = SCDataset(include_other_column=False,
-                               expr_input=input_expr,
-                               marker_dict=state_dict,
-                               design=None)
+        self._dset = SCDataset(
+            include_other_column=False,
+            expr_input=input_expr,
+            marker_dict=state_dict,
+            design=None,
+        )
 
         self.model = CellStateModel(
-            dset=self._dset,
-            include_beta=True,
-            alpha_random=True,
-            random_seed=42
+            dset=self._dset, include_beta=True, alpha_random=True, random_seed=42
         )
 
     def test_basic_instance_creation(self):

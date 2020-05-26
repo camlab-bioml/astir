@@ -67,14 +67,18 @@ class Astir:
         if isinstance(input_expr, tuple):
             self._type_dset, self._state_dset = input_expr[0], input_expr[1]
         else:
-            self._type_dset = SCDataset(expr_input=input_expr,
-                                        marker_dict=type_dict,
-                                        design=design,
-                                        include_other_column=True)
-            self._state_dset = SCDataset(expr_input=input_expr,
-                                         marker_dict=state_dict,
-                                         design=design,
-                                         include_other_column=False,)
+            self._type_dset = SCDataset(
+                expr_input=input_expr,
+                marker_dict=type_dict,
+                design=design,
+                include_other_column=True,
+            )
+            self._state_dset = SCDataset(
+                expr_input=input_expr,
+                marker_dict=state_dict,
+                design=design,
+                include_other_column=False,
+            )
 
         self._design = design
         self._include_beta = include_beta
@@ -136,18 +140,21 @@ class Astir:
         np.random.seed(self.random_seed)
         seeds = np.random.randint(1, 100000000, n_init)
         type_models = [
-            CellTypeModel(
-                self._type_dset,
-                self._include_beta,
-                self._design,
-                int(seed)
-            )
+            CellTypeModel(self._type_dset, self._include_beta, self._design, int(seed))
             for seed in seeds
         ]
         gs = []
         for i in range(n_init):
-            print("----- " + str(i+1) + "/" + str(n_init) + " Cell Type Classification -----")
-            gs.append(type_models[i].fit(max_epochs, learning_rate, batch_size, delta_loss))
+            print(
+                "----- "
+                + str(i + 1)
+                + "/"
+                + str(n_init)
+                + " Cell Type Classification -----"
+            )
+            gs.append(
+                type_models[i].fit(max_epochs, learning_rate, batch_size, delta_loss)
+            )
         if max_epochs >= 2:
             losses = [m.get_losses()[-2:].mean() for m in type_models]
         else:
@@ -193,9 +200,7 @@ class Astir:
         cellstate_losses = []
 
         if delta_loss_batch >= max_epochs:
-            warnings.warn(
-                "Delta loss batch size is greater than the number of epochs"
-            )
+            warnings.warn("Delta loss batch size is greater than the number of epochs")
 
         for i in range(n_init):
             # Initializing a model
@@ -206,14 +211,20 @@ class Astir:
                 random_seed=(self.random_seed + i),
             )
 
-            print("----- " + str(i+1) + "/" + str(n_init) + " Cell State Classification -----")
+            print(
+                "----- "
+                + str(i + 1)
+                + "/"
+                + str(n_init)
+                + " Cell State Classification -----"
+            )
             # Fitting the model
             n_init_epochs = min(max_epochs, 100)
             losses = model.fit(
                 max_epochs=n_init_epochs,
                 lr=learning_rate,
                 delta_loss=delta_loss,
-                delta_loss_batch=delta_loss_batch
+                delta_loss_batch=delta_loss_batch,
             )
 
             cellstate_losses.append(losses)
@@ -329,6 +340,7 @@ class Astir:
 class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
     """
+
     pass
 
 

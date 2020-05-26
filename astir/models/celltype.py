@@ -221,11 +221,7 @@ class CellTypeModel:
             opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
-        iterator = trange(
-            max_epochs,
-            desc="training astir",
-            unit="epochs",
-        )
+        iterator = trange(max_epochs, desc="training astir", unit="epochs",)
         for ep in iterator:
             L = None
             for batch in dataloader:

@@ -73,7 +73,7 @@ class TestAstir(TestCase):
     def test_fitting_type(self):
 
         epochs = 2
-        with open(os.devnull, 'w') as devnull:
+        with open(os.devnull, "w") as devnull:
             with contextlib.redirect_stdout(devnull):
                 self.a.fit_type(max_epochs=epochs)
 
@@ -221,16 +221,25 @@ class TestAstir(TestCase):
     #     self.assertTrue(state_assignments.shape[0] == len(self.a._core_names))
     #     self.assertTrue(state_assignments.shape[1] == len(self.a._cell_states))
 
-
     def test_celltype_same_seed_same_result(self):
         """ Test whether the loss after one epoch one two different models
         with the same random seed have the same losses after one epochs
         """
         warnings.filterwarnings("ignore", category=UserWarning)
-        model1 = Astir(input_expr=self.expr, marker_dict=self.marker_dict,
-                       design=None, random_seed=42, include_beta=True)
-        model2 = Astir(input_expr=self.expr, marker_dict=self.marker_dict,
-                       design=None, random_seed=42, include_beta=True)
+        model1 = Astir(
+            input_expr=self.expr,
+            marker_dict=self.marker_dict,
+            design=None,
+            random_seed=42,
+            include_beta=True,
+        )
+        model2 = Astir(
+            input_expr=self.expr,
+            marker_dict=self.marker_dict,
+            design=None,
+            random_seed=42,
+            include_beta=True,
+        )
 
         model1.fit_type(max_epochs=10)
         model1_loss = model1.get_type_losses()
@@ -245,10 +254,20 @@ class TestAstir(TestCase):
         with the different random seed have different losses after one epoch
         """
         warnings.filterwarnings("ignore", category=UserWarning)
-        model1 = Astir(input_expr=self.expr, marker_dict=self.marker_dict,
-                       design=None, random_seed=42, include_beta=True)
-        model2 = Astir(input_expr=self.expr, marker_dict=self.marker_dict,
-                       design=None, random_seed=1234, include_beta=True)
+        model1 = Astir(
+            input_expr=self.expr,
+            marker_dict=self.marker_dict,
+            design=None,
+            random_seed=42,
+            include_beta=True,
+        )
+        model2 = Astir(
+            input_expr=self.expr,
+            marker_dict=self.marker_dict,
+            design=None,
+            random_seed=1234,
+            include_beta=True,
+        )
 
         model1.fit_type(max_epochs=10)
         model1_loss = model1.get_type_losses()
@@ -256,17 +275,26 @@ class TestAstir(TestCase):
         model2_loss = model2.get_type_losses()
 
         self.assertFalse(np.abs(model1_loss - model2_loss)[-1] < 1e-6)
-        
 
     def test_cellstate_same_seed_same_result(self):
         """ Test whether the loss after one epoch one two different models
         with the same random seed have the same losses after one epochs
         """
         warnings.filterwarnings("ignore", category=UserWarning)
-        model1 = Astir(input_expr=self.expr, marker_dict=self.marker_dict,
-                       design=None, random_seed=42, include_beta=True)
-        model2 = Astir(input_expr=self.expr, marker_dict=self.marker_dict,
-                       design=None, random_seed=42, include_beta=True)
+        model1 = Astir(
+            input_expr=self.expr,
+            marker_dict=self.marker_dict,
+            design=None,
+            random_seed=42,
+            include_beta=True,
+        )
+        model2 = Astir(
+            input_expr=self.expr,
+            marker_dict=self.marker_dict,
+            design=None,
+            random_seed=42,
+            include_beta=True,
+        )
 
         model1.fit_state(max_epochs=5)
         model1_loss = model1.get_state_losses()
@@ -281,10 +309,20 @@ class TestAstir(TestCase):
         with the different random seed have different losses after one epoch
         """
         warnings.filterwarnings("ignore", category=UserWarning)
-        model1 = Astir(input_expr=self.expr, marker_dict=self.marker_dict,
-                       design=None, random_seed=42, include_beta=True)
-        model2 = Astir(input_expr=self.expr, marker_dict=self.marker_dict,
-                       design=None, random_seed=1234, include_beta=True)
+        model1 = Astir(
+            input_expr=self.expr,
+            marker_dict=self.marker_dict,
+            design=None,
+            random_seed=42,
+            include_beta=True,
+        )
+        model2 = Astir(
+            input_expr=self.expr,
+            marker_dict=self.marker_dict,
+            design=None,
+            random_seed=1234,
+            include_beta=True,
+        )
 
         model1.fit_state(max_epochs=5)
         model1_loss = model1.get_state_losses()
