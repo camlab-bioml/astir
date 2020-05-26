@@ -22,9 +22,9 @@ class SCDataset(Dataset):
         include_other_column: bool,
     ) -> None:
         self._marker_dict = marker_dict
-        self._m_proteins = list(set([l for s in marker_dict.values() for l in s]))
+        self._m_features = list(set([l for s in marker_dict.values() for l in s]))
         self._classes = list(marker_dict.keys())
-        ## sanitize proteins
+        ## sanitize features
         if len(self._classes) <= 1:
             raise NotClassifiableError(
                 "Classification failed. There "
@@ -35,10 +35,10 @@ class SCDataset(Dataset):
         )
         if isinstance(expr_input, pd.DataFrame):
             self._exprs, self._exprs_X = self._process_df_input(expr_input)
-            self._expr_proteins = list(expr_input.columns)
+            self._expr_features = list(expr_input.columns)
             self._core_names = list(expr_input.index)
         elif isinstance(expr_input, tuple):
-            self._expr_proteins = expr_input[1]
+            self._expr_features = expr_input[1]
             self._core_names = expr_input[2]
             self._exprs, self._exprs_X = self._process_np_input(expr_input[0])
         self.design = self._fix_design(design)
@@ -51,11 +51,11 @@ class SCDataset(Dataset):
 
     def _process_df_input(self, df_input):
         try:
-            Y_np = df_input[self._m_proteins].to_numpy()
+            Y_np = df_input[self._m_features].to_numpy()
         except (KeyError):
             raise NotClassifiableError(
                 "Classification failed. There's no "
-                + "overlap between marked proteins and expression proteins for "
+                + "overlap between marked features and expression features for "
                 + "the classification of cell type/state."
             )
         X = StandardScaler().fit_transform(Y_np)
@@ -63,18 +63,18 @@ class SCDataset(Dataset):
 
     def _process_np_input(self, np_input):
         ind = [
-            self._expr_proteins.index(name)
-            for name in self._m_proteins
-            if name in self._expr_proteins
+            self._expr_features.index(name)
+            for name in self._m_features
+            if name in self._expr_features
         ]
         if len(ind) <= 0:
             raise NotClassifiableError(
                 "Classification failed. There's no "
-                + "overlap between marked proteins and expression proteins for "
+                + "overlap between marked features and expression features for "
                 + "the classification of cell type/state."
             )
-        if len(ind) < len(self._m_proteins):
-            warnings.warn("Classified proteins are less than marked proteins.")
+        if len(ind) < len(self._m_features):
+            warnings.warn("Classified features are less than marked features.")
         Y_np = []
         for cell in np_input:
             temp = [cell[i] for i in ind]
@@ -84,13 +84,13 @@ class SCDataset(Dataset):
         return torch.from_numpy(Y_np), torch.from_numpy(X)
 
     def _construct_marker_mat(self, include_other_column: bool) -> torch.Tensor:
-        G = self.get_protein_amount()
-        C = self.get_class_amount()
+        G = self.get_n_features()
+        C = self.get_n_classes()
 
         marker_mat = torch.zeros((G, C + 1 if include_other_column else C))
-        for g, protein in enumerate(self._m_proteins):
+        for g, feature in enumerate(self._m_features):
             for c, cell_class in enumerate(self._classes):
-                if protein in self._marker_dict[cell_class]:
+                if feature in self._marker_dict[cell_class]:
                     marker_mat[g, c] = 1.0
         return marker_mat
 
@@ -133,16 +133,16 @@ class SCDataset(Dataset):
     def get_sigma(self):
         return self._exprs.std(0)
 
-    def get_class_amount(self):
+    def get_n_classes(self):
         ## C
         return len(self._classes)
 
-    def get_protein_amount(self):
+    def get_n_features(self):
         ## G
-        return len(self._m_proteins)
+        return len(self._m_features)
 
-    def get_proteins(self):
-        return self._m_proteins
+    def get_features(self):
+        return self._m_features
 
     def get_cells(self):
         return self._core_names

@@ -29,8 +29,8 @@ class Astir:
     r"""Create an Astir object
 
     :param df_gex: A `pd.DataFrame` holding single-cell expression data, 
-        where rows are cells and columns are proteins. Column names refer to
-        protein names and row names refer to cell identifiers.
+        where rows are cells and columns are features. Column names refer to
+        feature names and row names refer to cell identifiers.
     :param marker_dict: A dictionary holding cell type and state information
     :param design: An (optional) `pd.DataFrame` that represents a design matrix for the samples
     :param random_seed: The random seed to set
@@ -146,11 +146,11 @@ class Astir:
         gs = []
         for i in range(n_init):
             print(
-                "----- "
+                "---------- "
                 + str(i + 1)
                 + "/"
                 + str(n_init)
-                + " Cell Type Classification -----"
+                + " Cell Type Classification ----------"
             )
             gs.append(
                 type_models[i].fit(max_epochs, learning_rate, batch_size, delta_loss)
@@ -212,11 +212,11 @@ class Astir:
             )
 
             print(
-                "----- "
+                "---------- "
                 + str(i + 1)
                 + "/"
                 + str(n_init)
-                + " Cell State Classification -----"
+                + " Cell State Classification ----------"
             )
             # Fitting the model
             n_init_epochs = min(max_epochs, 100)
@@ -261,7 +261,13 @@ class Astir:
         self._state_assignments.columns = self._state_dset.get_classes()
         self._state_assignments.index = self._state_dset.get_cells()
 
-    def get_celltypes(self) -> pd.DataFrame:
+    def get_type_dataset(self):
+        return self._type_dset
+
+    def get_state_dataset(self):
+        return self._state_dset
+
+    def get_celltype_assignments(self) -> pd.DataFrame:
         """[summary]
 
         :return: self.assignments
@@ -271,7 +277,7 @@ class Astir:
             raise Exception("The type model has not been trained yet")
         return self._type_assignments
 
-    def get_cellstates(self) -> pd.DataFrame:
+    def get_cellstate_assignments(self) -> pd.DataFrame:
         """ Gets state assignment output from training state model
 
         :return: state assignments
@@ -326,9 +332,9 @@ class Astir:
     def __str__(self) -> str:
         return (
             "Astir object with "
-            + str(self._type_dset.get_class_amount())
+            + str(self._type_dset.get_n_classes())
             + " columns of cell types, "
-            + str(self._state_dset.get_class_amount())
+            + str(self._state_dset.get_n_classes())
             + " columns of cell states and "
             + str(len(self._type_dset))
             + " rows."
