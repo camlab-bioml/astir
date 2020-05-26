@@ -14,24 +14,25 @@ class SCDataset(Dataset):
     """Pytorch holder for numpy data
     """
 
-    def __init__(self,
-                 include_other_column: bool,
-                 expr_input,
-                 marker_dict: Dict[str, str],
-                 design: np.array) -> None:
+    def __init__(
+        self,
+        expr_input,
+        marker_dict: Dict[str, str],
+        design: np.array,
+        include_other_column: bool,
+    ) -> None:
         self._marker_dict = marker_dict
-        self._m_proteins = list(
-                set([l for s in marker_dict.values() for l in s])
-            )
+        self._m_proteins = list(set([l for s in marker_dict.values() for l in s]))
         self._classes = list(marker_dict.keys())
         ## sanitize proteins
         if len(self._classes) <= 1:
-                raise NotClassifiableError(
-                    "Classification failed. There "
-                    + "should be at least two cell classes to classify the data into."
-                )
-        self._marker_mat = self._construct_marker_mat(include_other_column
-                                                      =include_other_column)
+            raise NotClassifiableError(
+                "Classification failed. There "
+                + "should be at least two cell classes to classify the data into."
+            )
+        self._marker_mat = self._construct_marker_mat(
+            include_other_column=include_other_column
+        )
         if isinstance(expr_input, pd.DataFrame):
             self._exprs, self._exprs_X = self._process_df_input(expr_input)
             self._expr_proteins = list(expr_input.columns)
@@ -61,8 +62,11 @@ class SCDataset(Dataset):
         return torch.from_numpy(Y_np), torch.from_numpy(X)
 
     def _process_np_input(self, np_input):
-        ind = [self._expr_proteins.index(name) for name in self._m_proteins
-            if name in self._expr_proteins]
+        ind = [
+            self._expr_proteins.index(name)
+            for name in self._m_proteins
+            if name in self._expr_proteins
+        ]
         if len(ind) <= 0:
             raise NotClassifiableError(
                 "Classification failed. There's no "
@@ -75,7 +79,7 @@ class SCDataset(Dataset):
         for cell in np_input:
             temp = [cell[i] for i in ind]
             Y_np.append(np.array(temp))
-        Y_np = np.concatenate([Y_np], axis = 0)
+        Y_np = np.concatenate([Y_np], axis=0)
         X = StandardScaler().fit_transform(Y_np)
         return torch.from_numpy(Y_np), torch.from_numpy(X)
 
@@ -83,8 +87,7 @@ class SCDataset(Dataset):
         G = self.get_protein_amount()
         C = self.get_class_amount()
 
-        marker_mat = torch.zeros((G,
-                                  C + 1 if include_other_column else C))
+        marker_mat = torch.zeros((G, C + 1 if include_other_column else C))
         for g, protein in enumerate(self._m_proteins):
             for c, cell_class in enumerate(self._classes):
                 if protein in self._marker_dict[cell_class]:
@@ -114,7 +117,7 @@ class SCDataset(Dataset):
 
     def rescale(self):
         self._exprs = self._exprs / (self.get_sigma())
-        
+
     def get_exprs(self):
         return self._exprs
 

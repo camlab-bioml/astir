@@ -46,11 +46,7 @@ class CellTypeModel:
     """
 
     def __init__(
-        self,
-        dset: SCDataset,
-        include_beta=False,
-        design=None,
-        random_seed=1234,
+        self, dset: SCDataset, include_beta=False, design=None, random_seed=1234,
     ) -> None:
         """Initializes an Astir object
 
@@ -128,8 +124,7 @@ class CellTypeModel:
 
         # Create trainable variables
         self._variables = {
-            n: Variable(v, requires_grad=True)
-            for (n, v) in initializations.items()
+            n: Variable(v, requires_grad=True) for (n, v) in initializations.items()
         }
 
         if self.include_beta:
@@ -211,8 +206,9 @@ class CellTypeModel:
         """
         self._param_init()
         ## Make dataloader
-        dataloader = DataLoader(self._dset, batch_size=min(batch_size, 
-            len(self._dset)), shuffle=True)
+        dataloader = DataLoader(
+            self._dset, batch_size=min(batch_size, len(self._dset)), shuffle=True
+        )
 
         ## Run training loop
         losses = np.empty(0)
@@ -225,8 +221,12 @@ class CellTypeModel:
             opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
-        iterator = trange(max_epochs, desc = "Training Astir", unit = "epochs", 
-            postfix = "(cell type classification)")
+        iterator = trange(
+            max_epochs,
+            desc="Training Astir",
+            unit="epochs",
+            postfix="(cell type classification)",
+        )
         for ep in iterator:
             L = None
             for batch in dataloader:
@@ -235,8 +235,13 @@ class CellTypeModel:
                 L = self._forward(Y, X, design)
                 L.backward()
                 optimizer.step()
-            l = self._forward(self._dset.get_exprs(), self._dset.get_exprs_X(), 
-                self._dset.design).detach().numpy()
+            l = (
+                self._forward(
+                    self._dset.get_exprs(), self._dset.get_exprs_X(), self._dset.design
+                )
+                .detach()
+                .numpy()
+            )
             if losses.shape[0] > 0:
                 per = abs((l - losses[-1]) / losses[-1])
             losses = np.append(losses, l)
@@ -272,4 +277,5 @@ class CellTypeModel:
 class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
     """
+
     pass

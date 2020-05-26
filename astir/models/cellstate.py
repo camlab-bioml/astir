@@ -35,11 +35,7 @@ class CellStateModel:
     """
 
     def __init__(
-        self,
-        dset,
-        include_beta=True,
-        alpha_random=True,
-        random_seed=42,
+        self, dset, include_beta=True, alpha_random=True, random_seed=42,
     ):
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
@@ -55,7 +51,7 @@ class CellStateModel:
         self._include_beta = include_beta
         self._alpha_random = alpha_random
 
-       # Rescale data so that the model is not gene specific
+        # Rescale data so that the model is not gene specific
         dset.rescale()
         self._dset = dset
 
@@ -89,11 +85,11 @@ class CellStateModel:
         if self._include_beta:
             d = torch.distributions.Uniform(torch.tensor(0.0), torch.tensor(1.5))
             initializations["log_w"] = torch.log(
-                d.sample((C, self._dset.get_protein_amount())))
+                d.sample((C, self._dset.get_protein_amount()))
+            )
 
         self._variables = {
-            n: Variable(i, requires_grad=True)
-            for (n, i) in initializations.items()
+            n: Variable(i, requires_grad=True) for (n, i) in initializations.items()
         }
 
         self._data = {
@@ -117,16 +113,15 @@ class CellStateModel:
         dist = Normal(mean, torch.exp(log_sigma).reshape(1, -1))
 
         log_p_y = dist.log_prob(Y)
-        prior_alpha = Normal(torch.zeros(1),
-                             0.5 * torch.ones(1)).log_prob(z)
-        prior_sigma = Normal(torch.zeros(1),
-                             0.5 * torch.ones(1)).log_prob(log_sigma)
+        prior_alpha = Normal(torch.zeros(1), 0.5 * torch.ones(1)).log_prob(z)
+        prior_sigma = Normal(torch.zeros(1), 0.5 * torch.ones(1)).log_prob(log_sigma)
 
         loss = log_p_y.sum() + prior_alpha.sum() + prior_sigma.sum()
         return -loss
 
-    def fit(self, max_epochs, lr=1e-2, delta_loss=1e-3, delta_loss_batch=10) \
-            -> np.array:
+    def fit(
+        self, max_epochs, lr=1e-2, delta_loss=1e-3, delta_loss_batch=10
+    ) -> np.array:
         """ Train loops
 
         :param max_epochs: number of train loop iterations
@@ -145,9 +140,7 @@ class CellStateModel:
         self._param_init()
 
         if delta_loss_batch >= max_epochs:
-            warnings.warn(
-                "Delta loss batch size is greater than the number of epochs"
-            )
+            warnings.warn("Delta loss batch size is greater than the number of epochs")
 
         losses = np.empty(max_epochs)
 
@@ -166,8 +159,12 @@ class CellStateModel:
         curr_delta_loss = None
         delta_cond_met = False
 
-        iterator = trange(max_epochs, desc = "Training Astir", unit = "epochs",
-            postfix = "(cell state classification)")
+        iterator = trange(
+            max_epochs,
+            desc="Training Astir",
+            unit="epochs",
+            postfix="(cell state classification)",
+        )
         for ep in iterator:
             self._optimizer.zero_grad()
 
