@@ -194,7 +194,6 @@ class CellStateModel:
                 iterator.close()
                 print("Reached convergence -- breaking from training loop")
                 break
-        print(curr_delta_loss)
         if self._losses is None:
             self._losses = losses
         else:
