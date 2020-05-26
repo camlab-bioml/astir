@@ -105,13 +105,13 @@ class TestSCDataset(unittest.TestCase):
 
     def test_marker_genes(self):
         """ Testing if _m_proteins field is declared correctly
-        Also tests get_proteins() and get_protein_amount() methods
+        Also tests get_features() and get_n_features() methods
         """
 
-        self.assertEqual(len(self.marker_genes), self.ds.get_protein_amount())
+        self.assertEqual(len(self.marker_genes), self.ds.get_n_features())
 
         self.assertEqual(sorted(self.marker_genes),
-                         sorted(self.ds.get_proteins()))
+                         sorted(self.ds.get_features()))
 
     def test_len_constant_N(self):
 
@@ -130,7 +130,7 @@ class TestSCDataset(unittest.TestCase):
         """
 
         self.assertEqual(len(self.state_markers.keys()),
-                         self.ds.get_class_amount())
+                         self.ds.get_n_classes())
 
         self.assertEqual(sorted(self.state_markers.keys()),
                          sorted(self.ds.get_classes()))
