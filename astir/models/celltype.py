@@ -99,7 +99,7 @@ class CellTypeModel:
         # Establish data
         self._data = {
             "log_alpha": torch.log(torch.ones(C + 1) / (C + 1)),
-            "rho": torch.from_numpy(self._dset.get_marker_mat()),
+            "rho": self._dset.get_marker_mat(),
         }
 
         # Initialize mu, log_delta

@@ -45,11 +45,7 @@ class CellStateModel:
             raise NotClassifiableError("Random seed is expected to be an integer.")
         # Setting random seeds
         torch.manual_seed(random_seed)
-        torch.cuda.manual_seed(random_seed)
-        torch.cuda.manual_seed_all(random_seed)
-        np.random.seed(random_seed)
-        random.seed(random_seed)
-        torch.manual_seed(random_seed)
+        self.random_seed = random_seed
 
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
@@ -84,7 +80,7 @@ class CellStateModel:
         if self._alpha_random:
             # self.initializations["z"] = torch.zeros((len(self._dset), self.C)) + torch.random.normal(
             #     loc=0, scale=0.5)
-            d = torch.distributions.Normal(torch.tensor(0.0), torch.tensor(0.))
+            d = torch.distributions.Normal(torch.tensor(0.0), torch.tensor(0.5))
             initializations["z"] = d.sample((N, C))
         else:
             initializations["z"] = torch.zeros((N, C))
@@ -101,7 +97,7 @@ class CellStateModel:
         }
 
         self._data = {
-            "rho": torch.from_numpy(self._dset.get_marker_mat().T).double().to(self._device),
+            "rho": self._dset.get_marker_mat().T.to(self._device),
             "Y": self._dset.get_exprs().to(self._device),
         }
 
@@ -110,20 +106,21 @@ class CellStateModel:
         """
         log_sigma = self._variables["log_sigma"]
         mu = self._variables["mu"]
-        alpha = self._variables["z"]
-        log_beta = self._variables["log_w"]
+        z = self._variables["z"]
+        log_w = self._variables["log_w"]
 
         rho = self._data["rho"]
         Y = self._data["Y"]
-
-        rho_beta = torch.mul(rho, torch.exp(log_beta))
-        mean = mu + torch.matmul(alpha, rho_beta)
+        rho_w = torch.mul(rho, torch.exp(log_w))
+        mean = mu + torch.matmul(z, rho_w)
 
         dist = Normal(mean, torch.exp(log_sigma).reshape(1, -1))
 
         log_p_y = dist.log_prob(Y)
-        prior_alpha = Normal(torch.zeros(1), 0.5 * torch.ones(1)).log_prob(alpha)
-        prior_sigma = Normal(torch.zeros(1), 0.5 * torch.ones(1)).log_prob(log_sigma)
+        prior_alpha = Normal(torch.zeros(1),
+                             0.5 * torch.ones(1)).log_prob(z)
+        prior_sigma = Normal(torch.zeros(1),
+                             0.5 * torch.ones(1)).log_prob(log_sigma)
 
         loss = log_p_y.sum() + prior_alpha.sum() + prior_sigma.sum()
         return -loss
@@ -144,7 +141,9 @@ class CellStateModel:
             after n_iter iterations
         :rtype: np.array
         """
+        torch.manual_seed(self.random_seed)
         self._param_init()
+
         if delta_loss_batch >= max_epochs:
             warnings.warn(
                 "Delta loss batch size is greater than the number of epochs"
