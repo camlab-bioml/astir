@@ -120,7 +120,7 @@ class CellStateModel:
         return -loss
 
     def fit(
-        self, max_epochs, lr=1e-2, delta_loss=1e-3, delta_loss_batch=10
+        self, max_epochs, lr=1e-2, delta_loss=0.001, delta_loss_batch=10
     ) -> np.array:
         """ Train loops
 
@@ -161,9 +161,8 @@ class CellStateModel:
 
         iterator = trange(
             max_epochs,
-            desc="Training Astir",
+            desc="training astir",
             unit="epochs",
-            postfix="(cell state classification)",
         )
         for ep in iterator:
             self._optimizer.zero_grad()
@@ -185,8 +184,8 @@ class CellStateModel:
                 end_index = start_index + delta_loss_batch
                 curr_mean = np.mean(losses[start_index:end_index])
                 if prev_mean is not None:
-                    curr_delta_loss = (prev_mean - curr_mean) / prev_mean
-                    delta_cond_met = 0 < curr_delta_loss < delta_loss
+                    curr_delta_loss = abs((prev_mean - curr_mean) / prev_mean)
+                    delta_cond_met = 0 <= curr_delta_loss <= delta_loss
                 prev_mean = curr_mean
 
             if delta_cond_met:
@@ -195,7 +194,7 @@ class CellStateModel:
                 iterator.close()
                 print("Reached convergence -- breaking from training loop")
                 break
-
+        print(curr_delta_loss)
         if self._losses is None:
             self._losses = losses
         else:

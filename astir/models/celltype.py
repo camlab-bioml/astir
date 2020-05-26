@@ -223,9 +223,8 @@ class CellTypeModel:
 
         iterator = trange(
             max_epochs,
-            desc="Training Astir",
+            desc="training astir",
             unit="epochs",
-            postfix="(cell type classification)",
         )
         for ep in iterator:
             L = None

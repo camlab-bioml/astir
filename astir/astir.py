@@ -144,10 +144,10 @@ class Astir:
             )
             for seed in seeds
         ]
-        gs = [
-            m.fit(max_epochs, learning_rate, batch_size, delta_loss)
-            for m in type_models
-        ]
+        gs = []
+        for i in range(n_init):
+            print("----- " + str(i+1) + "/" + str(n_init) + " Cell Type Classification -----")
+            gs.append(type_models[i].fit(max_epochs, learning_rate, batch_size, delta_loss))
         if max_epochs >= 2:
             losses = [m.get_losses()[-2:].mean() for m in type_models]
         else:
@@ -206,6 +206,7 @@ class Astir:
                 random_seed=(self.random_seed + i),
             )
 
+            print("----- " + str(i+1) + "/" + str(n_init) + " Cell State Classification -----")
             # Fitting the model
             n_init_epochs = min(max_epochs, 100)
             losses = model.fit(
