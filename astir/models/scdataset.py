@@ -14,7 +14,11 @@ class SCDataset(Dataset):
     """Pytorch holder for numpy data
     """
 
-    def __init__(self, expr_input, marker_dict: Dict[str, str], design: np.array) -> None:
+    def __init__(self,
+                 include_other_column: bool,
+                 expr_input,
+                 marker_dict: Dict[str, str],
+                 design: np.array) -> None:
         self._marker_dict = marker_dict
         self._m_proteins = list(
                 set([l for s in marker_dict.values() for l in s])
@@ -26,7 +30,8 @@ class SCDataset(Dataset):
                     "Classification failed. There "
                     + "should be at least two cell classes to classify the data into."
                 )
-        self._marker_mat = self._construct_marker_mat()
+        self._marker_mat = self._construct_marker_mat(include_other_column
+                                                      =include_other_column)
         if isinstance(expr_input, pd.DataFrame):
             self._exprs, self._exprs_X = self._process_df_input(expr_input)
             self._expr_proteins = list(expr_input.columns)
@@ -74,16 +79,16 @@ class SCDataset(Dataset):
         X = StandardScaler().fit_transform(Y_np)
         return torch.from_numpy(Y_np), torch.from_numpy(X)
 
-    def _construct_marker_mat(self):
+    def _construct_marker_mat(self, include_other_column: bool) -> torch.Tensor:
         G = self.get_protein_amount()
         C = self.get_class_amount()
-        marker_mat = np.zeros(shape=(G, C + 1))
-        for g in range(G):
-            for c in range(C):
-                protein = self._m_proteins[g]
-                cell_class = self._classes[c]
+
+        marker_mat = torch.zeros((G,
+                                  C + 1 if include_other_column else C))
+        for g, protein in enumerate(self._m_proteins):
+            for c, cell_class in enumerate(self._classes):
                 if protein in self._marker_dict[cell_class]:
-                    marker_mat[g, c] = 1
+                    marker_mat[g, c] = 1.0
         return marker_mat
 
     def __len__(self) -> int:
