@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 import numpy as np
 import random
-from tqdm import tqdm
+from tqdm import trange
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -167,7 +167,9 @@ class CellStateModel:
         curr_delta_loss = None
         delta_cond_met = False
 
-        for ep in tqdm(range(max_epochs)):
+        iterator = trange(max_epochs, desc = "Training Astir", unit = "epochs",
+            postfix = "(cell state classification)")
+        for ep in iterator:
             self._optimizer.zero_grad()
 
             # Forward pass & Compute loss
@@ -194,6 +196,8 @@ class CellStateModel:
             if delta_cond_met:
                 losses = losses[0 : ep + 1]
                 self._is_converged = True
+                iterator.close()
+                print("Reached convergence -- breaking from training loop")
                 break
 
         if self._losses is None:
