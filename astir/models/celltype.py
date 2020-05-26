@@ -7,7 +7,7 @@
 import re
 from typing import Tuple, List, Dict
 import warnings
-from tqdm import tqdm
+from tqdm import trange
 
 import torch
 from torch.autograd import Variable
@@ -228,7 +228,9 @@ class CellTypeModel:
             opt_params = opt_params + [self.variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
-        for ep in tqdm(range(max_epochs)):
+        iterator = trange(max_epochs, desc = "Training Astir", unit = "epochs", 
+            postfix = "(cell type classification)")
+        for ep in iterator:
             L = None
             for batch in dataloader:
                 Y, X, design = batch
@@ -242,6 +244,7 @@ class CellTypeModel:
             losses = np.append(losses, l)
             if per <= delta_loss:
                 self._is_converged = True
+                iterator.close()
                 print("Reached convergence -- breaking from training loop")
                 break
 
