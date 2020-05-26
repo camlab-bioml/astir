@@ -67,7 +67,7 @@ class Astir:
         if isinstance(input_expr, tuple):
             self._type_dset, self._state_dset = input_expr[0], input_expr[1]
         else:
-            self._type_dset = SCDataset(include_other_column=False,
+            self._type_dset = SCDataset(include_other_column=True,
                                         expr_input=input_expr,
                                         marker_dict=type_dict,
                                         design=design)
