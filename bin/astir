@@ -34,9 +34,17 @@ parser.add_argument("--random_seed",
                     type=int,
                     default=1234)
 parser.add_argument("--log_delta_init",
-                    help="Random seed",
+                    help="log_delta_init",
                     type=float,
                     default=12345)
+parser.add_argument("--delta_loss",
+                    help="Delta loss",
+                    type=float,
+                    default=1e-3)
+parser.add_argument("--n_init",
+                    help="number of inits",
+                    type=int,
+                    default=10)
 
 args = parser.parse_args()
 
@@ -45,12 +53,17 @@ a = from_csv_yaml(args.expr_csv, args.marker_yaml, design_csv=args.design, rando
 if args.criteria == "type":
     a.fit_type(epochs = args.epochs, 
         learning_rate = args.learning_rate, 
-        batch_size = args.batch_size)
+        batch_size = args.batch_size,
+        delta_loss = args.delta_loss,
+        n_init = args.n_init)
     a.type_to_csv(args.output_csv)
-# elif args.criteria == "state":
-#     a.fit_state(epochs = args.epochs, 
-#         learning_rate = args.learning_rate, 
-#         batch_size = args.batch_size)
-#     a.state_to_csv(args.output_csv)
+elif args.criteria == "state":
+    a.fit_state(max_epochs = args.epochs, 
+        learning_rate = args.learning_rate, 
+        batch_size = args.batch_size,
+        n_init = args.n_init,
+        delta_loss = args.delta_loss,
+        delta_loss_batch=args.delta_loss_batch)
+    a.state_to_csv(args.output_csv)
 else:
     print("Please specify the criteria for classification. (astir type [option] / astir state [option])")
