@@ -20,7 +20,6 @@ from sklearn.preprocessing import StandardScaler
 
 from .models.celltype import CellTypeModel
 from .models.cellstate import CellStateModel
-from .models.imcdataset import IMCDataSet
 from .models.recognet import RecognitionNet
 from .models.scdataset import SCDataset
 
