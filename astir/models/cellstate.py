@@ -180,7 +180,7 @@ class CellStateModel:
                 end_index = start_index + delta_loss_batch
                 curr_mean = np.mean(losses[start_index:end_index])
                 if prev_mean is not None:
-                    curr_delta_loss = abs((prev_mean - curr_mean) / prev_mean)
+                    curr_delta_loss = (prev_mean - curr_mean) / prev_mean
                     delta_cond_met = 0 <= curr_delta_loss <= delta_loss
                 prev_mean = curr_mean
 
