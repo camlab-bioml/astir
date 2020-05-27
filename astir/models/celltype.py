@@ -84,13 +84,13 @@ class CellTypeModel:
         #     if isinstance(design, pd.DataFrame):
         #         design = design.to_numpy()
 
-        self._recog = RecognitionNet(dset.get_class_amount(), dset.get_protein_amount())
+        self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features())
 
     def _param_init(self) -> None:
         """Initialize parameters and design matrices.
         """
-        G = self._dset.get_protein_amount()
-        C = self._dset.get_class_amount()
+        G = self._dset.get_n_features()
+        C = self._dset.get_n_classes()
 
         # Establish data
         self._data = {
@@ -148,8 +148,8 @@ class CellTypeModel:
         :return: [description]
         :rtype: torch.Tensor
         """
-        G = self._dset.get_protein_amount()
-        C = self._dset.get_class_amount()
+        G = self._dset.get_n_features()
+        C = self._dset.get_n_classes()
         Y_spread = Y.reshape(-1, G, 1).repeat(1, 1, C + 1)
 
         delta_tilde = torch.exp(self._variables["log_delta"])  # + np.log(0.5)
@@ -221,7 +221,7 @@ class CellTypeModel:
             opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
-        iterator = trange(max_epochs, desc="training astir", unit="epochs",)
+        iterator = trange(max_epochs, desc="training astir", unit="epochs")
         for ep in iterator:
             L = None
             for batch in dataloader:
@@ -249,7 +249,6 @@ class CellTypeModel:
         ## Save output
         g = self._recog.forward(self._dset.get_exprs_X()).detach().numpy()
         self._losses = losses
-        print(f"loss: {losses[-1]} \t % change: {100*per}")
         print("Done!")
         return g
 

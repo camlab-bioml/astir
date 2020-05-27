@@ -29,7 +29,7 @@ class CellStateModel:
     :param marker_dict: the gene marker dictionary
     :param random_seed: seed number to reproduce results, defaults to 1234
     :param include_beta: model parameter that measures with arbitrary unit,
-        by how much protein g contributes to pathway p
+        by how much feature g contributes to pathway p
     :param alpha_random: adds Gaussian noise to alpha initialization if True
         otherwise alpha is initialized to zeros
     """
@@ -67,7 +67,7 @@ class CellStateModel:
         """ Initialize sets of parameters
         """
         N = len(self._dset)
-        C = self._dset.get_class_amount()
+        C = self._dset.get_n_classes()
         initializations = {
             "log_sigma": torch.log(self._dset.get_sigma()),
             "mu": torch.reshape(self._dset.get_mu(), (1, -1)),
@@ -85,7 +85,7 @@ class CellStateModel:
         if self._include_beta:
             d = torch.distributions.Uniform(torch.tensor(0.0), torch.tensor(1.5))
             initializations["log_w"] = torch.log(
-                d.sample((C, self._dset.get_protein_amount()))
+                d.sample((C, self._dset.get_n_features()))
             )
 
         self._variables = {
@@ -180,7 +180,7 @@ class CellStateModel:
                 end_index = start_index + delta_loss_batch
                 curr_mean = np.mean(losses[start_index:end_index])
                 if prev_mean is not None:
-                    curr_delta_loss = abs((prev_mean - curr_mean) / prev_mean)
+                    curr_delta_loss = (prev_mean - curr_mean) / prev_mean
                     delta_cond_met = 0 <= curr_delta_loss <= delta_loss
                 prev_mean = curr_mean
 
