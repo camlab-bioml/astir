@@ -50,17 +50,17 @@ class TestAstir(TestCase):
 
         self.assertIsInstance(a, Astir)
 
-    # def test_dir_reading(self):
-    #
-    #     a = from_csv_dir_yaml(self.test_dir, self.marker_yaml_file)
-    #
-    #     self.assertIsInstance(a, Astir)
-    #
-    #     ## Make sure the design matrix has been constructed correctly
-    #     self.assertTrue(a._design.shape[0] == a._CT_np.shape[0])
-    #     files = os.listdir(self.test_dir)
-    #     files = [f for f in files if f.endswith(".csv")]
-    #     self.assertTrue(a._design.shape[1] == len(files))
+    def test_dir_reading(self):
+
+        a = from_csv_dir_yaml(self.test_dir, self.marker_yaml_file)
+
+        self.assertIsInstance(a, Astir)
+
+        ## Make sure the design matrix has been constructed correctly
+        self.assertTrue(a._design.shape[0] == len(a._type_dset))
+        files = os.listdir(self.test_dir)
+        files = [f for f in files if f.endswith(".csv")]
+        self.assertTrue(a._design.shape[1] == len(files))
 
     def test_csv_reading_with_design(self):
 
