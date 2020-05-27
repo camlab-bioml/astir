@@ -4,11 +4,9 @@ import yaml
 import torch
 import numpy as np
 
-from astir.models import CellStateModel
-from astir.data_readers import from_csv_yaml
 from astir.astir import SCDataset
 
-import os, contextlib
+import os
 
 
 class TestSCDataset(unittest.TestCase):
@@ -21,6 +19,10 @@ class TestSCDataset(unittest.TestCase):
 
         self.marker_yaml_file = os.path.join(
             os.path.dirname(__file__), "../test-data/jackson-2020-markers.yml"
+        )
+
+        self.design_file = os.path.join(
+            os.path.dirname(__file__), "../test-data/design.csv"
         )
 
         # Initializing expected values for unittesting
@@ -38,6 +40,8 @@ class TestSCDataset(unittest.TestCase):
 
         self.expr = self.input_expr[self.marker_genes]
 
+        self.design = pd.read_csv(self.design_file, index_col=0)
+
         # Initializing the actual model
         self.ds = SCDataset(
             include_other_column=False,
@@ -46,58 +50,8 @@ class TestSCDataset(unittest.TestCase):
             design=None
         )
 
-    # def _param_init_expr_pd(self):
-    #     self.input_expr = pd.read_csv(self.expr_csv_file, index_col=0)
-    #     with open(self.marker_yaml_file, "r") as stream:
-    #         self.marker_dict = yaml.safe_load(stream)
-    #
-    #     self.state_markers = self.marker_dict["cell_states"]
-    #
-    #     self.marker_genes = list(
-    #         set([l for s in self.state_markers.values()
-    #              for l in s])
-    #     )
-    #
-    #     self.expr = self.input_expr[self.marker_genes]
-
-
     def _expr_input_tuple(self):
         pass
-
-    # def _expr_input_pd_dataframe(self):
-    #
-    #
-    # def _read_marker_yaml_file(self):
-    #
-    #
-    # def _cellstate_marker_genes(self):
-    #     self._read_marker_yaml_file()
-    #     self.state_markers = self.marker_dict["cell_states"]
-    #
-    #     self.marker_genes = list(
-    #             set([l for s in self.state_markers.values()
-    #                  for l in s])
-    #         )
-
-    # def _init_scdataset_cellstate_no_design(self):
-    #     self._read_marker_yaml_file()
-    #     self._expr_input_pd_dataframe()
-    #     self._cellstate_marker_genes()
-    #
-    #     self.ds = SCDataset(
-    #         include_other_column=False,
-    #         expr_input=self.input_expr,
-    #         marker_dict=self.state_markers,
-    #         design=None
-    #     )
-    #
-    #     self.expr = self.input_expr[self.marker_genes]
-
-    # def test_expr(self):
-    #     self._init_scdataset_cellstate_no_design()
-    #     print(torch.tensor(np.array(self.expr)))
-    #     print(self.ds.get_exprs())
-    #     self.assertEqual(self.expr, self.ds.get_exprs())
 
     def test_basic_instance_creation(self):
 
@@ -107,11 +61,16 @@ class TestSCDataset(unittest.TestCase):
         """ Testing if _m_proteins field is declared correctly
         Also tests get_features() and get_n_features() methods
         """
+        expected_gene_count = len(self.marker_genes)
+        actual_gene_count = self.ds.get_n_features()
 
-        self.assertEqual(len(self.marker_genes), self.ds.get_n_features())
+        expected_gene_names = sorted(self.marker_genes)
+        actual_gene_names = sorted(self.ds.get_features())
 
-        self.assertEqual(sorted(self.marker_genes),
-                         sorted(self.ds.get_features()))
+        self.assertEqual(expected_gene_count, actual_gene_count)
+
+        self.assertEqual(expected_gene_names,
+                         actual_gene_names)
 
     def test_len_constant_N(self):
 
@@ -126,14 +85,17 @@ class TestSCDataset(unittest.TestCase):
 
     def test_get_classes(self):
         """ Testing if _classes field is declared correctly
-        Also tests get_classes() and get_class_amount() methods
+        Also tests get_classes() and get_n_classes() methods
         """
+        expected_class_count = len(self.state_markers.keys())
+        actual_class_count = self.ds.get_n_classes()
 
-        self.assertEqual(len(self.state_markers.keys()),
-                         self.ds.get_n_classes())
+        expected_classes = sorted(self.state_markers.keys())
+        actual_classes = sorted(self.ds.get_classes())
 
-        self.assertEqual(sorted(self.state_markers.keys()),
-                         sorted(self.ds.get_classes()))
+        self.assertEqual(expected_class_count, actual_class_count)
+
+        self.assertEqual(expected_classes, actual_classes)
 
     def test_marker_mat_not_include_other(self):
         """
@@ -156,15 +118,64 @@ class TestSCDataset(unittest.TestCase):
         self.assertTrue(torch.all(torch.eq(expected_marker_mat,
                                    actual_marker_mat)).item())
 
+    def test_cell_names(self):
+
+        expected_cell_names = sorted(self.expr.index)
+        actual_cell_names = sorted(self.ds.get_cells())
+
+        self.assertTrue(expected_cell_names, actual_cell_names)
+
     # To implement: significant
-    # def test_marker_mat_include_other(self):
-    #     pass
-    #
-    # def test_fix_design_none(self):
-    #     pass
-    #
-    # def test_fix_design_not_none(self):
-    #     pass
+    def test_marker_mat_include_other(self):
+        self.type_markers = self.marker_dict["cell_types"]
+        self.marker_genes = list(
+            set([l for s in self.type_markers.values()
+                 for l in s])
+        )
+
+        self.ds = SCDataset(
+            include_other_column=True,
+            expr_input=self.input_expr,
+            marker_dict=self.type_markers,
+            design=None
+        )
+
+        G = self.ds.get_n_features()
+        C = self.ds.get_n_classes()
+
+        expected_marker_mat = torch.zeros((G, C + 1))
+        actual_marker_mat = self.ds.get_marker_mat()
+        for g, feature in enumerate(self.marker_genes):
+            for c, cell_class in enumerate(self.type_markers):
+                if feature in self.type_markers[cell_class]:
+                    expected_marker_mat[g, c] = 1.0
+
+        self.assertTrue(torch.all(torch.eq(expected_marker_mat,
+                                           actual_marker_mat)).item())
+
+    def test_fix_design_none(self):
+
+        expected_design = torch.ones((len(self.ds), 1)).double()
+        actual_design = self.ds.design
+
+        self.assertTrue(torch.all(torch.eq(expected_design,
+                                           actual_design)).item())
+
+    def test_fix_design_not_none(self):
+        self.design = self.design.to_numpy()
+
+        self.ds = SCDataset(
+            include_other_column=False,
+            expr_input=self.input_expr,
+            marker_dict=self.state_markers,
+            design=self.design
+        )
+
+        expected_design = torch.from_numpy(self.design).double()
+        actual_design = self.ds.design
+
+        self.assertTrue(torch.all(torch.eq(expected_design,
+                                           actual_design)).item())
 
     # # To implement: but not significant
     # def test_mu(self):
