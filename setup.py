@@ -27,6 +27,7 @@ setuptools.setup(
         "pyyaml", 
         "sklearn", 
         "argparse",
+        "matplotlib",
         "loompy",
         "tdqm"],
     include_package_data=True,
