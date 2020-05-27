@@ -41,6 +41,10 @@ parser.add_argument("--delta_loss",
                     help="Delta loss",
                     type=float,
                     default=1e-3)
+parser.add_argument("--delta_loss_batch",
+                    help="Delta loss batch",
+                    type=float,
+                    default=10)
 parser.add_argument("--n_init",
                     help="number of inits",
                     type=int,
@@ -51,7 +55,7 @@ args = parser.parse_args()
 a = from_csv_yaml(args.expr_csv, args.marker_yaml, design_csv=args.design, random_seed=args.random_seed)
 
 if args.criteria == "type":
-    a.fit_type(epochs = args.epochs, 
+    a.fit_type(max_epochs = args.epochs, 
         learning_rate = args.learning_rate, 
         batch_size = args.batch_size,
         delta_loss = args.delta_loss,
@@ -60,7 +64,6 @@ if args.criteria == "type":
 elif args.criteria == "state":
     a.fit_state(max_epochs = args.epochs, 
         learning_rate = args.learning_rate, 
-        batch_size = args.batch_size,
         n_init = args.n_init,
         delta_loss = args.delta_loss,
         delta_loss_batch=args.delta_loss_batch)
