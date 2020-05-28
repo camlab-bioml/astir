@@ -34,13 +34,13 @@ class SCDataset(Dataset):
             include_other_column=include_other_column
         )
         if isinstance(expr_input, pd.DataFrame):
-            self._exprs, self._exprs_X = self._process_df_input(expr_input)
+            self._exprs = self._process_df_input(expr_input)
             self._expr_features = list(expr_input.columns)
             self._core_names = list(expr_input.index)
         elif isinstance(expr_input, tuple):
             self._expr_features = expr_input[1]
             self._core_names = expr_input[2]
-            self._exprs, self._exprs_X = self._process_np_input(expr_input[0])
+            self._exprs = self._process_np_input(expr_input[0])
         self.design = self._fix_design(design)
         ## sanitize df
         if self._exprs.shape[0] <= 0:
@@ -48,6 +48,8 @@ class SCDataset(Dataset):
                 "Classification failed. There "
                 + "should be at least one row of data to be classified."
             )
+        self._exprs_mean = self._exprs.mean(0)
+        self._exprs_std = self._exprs.std(0)
 
     def _process_df_input(self, df_input):
         try:
@@ -58,8 +60,7 @@ class SCDataset(Dataset):
                 + "overlap between marked features and expression features for "
                 + "the classification of cell type/state."
             )
-        X = StandardScaler().fit_transform(Y_np)
-        return torch.from_numpy(Y_np), torch.from_numpy(X)
+        return torch.from_numpy(Y_np)
 
     def _process_np_input(self, np_input):
         ind = [
@@ -80,8 +81,7 @@ class SCDataset(Dataset):
             temp = [cell[i] for i in ind]
             Y_np.append(np.array(temp))
         Y_np = np.concatenate([Y_np], axis=0)
-        X = StandardScaler().fit_transform(Y_np)
-        return torch.from_numpy(Y_np), torch.from_numpy(X)
+        return torch.from_numpy(Y_np)
 
     def _construct_marker_mat(self, include_other_column: bool) -> torch.Tensor:
         G = self.get_n_features()
@@ -99,7 +99,9 @@ class SCDataset(Dataset):
         return self._exprs.shape[0]
 
     def __getitem__(self, idx):
-        return self._exprs[idx, :], self._exprs_X[idx, :], self.design[idx, :]
+        y = self._exprs[idx, :]
+        x = (y - self._exprs_mean) / self._exprs_std
+        return y, x, self.design[idx, :]
 
     def _fix_design(self, design: np.array) -> torch.tensor:
         d = None
@@ -128,10 +130,10 @@ class SCDataset(Dataset):
         return self._marker_mat
 
     def get_mu(self):
-        return self._exprs.mean(0)
+        return self._exprs_mean
 
     def get_sigma(self):
-        return self._exprs.std(0)
+        return self._exprs_std
 
     def get_n_classes(self):
         ## C
