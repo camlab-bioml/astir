@@ -123,9 +123,6 @@ class SCDataset(Dataset):
     def get_exprs(self):
         return self._exprs
 
-    def get_exprs_X(self):
-        return self._exprs_X
-
     def get_marker_mat(self):
         return self._marker_mat
 

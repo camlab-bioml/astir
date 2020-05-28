@@ -221,6 +221,8 @@ class CellTypeModel:
             opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
+        exprs_X = torch.from_numpy(StandardScaler().fit_transform(self._dset.get_exprs()))
+
         iterator = trange(max_epochs, desc="training astir", unit="epochs")
         for ep in iterator:
             L = None
@@ -232,7 +234,7 @@ class CellTypeModel:
                 optimizer.step()
             l = (
                 self._forward(
-                    self._dset.get_exprs(), self._dset.get_exprs_X(), self._dset.design
+                    self._dset.get_exprs(), exprs_X, self._dset.design
                 )
                 .detach()
                 .numpy()
@@ -247,7 +249,7 @@ class CellTypeModel:
                 break
 
         ## Save output
-        g = self._recog.forward(self._dset.get_exprs_X()).detach().numpy()
+        g = self._recog.forward(exprs_X).detach().numpy()
         self._losses = losses
         print("Done!")
         return g
