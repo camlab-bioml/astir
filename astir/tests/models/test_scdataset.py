@@ -2,7 +2,6 @@ import unittest
 import pandas as pd
 import yaml
 import torch
-import numpy as np
 
 from astir.astir import SCDataset
 

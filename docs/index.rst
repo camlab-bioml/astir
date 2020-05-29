@@ -1,9 +1,4 @@
-
-
-astir
-=================================
-
-astir: Automated Assignment of Single-cell Identity 
+.. include:: ../README.rst
 
 
 .. toctree::
@@ -11,6 +6,7 @@ astir: Automated Assignment of Single-cell Identity
    :hidden:
 
    installation
+   tutorials/index
    development
 
 .. toctree::

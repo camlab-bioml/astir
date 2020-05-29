@@ -77,7 +77,7 @@ class TestAstir(TestCase):
             with contextlib.redirect_stdout(devnull):
                 self.a.fit_type(max_epochs=epochs)
 
-        assignments = self.a.get_celltype_assignments()
+        assignments = self.a.get_celltype_probabilities()
         losses = self.a.get_type_losses()
 
         self.assertTrue(assignments.shape[0] == self.expr.shape[0])

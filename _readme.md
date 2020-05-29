@@ -1,5 +1,7 @@
 # astir
 
+![astir](https://github.com/camlab-bioml/astir/workflows/astir/badge.svg)
+
 astir: automated assignment of cell type and state (phenotype) from single-cell proteomic data, with a focus on imaging mass cytometry (IMC).
 
 ![Image of astir](docs/source/_static/figs/astir.png)

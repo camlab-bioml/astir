@@ -36,6 +36,8 @@ extensions = [
     "sphinx_rtd_theme",
     "sphinx.ext.intersphinx",
     "autodocsumm",
+    "nbsphinx",
+    "nbsphinx_link"
 ]
 
 # Add any paths that contain templates here, relative to this directory.

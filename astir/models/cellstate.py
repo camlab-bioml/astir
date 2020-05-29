@@ -2,28 +2,19 @@
 Cell State Model
 """
 
-import re
 from typing import Tuple, List, Dict
 import warnings
 
 import torch
 from torch.autograd import Variable
-from torch.distributions import Normal, StudentT
-import torch.nn.functional as F
+from torch.distributions import Normal
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
-
-import pandas as pd
-import numpy as np
-import random
 from tqdm import trange
-
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-
+import numpy as np
 
 class CellStateModel:
-    """Cell state model
+    """Class to perform statistical inference to on the activation
+        of states (pathways) across cells
 
     :param df_gex: the input gene expression dataframe
     :param marker_dict: the gene marker dictionary

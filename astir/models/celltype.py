@@ -27,7 +27,8 @@ from astir.models.recognet import RecognitionNet
 
 
 class CellTypeModel:
-    """Loads a .csv expression file and a .yaml marker file.
+    """Class to perform statistical inference to assign
+        cells to cell types
 
     :raises NotClassifiableError: raised when the input gene expression 
         data or the marker is not classifiable
@@ -221,6 +222,8 @@ class CellTypeModel:
             opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
+        exprs_X = torch.from_numpy(StandardScaler().fit_transform(self._dset.get_exprs()))
+
         iterator = trange(max_epochs, desc="training astir", unit="epochs")
         for ep in iterator:
             L = None
@@ -232,7 +235,7 @@ class CellTypeModel:
                 optimizer.step()
             l = (
                 self._forward(
-                    self._dset.get_exprs(), self._dset.get_exprs_X(), self._dset.design
+                    self._dset.get_exprs(), exprs_X, self._dset.design
                 )
                 .detach()
                 .numpy()
@@ -247,7 +250,7 @@ class CellTypeModel:
                 break
 
         ## Save output
-        g = self._recog.forward(self._dset.get_exprs_X()).detach().numpy()
+        g = self._recog.forward(exprs_X).detach().numpy()
         self._losses = losses
         print("Done!")
         return g

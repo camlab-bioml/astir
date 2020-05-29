@@ -9,29 +9,24 @@ from typing import Tuple, List, Dict
 import warnings
 
 import torch
-from torch.autograd import Variable
-from torch.distributions import Normal, StudentT
 
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-
-from sklearn.preprocessing import StandardScaler
 
 from .models.celltype import CellTypeModel
 from .models.cellstate import CellStateModel
-from .models.recognet import RecognitionNet
 from .models.scdataset import SCDataset
 
 
 class Astir:
     r"""Create an Astir object
 
-    :param df_gex: A `pd.DataFrame` holding single-cell expression data, 
+    :param df_gex: A `pd.DataFrame` holding single-cell expression data,
         where rows are cells and columns are features. Column names refer to
         feature names and row names refer to cell identifiers.
     :param marker_dict: A dictionary holding cell type and state information
-    :param design: An (optional) `pd.DataFrame` that represents a design matrix for the samples
+    :param design: An (optional) `pd.DataFrame` that represents a
+        design matrix for the samples
     :param random_seed: The random seed to set
     :param include_beta: Deprecated
 
@@ -88,7 +83,7 @@ class Astir:
         :param marker_dict: dictionary read from the yaml file
         :type marker_dict: Dict[str, dict]
 
-        :raises NotClassifiableError: raized when the marker dictionary doesn't 
+        :raises NotClassifiableError: raized when the marker dictionary doesn't
              have required format
 
         :return: dictionaries for cell type and state.
@@ -266,7 +261,7 @@ class Astir:
     def get_state_dataset(self):
         return self._state_dset
 
-    def get_celltype_assignments(self) -> pd.DataFrame:
+    def get_celltype_probabilities(self) -> pd.DataFrame:
         """[summary]
 
         :return: self.assignments
@@ -276,8 +271,8 @@ class Astir:
             raise Exception("The type model has not been trained yet")
         return self._type_assignments
 
-    def get_cellstate_assignments(self) -> pd.DataFrame:
-        """ Gets state assignment output from training state model
+    def get_cellstates(self) -> pd.DataFrame:
+        """ Get cell state activations
 
         :return: state assignments
         :rtype: pd.DataFrame
@@ -340,8 +335,6 @@ class Astir:
         )
 
 
-## NotClassifiableError: an error to be raised when the dataset fails
-# to be analysed.
 class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
     """
