@@ -16,7 +16,7 @@ astir - Automated single-cell pathology
 Getting started
 ---------------------
 
-Check out the `tutorials <tbc>`_.
+See the full `documentation <TODO>`_ and check out the `tutorials <TODO>`_.
 
 
 Authors

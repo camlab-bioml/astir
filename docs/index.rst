@@ -6,6 +6,7 @@
    :hidden:
 
    installation
+   tutorials/index
    development
 
 .. toctree::
