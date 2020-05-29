@@ -6,4 +6,4 @@ sklearn
 argparse
 matplotlib
 loompy
-tdqm
+tqdm

@@ -29,7 +29,7 @@ setuptools.setup(
         "argparse",
         "matplotlib",
         "loompy",
-        "tdqm",
+        "tqdm",
     ],
     include_package_data=True,
     zip_safe=False,
