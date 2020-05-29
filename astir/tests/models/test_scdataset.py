@@ -34,8 +34,7 @@ class TestSCDataset(unittest.TestCase):
         self.state_markers = self.marker_dict["cell_states"]
 
         self.marker_genes = list(
-            set([l for s in self.state_markers.values()
-                 for l in s])
+            set([l for s in self.state_markers.values() for l in s])
         )
 
         self.expr = self.input_expr[self.marker_genes]
@@ -47,7 +46,7 @@ class TestSCDataset(unittest.TestCase):
             include_other_column=False,
             expr_input=self.input_expr,
             marker_dict=self.state_markers,
-            design=None
+            design=None,
         )
 
     def _expr_input_tuple(self):
@@ -69,8 +68,7 @@ class TestSCDataset(unittest.TestCase):
 
         self.assertEqual(expected_gene_count, actual_gene_count)
 
-        self.assertEqual(expected_gene_names,
-                         actual_gene_names)
+        self.assertEqual(expected_gene_names, actual_gene_names)
 
     def test_len_constant_N(self):
 
@@ -115,8 +113,9 @@ class TestSCDataset(unittest.TestCase):
                 if protein in self.state_markers[state]:
                     expected_marker_mat[g, c] = 1.0
 
-        self.assertTrue(torch.all(torch.eq(expected_marker_mat,
-                                   actual_marker_mat)).item())
+        self.assertTrue(
+            torch.all(torch.eq(expected_marker_mat, actual_marker_mat)).item()
+        )
 
     def test_cell_names(self):
 
@@ -129,15 +128,14 @@ class TestSCDataset(unittest.TestCase):
     def test_marker_mat_include_other(self):
         self.type_markers = self.marker_dict["cell_types"]
         self.marker_genes = list(
-            set([l for s in self.type_markers.values()
-                 for l in s])
+            set([l for s in self.type_markers.values() for l in s])
         )
 
         self.ds = SCDataset(
             include_other_column=True,
             expr_input=self.input_expr,
             marker_dict=self.type_markers,
-            design=None
+            design=None,
         )
 
         G = self.ds.get_n_features()
@@ -150,16 +148,16 @@ class TestSCDataset(unittest.TestCase):
                 if feature in self.type_markers[cell_class]:
                     expected_marker_mat[g, c] = 1.0
 
-        self.assertTrue(torch.all(torch.eq(expected_marker_mat,
-                                           actual_marker_mat)).item())
+        self.assertTrue(
+            torch.all(torch.eq(expected_marker_mat, actual_marker_mat)).item()
+        )
 
     def test_fix_design_none(self):
 
         expected_design = torch.ones((len(self.ds), 1)).double()
         actual_design = self.ds.design
 
-        self.assertTrue(torch.all(torch.eq(expected_design,
-                                           actual_design)).item())
+        self.assertTrue(torch.all(torch.eq(expected_design, actual_design)).item())
 
     def test_fix_design_not_none(self):
         self.design = self.design.to_numpy()
@@ -168,14 +166,13 @@ class TestSCDataset(unittest.TestCase):
             include_other_column=False,
             expr_input=self.input_expr,
             marker_dict=self.state_markers,
-            design=self.design
+            design=self.design,
         )
 
         expected_design = torch.from_numpy(self.design).double()
         actual_design = self.ds.design
 
-        self.assertTrue(torch.all(torch.eq(expected_design,
-                                           actual_design)).item())
+        self.assertTrue(torch.all(torch.eq(expected_design, actual_design)).item())
 
     # # To implement: but not significant
     # def test_mu(self):
@@ -188,5 +185,5 @@ class TestSCDataset(unittest.TestCase):
     #     pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

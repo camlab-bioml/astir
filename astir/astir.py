@@ -145,11 +145,11 @@ class Astir:
         gs = []
         for i in range(n_init):
             print(
-                "---------- "
+                "---------- Astir Training "
                 + str(i + 1)
                 + "/"
                 + str(n_init)
-                + " Cell Type Classification ----------"
+                + " ----------"
             )
             gs.append(
                 type_models[i].fit(max_epochs, learning_rate, batch_size, delta_loss)
@@ -211,11 +211,11 @@ class Astir:
             )
 
             print(
-                "---------- "
+                "---------- Astir Training "
                 + str(i + 1)
                 + "/"
                 + str(n_init)
-                + " Cell State Classification ----------"
+                + " ----------"
             )
             # Fitting the model
             n_init_epochs = min(max_epochs, 100)
