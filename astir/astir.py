@@ -261,7 +261,7 @@ class Astir:
     def get_state_dataset(self):
         return self._state_dset
 
-    def get_celltype_assignments(self) -> pd.DataFrame:
+    def get_celltype_probabilities(self) -> pd.DataFrame:
         """[summary]
 
         :return: self.assignments
@@ -271,8 +271,8 @@ class Astir:
             raise Exception("The type model has not been trained yet")
         return self._type_assignments
 
-    def get_cellstate_assignments(self) -> pd.DataFrame:
-        """ Gets state assignment output from training state model
+    def get_cellstates(self) -> pd.DataFrame:
+        """ Get cell state activations
 
         :return: state assignments
         :rtype: pd.DataFrame
