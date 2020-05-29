@@ -3,7 +3,6 @@ from unittest import TestCase
 import pandas as pd
 import os
 import yaml
-import numpy as np
 
 from astir.models import CellStateModel
 from astir.data_readers import from_csv_yaml
