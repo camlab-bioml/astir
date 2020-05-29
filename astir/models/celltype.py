@@ -27,7 +27,8 @@ from astir.models.recognet import RecognitionNet
 
 
 class CellTypeModel:
-    """Loads a .csv expression file and a .yaml marker file.
+    """Class to perform statistical inference to assign
+        cells to cell types
 
     :raises NotClassifiableError: raised when the input gene expression 
         data or the marker is not classifiable

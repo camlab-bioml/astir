@@ -23,7 +23,8 @@ from sklearn.decomposition import PCA
 
 
 class CellStateModel:
-    """Cell state model
+    """Class to perform statistical inference to on the activation
+        of states (pathways) across cells
 
     :param df_gex: the input gene expression dataframe
     :param marker_dict: the gene marker dictionary

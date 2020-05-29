@@ -9,11 +9,16 @@ from sklearn.preprocessing import StandardScaler
 import warnings
 
 
-## Dataset class: for loading IMC datasets
 class SCDataset(Dataset):
-    """Pytorch holder for numpy data
-    """
+    """Container for single-cell proteomic data in the form of 
+    a pytorch dataset
 
+    :param expr_input: Input expression data. See details TODO
+    :param marker_dict: Marker dictionary containing cell type and 
+        information. See details :TODO:
+    :param design: A design matrix
+    :param include_other_column: Should an additional 'other' column be included?
+    """
     def __init__(
         self,
         expr_input,
