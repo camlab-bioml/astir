@@ -327,11 +327,11 @@ class Astir:
         return (
             "Astir object with "
             + str(self._type_dset.get_n_classes())
-            + " columns of cell types, "
+            + " cell types, "
             + str(self._state_dset.get_n_classes())
-            + " columns of cell states and "
+            + " cell states, and "
             + str(len(self._type_dset))
-            + " rows."
+            + " cells."
         )
 
 
