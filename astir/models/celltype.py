@@ -222,7 +222,7 @@ class CellTypeModel:
             opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
-        exprs_X = torch.from_numpy(StandardScaler().fit_transform(self._dset.get_exprs()))
+        _, exprs_X, _ = self._dset[torch.arange(len(self._dset))] # calls dset.get_item
 
         iterator = trange(max_epochs, desc="training astir", unit="epochs")
         for ep in iterator:
