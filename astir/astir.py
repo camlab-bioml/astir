@@ -261,6 +261,12 @@ class Astir:
     def get_state_dataset(self):
         return self._state_dset
 
+    def get_type_model(self):
+        return self._type_ast
+    
+    def get_state_model(self):
+        return self._state_ast
+
     def get_celltype_probabilities(self) -> pd.DataFrame:
         """[summary]
 
