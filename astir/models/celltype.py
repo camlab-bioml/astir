@@ -255,6 +255,11 @@ class CellTypeModel:
         print("Done!")
         return g
 
+    def predict(self, dset):
+        _, exprs_X, _ = dset[torch.arange(len(dset))]
+        g = self._recog.forward(exprs_X).detach().numpy()
+        return g
+
     def get_losses(self) -> float:
         """ Getter for losses
 

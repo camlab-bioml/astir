@@ -255,6 +255,12 @@ class Astir:
         self._state_assignments.columns = self._state_dset.get_classes()
         self._state_assignments.index = self._state_dset.get_cells()
 
+    def predict_type(self, dset):
+        if self._type_ast is None:
+            raise Exception("The type model has not been trained yet")
+        g = self._type_ast.predict(dset)
+        return pd.DataFrame(g)
+
     def get_type_dataset(self):
         return self._type_dset
 
