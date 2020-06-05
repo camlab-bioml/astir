@@ -12,7 +12,7 @@ from tqdm import trange
 
 import torch
 from torch.autograd import Variable
-from torch.distributions import Normal, StudentT, MultivariateNormal
+from torch.distributions import Normal, StudentT, MultivariateNormal, LowRankMultivariateNormal
 import torch.nn.functional as F
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -151,6 +151,8 @@ class CellTypeModel:
         """
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
+        N = Y.shape[0]
+        
         Y_spread = Y.reshape(-1, G, 1).repeat(1, 1, C + 1)
 
         delta_tilde = torch.exp(self._variables["log_delta"])  # + np.log(0.5)
@@ -168,19 +170,34 @@ class CellTypeModel:
 
         # now do the variance modelling
         p = torch.sigmoid(self._variables["p"])
-        corr_mat = torch.einsum(
-            "gc,hc->cgh", self._data["rho"] * p, self._data["rho"] * p
-        ) * (1 - torch.eye(G)) + torch.eye(G)
-        self.cov_mat = torch.einsum(
-            "g,h->gh",
-            torch.exp(self._variables["log_sigma"]),
-            torch.exp(self._variables["log_sigma"]),
-        ) + 1e-6 * torch.eye(G)
-        self.cov_mat = self.cov_mat * corr_mat
+        # corr_mat = torch.einsum(
+        #     "gc,hc->cgh", self._data["rho"] * p, self._data["rho"] * p
+        # ) * (1 - torch.eye(G)) + torch.eye(G)
+        # self.cov_mat = torch.einsum(
+        #     "g,h->gh",
+        #     torch.exp(self._variables["log_sigma"]),
+        #     torch.exp(self._variables["log_sigma"]),
+        # ) + 1e-6 * torch.eye(G)
+        # self.cov_mat = self.cov_mat * corr_mat
 
-        dist = MultivariateNormal(
-            loc=torch.exp(mean).permute(0, 2, 1), covariance_matrix=self.cov_mat
+        sigma = torch.exp(self._variables["log_sigma"])
+        v1 = (self._data["rho"] * p).T * sigma
+        v2 = torch.pow(sigma,2) * (1 - torch.pow(self._data["rho"] * p, 2)).T
+
+        v1 = v1.reshape(1, C+1, G, 1).repeat(N, 1, 1, 1) # extra 1 is the "rank"
+        v2 = v2.reshape(1, C+1, G).repeat(N, 1, 1)
+
+        # print(mean.permute(0,2,1).shape)
+
+        dist = LowRankMultivariateNormal(
+            loc=torch.exp(mean).permute(0, 2, 1),
+            cov_factor = v1,
+            cov_diag = v2
         )
+
+        # dist = MultivariateNormal(
+        #     loc=torch.exp(mean).permute(0, 2, 1), covariance_matrix=self.cov_mat
+        # )
         # dist = Normal(torch.exp(mean), torch.exp(self.variables["log_sigma"]).reshape(-1, 1))
         # dist = StudentT(torch.tensor(1.), torch.exp(mean), torch.exp(self.variables["log_sigma"]).reshape(-1, 1))
 

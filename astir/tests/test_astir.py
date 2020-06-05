@@ -77,10 +77,19 @@ class TestAstir(TestCase):
             with contextlib.redirect_stdout(devnull):
                 self.a.fit_type(max_epochs=epochs)
 
-        assignments = self.a.get_celltype_probabilities()
-        losses = self.a.get_type_losses()
+        # Check probability matrix looks ok
+        probabilities = self.a.get_celltype_probabilities()
 
+        self.assertTrue(probabilities.shape[0] == self.expr.shape[0])
+        self.assertIsInstance(probabilities, pd.DataFrame)
+
+        # Check assignments look ok
+        assignments = self.a.get_celltypes()
+        self.assertIsInstance(assignments, pd.DataFrame)
         self.assertTrue(assignments.shape[0] == self.expr.shape[0])
+        self.assertTrue(assignments.columns[0] == "cell_type")
+
+
 
     def test_no_overlap(self):
         bad_file = os.path.join(os.path.dirname(__file__), "test-data/bad_data.csv")

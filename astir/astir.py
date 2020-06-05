@@ -283,6 +283,41 @@ class Astir:
             raise Exception("The type model has not been trained yet")
         return self._type_assignments
 
+    def _most_likely_celltype(self, row, threshold, cell_types):
+        """Given a row of the assignment matrix
+        return the most likely cell type
+
+        """
+        row = row.to_numpy()
+        max_prob = np.max(row)
+
+        if max_prob < threshold:
+            return "Unknown"
+
+        return cell_types[np.argmax(row)]
+
+
+    def get_celltypes(self, threshold=0.7) -> pd.DataFrame:
+        """
+        Get the most likely cell types
+
+        A cell is assigned to a cell type if the probability is greater than threshold.
+        If no cell types have a probability higher than threshold, then "Unknown" is returned
+
+        :param threshold: The probability threshold above which a cell is assigned to a cell type.
+        :return: A data frame with most likely cell types for each 
+        """
+        probs = self.get_celltype_probabilities()
+        cell_types = list(probs.columns)
+
+        cell_type_assignments = probs.apply(self._most_likely_celltype, axis=1, threshold=threshold, cell_types=cell_types)
+        cell_type_assignments = pd.DataFrame(cell_type_assignments)
+        cell_type_assignments.columns = ['cell_type']
+        
+        return cell_type_assignments
+
+
+
     def get_cellstates(self) -> pd.DataFrame:
         """ Get cell state activations
 
