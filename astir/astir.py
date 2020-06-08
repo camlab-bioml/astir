@@ -5,7 +5,7 @@
 # cmd+P to go to file
 
 import re
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Union
 import warnings
 
 import torch
@@ -34,7 +34,6 @@ class Astir:
         data or the marker is not classifiable
 
     """
-
     def __init__(
         self,
         input_expr: pd.DataFrame,
@@ -78,7 +77,7 @@ class Astir:
         self._include_beta = include_beta
 
     def _sanitize_dict(self, marker_dict: Dict[str, dict]) -> Tuple[dict, dict]:
-        """Sanitizes the marker dictionary.
+        """ Sanitizes the marker dictionary.
 
         :param marker_dict: dictionary read from the yaml file
         :type marker_dict: Dict[str, dict]
@@ -120,7 +119,7 @@ class Astir:
         learning_rate=1e-2,
         batch_size=24,
         delta_loss=1e-3,
-        n_init=5,
+        n_init=5
     ) -> None:
         """Run Variational Bayes to infer cell types
 
@@ -154,6 +153,7 @@ class Astir:
         else:
             losses = [m.get_losses()[0] for m in type_models]
 
+
         best_ind = np.argmin(losses)
         self._type_ast = type_models[best_ind]
         if not self._type_ast.is_converged():
@@ -174,11 +174,11 @@ class Astir:
     def fit_state(
         self,
         max_epochs=100,
-        learning_rate=1e-2,
+        learning_rate=1e-3,
         n_init=5,
         delta_loss=1e-3,
         delta_loss_batch=10,
-    ):
+    ) -> None:
         """Run Variational Bayes to infer cell states
 
         :param max_epochs: number of epochs, defaults to 100
@@ -228,7 +228,7 @@ class Astir:
             [losses[-delta_loss_batch:].mean() for losses in cellstate_losses]
         )
 
-        best_model_index = np.argmin(last_delta_losses_mean)
+        best_model_index = int(np.argmin(last_delta_losses_mean))
 
         self._state_ast = cellstate_models[best_model_index]
         n_epochs_done = cellstate_losses[best_model_index].size
@@ -249,7 +249,7 @@ class Astir:
             )
             warnings.warn(msg)
 
-        g = self._state_ast._variables["z"].detach().numpy()
+        g = self._state_ast.get_final_mu_z().detach().numpy()
 
         self._state_assignments = pd.DataFrame(g)
         self._state_assignments.columns = self._state_dset.get_classes()
@@ -316,8 +316,6 @@ class Astir:
         
         return cell_type_assignments
 
-
-
     def get_cellstates(self) -> pd.DataFrame:
         """ Get cell state activations
 
@@ -327,6 +325,29 @@ class Astir:
         if self._state_assignments is None:
             raise Exception("The state model has not been trained yet")
         return self._state_assignments
+
+    def predict_cellstates(
+            self,
+            new_dset: SCDataset
+    ) -> pd.DataFrame:
+        """ Get the prediction cell state activations on a dataset on an
+        existing model
+
+        :param new_dset: the dataset to predict cell state activations
+
+        :return: the prediction of cell state activations
+        """
+        if not self._state_ast.is_converged():
+            msg = "The state model has not been trained yet"
+            warnings.warn(msg)
+
+        g = self._state_ast.get_final_mu_z(new_dset).detach().numpy()
+
+        state_assignments = pd.DataFrame(g)
+        state_assignments.columns = self._state_dset.get_classes()
+        state_assignments.index = self._state_dset.get_cells()
+
+        return state_assignments
 
     def get_type_losses(self) -> np.array:
         """[summary]
@@ -339,11 +360,10 @@ class Astir:
         return self._type_ast.get_losses()
 
     def get_state_losses(self) -> np.array:
-        """ Getter for losses
+        """Getter for losses
 
         :return: a numpy array of losses for each training iteration the
         model runs
-        :rtype: np.array
         """
         if self._state_ast is None:
             raise Exception("The state model has not been trained yet")
@@ -380,6 +400,25 @@ class Astir:
             + str(len(self._type_dset))
             + " cells."
         )
+    
+    def diagnostics_celltype(self, threshold:float=0.7, alpha:float=0.01) -> pd.DataFrame:       
+        """Run diagnostics on cell type assignments
+
+        This performs a basic test that cell types express their markers at
+        higher levels than in other cell types. This function performs the following steps:
+
+        1. Iterates through every cell type and every marker for that cell type
+        2. Given a cell type *c* and marker *g*, find the set of cell types *D* that don't have *g* as a marker
+        3. For each cell type *d* in *D*, perform a t-test between the expression of marker *g* in *c* vs *d*
+        4. If *g* is not expressed significantly higher (at significance *alpha*), output a diagnostic explaining this for further investigation.
+
+        :param threshold: The threshold at which cell types are assigned (see `get_celltypes`)
+        :param alpha: The significance threshold for t-tests for determining over-expression
+        :return: Either a :class:`pd.DataFrame` listing cell types whose markers
+            aren't expressed signficantly higher.
+        """
+        celltypes = list(self.get_celltypes(threshold=threshold)['cell_type'])
+        return self.get_type_model().diagnostics(celltypes, alpha=alpha)
 
 
 class NotClassifiableError(RuntimeError):
