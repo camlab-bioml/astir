@@ -394,7 +394,7 @@ class Astir:
         :param threshold: The threshold at which cell types are assigned (see `get_celltypes`)
         :param alpha: The significance threshold for t-tests for determining over-expression
         :return: Either a :class:`pd.DataFrame` listing cell types whose markers
-            aren't expressed signficantly higher, or `None` if no issues are found.
+            aren't expressed signficantly higher.
         """
         celltypes = list(self.get_celltypes(threshold=threshold)['cell_type'])
         return self.get_type_model().diagnostics(celltypes, alpha=alpha)

@@ -350,12 +350,15 @@ class CellTypeModel:
                     if is_problem is not None:
                         problems.append(is_problem)
 
+        col_names = ['feature', 'should be expressed higher in', 'than', 'mean cell type 1', 'mean cell type 2', 'p-value', 'note']
+        df_issues = None
         if len(problems) > 0:
             df_issues = pd.DataFrame(problems)
-            df_issues.columns = ['feature', 'should be expressed higher in', 'than', 'mean cell type 1', 'mean cell type 2', 'p-value', 'note']
-            return df_issues
+            df_issues.columns = col_names
+        else:
+            df_issues = pd.DataFrame(columns=col_names)
         
-        return None
+        return df_issues
             
 
 
