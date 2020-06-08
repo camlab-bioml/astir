@@ -206,9 +206,11 @@ class CellStateModel:
             for i, (y_in, x_in, _) in enumerate(train_iterator):
                 self._optimizer.zero_grad()
 
-                mu_z, std_z, z_samples = self._forward(x_in.float())
+                mu_z, std_z, z_samples = \
+                    self._forward(x_in.float().to(self._device))
 
-                loss = self._loss_fn(mu_z, std_z, z_samples, x_in)
+                loss = self._loss_fn(mu_z, std_z,
+                                     z_samples, x_in.to(self._device))
 
                 loss.backward()
 
