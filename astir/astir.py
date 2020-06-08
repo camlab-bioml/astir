@@ -136,7 +136,7 @@ class Astir:
             CellTypeModel(self._type_dset, self._include_beta, self._design, int(seed))
             for seed in seeds
         ]
-        n_init_epochs = min(max_epochs, 10)
+        n_init_epochs = min(max_epochs, 1)
         gs = []
         for i in range(n_init):
             print(
@@ -157,8 +157,7 @@ class Astir:
         best_ind = np.argmin(losses)
         self._type_ast = type_models[best_ind]
 
-        n_epochs_done = self._type_ast.get_losses().shape[0]
-        n_epoch_remaining = max(max_epochs - n_epochs_done, 0)
+        n_epoch_remaining = max_epochs - 1
         self._type_ast.fit(n_epoch_remaining, learning_rate, batch_size, delta_loss)
         if not self._type_ast.is_converged():
             msg = (
