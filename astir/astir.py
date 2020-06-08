@@ -136,6 +136,7 @@ class Astir:
             CellTypeModel(self._type_dset, self._include_beta, self._design, int(seed))
             for seed in seeds
         ]
+        n_init_epochs = min(max_epochs, 10)
         gs = []
         for i in range(n_init):
             print(
@@ -146,16 +147,19 @@ class Astir:
                 + " ----------"
             )
             gs.append(
-                type_models[i].fit(max_epochs, learning_rate, batch_size, delta_loss)
+                type_models[i].fit(n_init_epochs, learning_rate, batch_size, delta_loss)
             )
         if max_epochs >= 2:
             losses = [m.get_losses()[-2:].mean() for m in type_models]
         else:
             losses = [m.get_losses()[0] for m in type_models]
 
-
         best_ind = np.argmin(losses)
         self._type_ast = type_models[best_ind]
+
+        n_epochs_done = self._type_ast.get_losses.size
+        n_epoch_remaining = max(max_epochs - n_epochs_done, 0)
+        self._type_ast.fit(n_epoch_remaining, learning_rate, batch_size, delta_loss)
         if not self._type_ast.is_converged():
             msg = (
                 "Maximum epochs reached. More iteration may be needed to"
