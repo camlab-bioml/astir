@@ -19,6 +19,7 @@ from torch.utils.data import Dataset, DataLoader
 
 import pandas as pd
 import numpy as np
+import loompy
 
 from sklearn.preprocessing import StandardScaler
 
@@ -269,13 +270,21 @@ class CellTypeModel:
         ## Save output
         g = self._recog.forward(exprs_X).detach().numpy()
         self._losses = losses
+        self.save_model(max_epochs, learning_rate, batch_size, delta_loss)
         print("Done!")
         return g
 
     def predict(self, dset):
         _, exprs_X, _ = dset[torch.arange(len(dset))]
-        g = self._recog.forward(exprs_X).detach().numpy()
+        g = self._recog(exprs_X)
         return g
+
+    def save_model(self, max_epochs, learning_rate, batch_size, delta_loss):
+        row_attrs = {"epochs": list(range(len(self._losses)))}
+        params_attr = {"parameters": list(self._variables.keys()) + list(self._data.keys())}
+        params_val = np.array(list(self._variables.values()) + list(self._data.values()))
+        info_attrs = {"run_info": ["max_epochs", "learning_rate", "batch_size", "delta_loss"]}
+        info_val = np.array([max_epochs, learning_rate, batch_size, delta_loss])
 
     def get_losses(self) -> float:
         """ Getter for losses
