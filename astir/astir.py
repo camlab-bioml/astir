@@ -316,8 +316,6 @@ class Astir:
         
         return cell_type_assignments
 
-
-
     def get_cellstates(self) -> pd.DataFrame:
         """ Get cell state activations
 
