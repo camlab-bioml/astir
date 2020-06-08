@@ -98,20 +98,20 @@ class CellTypeModel:
             "log_alpha": torch.log(torch.ones(C + 1) / (C + 1)),
             "rho": self._dset.get_marker_mat(),
         }
-
+        
         # Initialize mu, log_delta
         t = torch.distributions.Normal(torch.tensor(0.0), torch.tensor(0.2))
         log_delta_init = t.sample((G, C + 1))
 
         # mu_init = torch.from_numpy(np.log(Y_np.mean(0).copy()))
         mu_init = torch.log(self._dset.get_mu())
+
         mu_init = mu_init - (self._data["rho"] * torch.exp(log_delta_init)).mean(1)
         mu_init = mu_init.reshape(-1, 1)
 
         # Create initialization dictionary
         initializations = {
             "mu": mu_init,
-            # "log_sigma": torch.from_numpy(np.log(Y_np.std(0)).copy()),
             "log_sigma": torch.log(self._dset.get_sigma()),
             "log_delta": log_delta_init,
             "p": torch.zeros(G, C + 1),

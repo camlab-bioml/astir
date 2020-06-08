@@ -154,6 +154,7 @@ class Astir:
         else:
             losses = [m.get_losses()[0] for m in type_models]
 
+
         best_ind = np.argmin(losses)
         self._type_ast = type_models[best_ind]
         if not self._type_ast.is_converged():
