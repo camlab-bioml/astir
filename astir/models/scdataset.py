@@ -57,6 +57,15 @@ class SCDataset(Dataset):
         self._exprs_std = self._exprs.std(0)
 
     def _process_df_input(self, df_input):
+        """Processes input as pd.DataFrame and convert it into torch.Tensor
+
+        :param df_input: the input
+        :type df_input: pd.DataFrame
+        :raises NotClassifiableError: raised when there is no overlap between the 
+            data and the marker
+        :return: the processed input as a torch.Tensor
+        :rtype: torch.Tensor
+        """
         try:
             Y_np = df_input[self._m_features].to_numpy()
         except (KeyError):
@@ -68,6 +77,16 @@ class SCDataset(Dataset):
         return torch.from_numpy(Y_np)
 
     def _process_np_input(self, np_input):
+        """Process the input as Tuple[np.array, np.array, np.array] and convert it 
+            to torch.Tensor.
+        :param np_input: input as a tuple. np_input[0] is the input data. np.input[1]
+            is the 
+        :type np_input: Tuple[np.array, np.array, np.array]
+        :raises NotClassifiableError: raised when there is no overlap between marked
+            features and expression feature.
+        :return: the processed input as a torch.Tensor
+        :rtype: torch.Tensor
+        """
         ind = [
             self._expr_features.index(name)
             for name in self._m_features
@@ -82,13 +101,20 @@ class SCDataset(Dataset):
         if len(ind) < len(self._m_features):
             warnings.warn("Classified features are less than marked features.")
         Y_np = []
-        for cell in np_input:
+        for cell in np_input[0]:
             temp = [cell[i] for i in ind]
             Y_np.append(np.array(temp))
         Y_np = np.concatenate([Y_np], axis=0)
         return torch.from_numpy(Y_np)
 
     def _construct_marker_mat(self, include_other_column: bool) -> torch.Tensor:
+        """ Construct a marker matrix.
+        :param include_other_column: indicates whether or not include other columns.
+        :type include_other_column: bool
+        :return: A marker matrix. The rows are features and the coloumns are 
+            the corresponding classes (type/state).
+        :rtype: torch.Tensor
+        """
         G = self.get_n_features()
         C = self.get_n_classes()
 
