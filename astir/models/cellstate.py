@@ -2,15 +2,19 @@
 Cell State Model
 """
 
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Union
 import warnings
-
 import torch
-from torch.autograd import Variable
-from torch.distributions import Normal
 import torch.nn as nn
-from tqdm import trange
 import numpy as np
+import pandas as pd
+import yaml
+
+from .scdataset import SCDataset
+from tqdm import trange
+from torch.autograd import Variable
+from torch.utils.data import DataLoader
+
 
 class CellStateModel:
     """Class to perform statistical inference to on the activation
@@ -25,9 +29,11 @@ class CellStateModel:
         otherwise alpha is initialized to zeros
     """
 
-    def __init__(
-        self, dset, include_beta=True, alpha_random=True, random_seed=42,
-    ):
+    def __init__(self,
+                 dset: SCDataset,
+                 include_beta: bool = True,
+                 alpha_random: bool = True,
+                 random_seed: int = 42) -> None:
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
         # Setting random seeds
@@ -42,8 +48,6 @@ class CellStateModel:
         self._include_beta = include_beta
         self._alpha_random = alpha_random
 
-        # Rescale data so that the model is not gene specific
-        dset.rescale()
         self._dset = dset
 
         self._optimizer = None
@@ -55,32 +59,26 @@ class CellStateModel:
         self._is_converged = False
 
     def _param_init(self) -> None:
-        """ Initialize sets of parameters
+        """ Initializes sets of parameters
         """
         N = len(self._dset)
         C = self._dset.get_n_classes()
+
         initializations = {
-            "log_sigma": torch.log(self._dset.get_sigma()),
+            "log_sigma": torch.log(self._dset.get_sigma().mean()),
             "mu": torch.reshape(self._dset.get_mu(), (1, -1)),
         }
-        # Implement Gaussian noise to alpha?
-        if self._alpha_random:
-            # self.initializations["z"] = torch.zeros((len(self._dset), self.C)) + torch.random.normal(
-            #     loc=0, scale=0.5)
-            d = torch.distributions.Normal(torch.tensor(0.0), torch.tensor(0.5))
-            initializations["z"] = d.sample((N, C))
-        else:
-            initializations["z"] = torch.zeros((N, C))
 
         # Include beta or not
-        if self._include_beta:
-            d = torch.distributions.Uniform(torch.tensor(0.0), torch.tensor(1.5))
-            initializations["log_w"] = torch.log(
-                d.sample((C, self._dset.get_n_features()))
-            )
+        d = torch.distributions.Uniform(torch.tensor(0.0),
+                                        torch.tensor(1.5))
+        initializations["log_w"] = torch.log(
+            d.sample((C, self._dset.get_n_features()))
+        )
 
         self._variables = {
-            n: Variable(i, requires_grad=True) for (n, i) in initializations.items()
+            n: Variable(i.clone(), requires_grad=True)
+            for (n, i) in initializations.items()
         }
 
         self._data = {
@@ -88,83 +86,135 @@ class CellStateModel:
             "Y": self._dset.get_exprs().to(self._device),
         }
 
-    def _forward(self):
-        """ One forward pass
+        self._models = {
+            "main": nn.Sequential(
+                nn.Linear(self._dset.get_n_features(), 2 * C),
+                nn.ReLU(),
+                nn.Linear(2 * C, 2 * C),
+                nn.ReLU()
+            ),
+            "model_mu": nn.Linear(2 * C, C),
+            "model_std": nn.Linear(2 * C, C)
+        }
+
+    def _loss_fn(self,
+                 mu_z: torch.Tensor,
+                 std_z: torch.Tensor,
+                 z_sample: torch.Tensor,
+                 y_in: torch.Tensor) -> torch.Tensor:
+        """ Returns the calculated loss
+
+        :param mu_z: the predicted mean of z
+        :param std_z: the predicted standard deviation of z
+        :param z_sample: the sampled z values
+        :param y_in: the input data
+
+        :return: the loss
         """
-        log_sigma = self._variables["log_sigma"]
-        mu = self._variables["mu"]
-        z = self._variables["z"]
-        log_w = self._variables["log_w"]
+        S = y_in.shape[0]
 
-        rho = self._data["rho"]
-        Y = self._data["Y"]
-        rho_w = torch.mul(rho, torch.exp(log_w))
-        mean = mu + torch.matmul(z, rho_w)
+        # log posterior q(z) approx p(z|y)
+        q_z_dist = torch.distributions.Normal(loc=mu_z, scale=torch.exp(std_z))
+        log_q_z = q_z_dist.log_prob(z_sample)
 
-        dist = Normal(mean, torch.exp(log_sigma).reshape(1, -1))
+        # log likelihood p(y|z)
+        rho_w = torch.mul(self._data["rho"],
+                          torch.exp(self._variables["log_w"]))
+        mean = self._variables["mu"] + torch.matmul(z_sample, rho_w)
+        std = torch.exp(self._variables["log_sigma"]).reshape(1, -1)
+        p_y_given_z_dist = torch.distributions.Normal(loc=mean, scale=std)
+        log_p_y_given_z = p_y_given_z_dist.log_prob(y_in)
 
-        log_p_y = dist.log_prob(Y)
-        prior_alpha = Normal(torch.zeros(1), 0.5 * torch.ones(1)).log_prob(z)
-        prior_sigma = Normal(torch.zeros(1), 0.5 * torch.ones(1)).log_prob(log_sigma)
+        # log prior p(z)
+        p_z_dist = torch.distributions.Normal(0, 1)
+        log_p_z = p_z_dist.log_prob(z_sample)
 
-        loss = log_p_y.sum() + prior_alpha.sum() + prior_sigma.sum()
-        return -loss
+        loss = (1 / S) * (torch.sum(log_q_z) - torch.sum(log_p_y_given_z)
+                          - torch.sum(log_p_z))
 
-    def fit(
-        self, max_epochs, lr=1e-2, delta_loss=0.001, delta_loss_batch=10
+        return loss
+
+    def _forward(self, y_in: torch.Tensor) -> Tuple[torch.Tensor,
+                                                    torch.Tensor,
+                                                    torch.Tensor]:
+        """ One forward pass
+
+        :param y_in: dataset to do forward pass on
+
+        :return: mu_z, std_z, z_sample
+        """
+        hidden = self._models["main"](y_in)
+        mu_z = self._models["model_mu"](hidden)
+        std_z = self._models["model_std"](hidden)
+
+        std = torch.exp(std_z)
+        eps = torch.randn_like(std)
+        z_sample = eps * std + mu_z
+
+        return mu_z, std_z, z_sample
+
+    def fit(self,
+            max_epochs: int,
+            lr:float = 1e-3,
+            batch_size: int = 64,
+            delta_loss: float = 1e-3,
+            delta_loss_batch: int = 10
     ) -> np.array:
-        """ Train loops
+        """ Runs train loops until the convergence reaches delta_loss for
+        delta_loss_batch sizes or for max_epochs number of times
 
         :param max_epochs: number of train loop iterations
         :param lr: the learning rate, defaults to 0.01
+        :param batch_size: the batch size
         :param delta_loss: stops iteration once the loss rate reaches
-            delta_loss, defaults to 0.001
+        delta_loss, defaults to 0.001
         :param delta_loss_batch: the batch size to consider delta loss,
-            defaults to 10
+        defaults to 10
 
         :return: np.array of shape (n_iter,) that contains the losses after
-            each iteration where the last element of the numpy array is the loss
-            after n_iter iterations
-        :rtype: np.array
+        each iteration where the last element of the numpy array is the loss
+        after n_iter iterations
         """
+        losses = np.empty(max_epochs)
+
+        # Returns early if the model has already converged
+        if self._is_converged:
+            return losses[:0]
+
         torch.manual_seed(self.random_seed)
         self._param_init()
 
         if delta_loss_batch >= max_epochs:
             warnings.warn("Delta loss batch size is greater than the number of epochs")
 
-        losses = np.empty(max_epochs)
-
-        opt_params = list(self._variables.values())
-
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
+            opt_params = list(self._models["main"].parameters()) + \
+                         list(self._models["model_mu"].parameters()) + \
+                         list(self._models["model_std"].parameters()) + \
+                         list(self._variables.values())
             self._optimizer = torch.optim.Adam(opt_params, lr=lr)
 
-        # Returns early if the model has already converged
-        if self._is_converged:
-            return losses[:0]
-
         prev_mean = None
-        curr_mean = None
-        curr_delta_loss = None
         delta_cond_met = False
 
-        iterator = trange(max_epochs, desc="training astir", unit="epochs",)
-        for ep in iterator:
-            self._optimizer.zero_grad()
+        # TODO
+        # iterator = trange(max_epochs, desc="training astir", unit="epochs",)
+        train_iterator = DataLoader(self._dset,
+                                    batch_size=min(batch_size, len(self._dset)))
+        for ep in range(max_epochs):
+            for i, (y_in, x_in, _) in enumerate(train_iterator):
+                self._optimizer.zero_grad()
 
-            # Forward pass & Compute loss
-            loss = self._forward()
+                mu_z, std_z, z_samples = self._forward(x_in.float())
 
-            # Backward pass
-            loss.backward()
+                loss = self._loss_fn(mu_z, std_z, z_samples, x_in)
 
-            # Update parameters
-            self._optimizer.step()
+                loss.backward()
 
-            l = loss.detach().numpy()
-            losses[ep] = l
+                self._optimizer.step()
+
+            losses[ep] = loss.detach().numpy()
 
             start_index = ep - delta_loss_batch + 1
             if start_index >= 0:
@@ -172,15 +222,16 @@ class CellStateModel:
                 curr_mean = np.mean(losses[start_index:end_index])
                 if prev_mean is not None:
                     curr_delta_loss = (prev_mean - curr_mean) / prev_mean
-                    delta_cond_met = 0 <= curr_delta_loss <= delta_loss
+                    delta_cond_met = 0 <= curr_delta_loss < delta_loss
                 prev_mean = curr_mean
 
             if delta_cond_met:
                 losses = losses[0 : ep + 1]
                 self._is_converged = True
-                iterator.close()
+                # iterator.close()
                 print("Reached convergence -- breaking from training loop")
                 break
+
         if self._losses is None:
             self._losses = losses
         else:
@@ -188,12 +239,30 @@ class CellStateModel:
 
         return losses
 
+    def get_final_mu_z(
+            self,
+            new_dset: SCDataset = None
+    ) -> torch.Tensor:
+        """ Returns the mean of the predicted z values for each core
+
+        :param new_dset: returns the predicted z values of this dataset on
+        the existing model. If None, it predicts using the existing dataset
+
+        :return: the mean of the predicted z values for each core
+        """
+        if new_dset is None:
+            _, x_in, _ = self._dset[:] # should be the scaled one
+        else:
+            _, x_in, _ = new_dset[:]
+        final_mu_z, _, _ = self._forward(x_in.float())
+
+        return final_mu_z
+
     def get_losses(self) -> np.array:
         """ Getter for losses
 
         :return: a numpy array of losses for each training iteration the
             model runs
-        :rtype: np.array
         """
         if self._losses is None:
             raise Exception("The state model has not been trained yet")
@@ -203,7 +272,6 @@ class CellStateModel:
         """ Returns True if the model converged
 
         :return: self._is_converged
-        :rtype: bool
         """
         return self._is_converged
 
@@ -212,8 +280,4 @@ class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
     """
 
-    pass
-
-
-class InvalidInputError(RuntimeError):
     pass

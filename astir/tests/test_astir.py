@@ -9,6 +9,7 @@ import warnings
 
 from astir import Astir
 from astir.data_readers import from_csv_yaml, from_csv_dir_yaml
+from astir.models.scdataset import SCDataset
 
 import os, contextlib
 
@@ -248,3 +249,25 @@ class TestAstir(TestCase):
         model2_loss = model2.get_state_losses()
 
         self.assertFalse(np.abs(model1_loss - model2_loss)[-1] < 1e-6)
+
+    def test_cellstate_assignment(self):
+        self.a.fit_state(max_epochs=50, n_init=1)
+
+        state_assignments = self.a.get_cellstates()
+
+        n_classes = len(list(self.marker_dict.keys()))
+
+        self.assertTrue(state_assignments.shape, (len(self.expr), n_classes))
+
+    def test_cellstate_predicted_assignment(self):
+        dset = SCDataset(expr_input=self.expr,
+                         marker_dict=self.marker_dict["cell_states"],
+                         design=None,
+                         include_other_column=False)
+
+        self.a.fit_state(max_epochs=50, n_init=1)
+
+        state_assignments = self.a.predict_cellstates(dset)
+
+        self.assertTrue(state_assignments.shape, (len(dset),
+                                                  dset.get_n_classes()))

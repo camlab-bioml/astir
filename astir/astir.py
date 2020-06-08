@@ -5,7 +5,7 @@
 # cmd+P to go to file
 
 import re
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Union
 import warnings
 
 import torch
@@ -78,7 +78,7 @@ class Astir:
         self._include_beta = include_beta
 
     def _sanitize_dict(self, marker_dict: Dict[str, dict]) -> Tuple[dict, dict]:
-        """Sanitizes the marker dictionary.
+        """ Sanitizes the marker dictionary.
 
         :param marker_dict: dictionary read from the yaml file
         :type marker_dict: Dict[str, dict]
@@ -120,7 +120,7 @@ class Astir:
         learning_rate=1e-2,
         batch_size=24,
         delta_loss=1e-3,
-        n_init=5,
+        n_init=5
     ) -> None:
         """Run Variational Bayes to infer cell types
 
@@ -174,11 +174,11 @@ class Astir:
     def fit_state(
         self,
         max_epochs=100,
-        learning_rate=1e-2,
+        learning_rate=1e-3,
         n_init=5,
         delta_loss=1e-3,
         delta_loss_batch=10,
-    ):
+    ) -> None:
         """Run Variational Bayes to infer cell states
 
         :param max_epochs: number of epochs, defaults to 100
@@ -228,7 +228,7 @@ class Astir:
             [losses[-delta_loss_batch:].mean() for losses in cellstate_losses]
         )
 
-        best_model_index = np.argmin(last_delta_losses_mean)
+        best_model_index = int(np.argmin(last_delta_losses_mean))
 
         self._state_ast = cellstate_models[best_model_index]
         n_epochs_done = cellstate_losses[best_model_index].size
@@ -249,7 +249,7 @@ class Astir:
             )
             warnings.warn(msg)
 
-        g = self._state_ast._variables["z"].detach().numpy()
+        g = self._state_ast.get_final_mu_z().detach().numpy()
 
         self._state_assignments = pd.DataFrame(g)
         self._state_assignments.columns = self._state_dset.get_classes()
@@ -292,6 +292,29 @@ class Astir:
         if self._state_assignments is None:
             raise Exception("The state model has not been trained yet")
         return self._state_assignments
+
+    def predict_cellstates(
+            self,
+            new_dset: SCDataset
+    ) -> pd.DataFrame:
+        """ Get the prediction cell state activations on a dataset on an
+        existing model
+
+        :param new_dset: the dataset to predict cell state activations
+
+        :return: the prediction of cell state activations
+        """
+        if not self._state_ast.is_converged():
+            msg = "The state model has not been trained yet"
+            warnings.warn(msg)
+
+        g = self._state_ast.get_final_mu_z(new_dset).detach().numpy()
+
+        state_assignments = pd.DataFrame(g)
+        state_assignments.columns = self._state_dset.get_classes()
+        state_assignments.index = self._state_dset.get_cells()
+
+        return state_assignments
 
     def get_type_losses(self) -> np.array:
         """[summary]
