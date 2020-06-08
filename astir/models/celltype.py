@@ -83,6 +83,7 @@ class CellTypeModel:
         #         design = design.to_numpy()
 
         self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features())
+        self._param_init()
 
     def _param_init(self) -> None:
         """Initialize parameters and design matrices.
@@ -204,7 +205,6 @@ class CellTypeModel:
         :param batch_size: [description], defaults to 1024
         :type batch_size: int, optional
         """
-        self._param_init()
         ## Make dataloader
         dataloader = DataLoader(
             self._dset, batch_size=min(batch_size, len(self._dset)), shuffle=True
@@ -250,7 +250,10 @@ class CellTypeModel:
 
         ## Save output
         g = self._recog.forward(exprs_X).detach().numpy()
-        self._losses = losses
+        if self._losses is None:
+            self._losses = losses
+        else:
+            self._losses = np.append(self._losses, losses)
         self.save_model(max_epochs, learning_rate, batch_size, delta_loss)
         print("Done!")
         return g
