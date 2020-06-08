@@ -9,7 +9,7 @@ astir - Automated single-cell pathology
 
 ``astir`` is a modelling framework for the assignment of cell type and cell state across a range of single-cell technologies such as Imaging Mass Cytometry (IMC). ``astir`` is built using `pytorch <https://pytorch.org/>`_ and uses recognition networks for fast minibatch stochastic variational inference. 
 
-.. image:: https://raw.githubusercontent.com/camlab-bioml/astir/master/docs/source/_static/figs/astir.png?token=AAPR5QI4PRLKWWNTZTKTNEK63KHAK
+.. image:: https://www.camlab.ca/img/astir.png
     :align: center
     :alt: automated single-cell pathology
 

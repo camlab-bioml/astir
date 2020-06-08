@@ -34,7 +34,6 @@ class Astir:
         data or the marker is not classifiable
 
     """
-
     def __init__(
         self,
         input_expr: pd.DataFrame,
@@ -153,6 +152,7 @@ class Astir:
             losses = [m.get_losses()[-2:].mean() for m in type_models]
         else:
             losses = [m.get_losses()[0] for m in type_models]
+
 
         best_ind = np.argmin(losses)
         self._type_ast = type_models[best_ind]
@@ -283,6 +283,41 @@ class Astir:
             raise Exception("The type model has not been trained yet")
         return self._type_assignments
 
+    def _most_likely_celltype(self, row, threshold, cell_types):
+        """Given a row of the assignment matrix
+        return the most likely cell type
+
+        """
+        row = row.to_numpy()
+        max_prob = np.max(row)
+
+        if max_prob < threshold:
+            return "Unknown"
+
+        return cell_types[np.argmax(row)]
+
+
+    def get_celltypes(self, threshold=0.7) -> pd.DataFrame:
+        """
+        Get the most likely cell types
+
+        A cell is assigned to a cell type if the probability is greater than threshold.
+        If no cell types have a probability higher than threshold, then "Unknown" is returned
+
+        :param threshold: The probability threshold above which a cell is assigned to a cell type.
+        :return: A data frame with most likely cell types for each 
+        """
+        probs = self.get_celltype_probabilities()
+        cell_types = list(probs.columns)
+
+        cell_type_assignments = probs.apply(self._most_likely_celltype, axis=1, threshold=threshold, cell_types=cell_types)
+        cell_type_assignments = pd.DataFrame(cell_type_assignments)
+        cell_type_assignments.columns = ['cell_type']
+        
+        return cell_type_assignments
+
+
+
     def get_cellstates(self) -> pd.DataFrame:
         """ Get cell state activations
 
@@ -327,11 +362,10 @@ class Astir:
         return self._type_ast.get_losses()
 
     def get_state_losses(self) -> np.array:
-        """ Getter for losses
+        """Getter for losses
 
         :return: a numpy array of losses for each training iteration the
         model runs
-        :rtype: np.array
         """
         if self._state_ast is None:
             raise Exception("The state model has not been trained yet")
@@ -368,6 +402,25 @@ class Astir:
             + str(len(self._type_dset))
             + " cells."
         )
+    
+    def diagnostics_celltype(self, threshold:float=0.7, alpha:float=0.01) -> pd.DataFrame:       
+        """Run diagnostics on cell type assignments
+
+        This performs a basic test that cell types express their markers at
+        higher levels than in other cell types. This function performs the following steps:
+
+        1. Iterates through every cell type and every marker for that cell type
+        2. Given a cell type *c* and marker *g*, find the set of cell types *D* that don't have *g* as a marker
+        3. For each cell type *d* in *D*, perform a t-test between the expression of marker *g* in *c* vs *d*
+        4. If *g* is not expressed significantly higher (at significance *alpha*), output a diagnostic explaining this for further investigation.
+
+        :param threshold: The threshold at which cell types are assigned (see `get_celltypes`)
+        :param alpha: The significance threshold for t-tests for determining over-expression
+        :return: Either a :class:`pd.DataFrame` listing cell types whose markers
+            aren't expressed signficantly higher.
+        """
+        celltypes = list(self.get_celltypes(threshold=threshold)['cell_type'])
+        return self.get_type_model().diagnostics(celltypes, alpha=alpha)
 
 
 class NotClassifiableError(RuntimeError):
