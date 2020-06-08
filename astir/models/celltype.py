@@ -74,6 +74,7 @@ class CellTypeModel:
         self._losses = None
 
         self._dset = dset
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Does this model use separate beta?
         self.include_beta = include_beta
@@ -82,7 +83,7 @@ class CellTypeModel:
         #     if isinstance(design, pd.DataFrame):
         #         design = design.to_numpy()
 
-        self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features())
+        self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(self._device)
         self._param_init()
 
     def _param_init(self) -> None:
@@ -93,8 +94,8 @@ class CellTypeModel:
 
         # Establish data
         self._data = {
-            "log_alpha": torch.log(torch.ones(C + 1) / (C + 1)),
-            "rho": self._dset.get_marker_mat(),
+            "log_alpha": torch.log(torch.ones(C + 1) / (C + 1)).to(self._device),
+            "rho": self._dset.get_marker_mat().to(self._device),
         }
         
         # Initialize mu, log_delta
@@ -123,7 +124,7 @@ class CellTypeModel:
 
         # Create trainable variables
         self._variables = {
-            n: Variable(v.clone(), requires_grad=True) for (n, v) in initializations.items()
+            n: Variable(v.clone(), requires_grad=True).to(self._device) for (n, v) in initializations.items()
         }
 
         if self.include_beta:
