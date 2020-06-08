@@ -77,7 +77,7 @@ class CellStateModel:
         )
 
         self._variables = {
-            n: Variable(i.clone(), requires_grad=True)
+            n: Variable(i.clone(), requires_grad=True).to(self._device)
             for (n, i) in initializations.items()
         }
 
@@ -92,9 +92,9 @@ class CellStateModel:
                 nn.ReLU(),
                 nn.Linear(2 * C, 2 * C),
                 nn.ReLU()
-            ),
-            "model_mu": nn.Linear(2 * C, C),
-            "model_std": nn.Linear(2 * C, C)
+            ).to(self._device),
+            "model_mu": nn.Linear(2 * C, C).to(self._device),
+            "model_std": nn.Linear(2 * C, C).to(self._device)
         }
 
     def _loss_fn(self,
