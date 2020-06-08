@@ -89,6 +89,11 @@ class TestAstir(TestCase):
         self.assertTrue(assignments.shape[0] == self.expr.shape[0])
         self.assertTrue(assignments.columns[0] == "cell_type")
 
+        # Check diagnostics look ok
+        type_diagnostics = self.a.diagnostics_celltype(threshold = 0.2, alpha=0)
+        self.assertIsInstance(type_diagnostics, pd.DataFrame)
+        self.assertTrue(type_diagnostics.shape[1] == 7) # make sure we have the standard 6 columns
+
 
 
     def test_no_overlap(self):

@@ -34,7 +34,6 @@ class Astir:
         data or the marker is not classifiable
 
     """
-
     def __init__(
         self,
         input_expr: pd.DataFrame,
@@ -340,11 +339,10 @@ class Astir:
         return self._type_ast.get_losses()
 
     def get_state_losses(self) -> np.array:
-        """ Getter for losses
+        """Getter for losses
 
         :return: a numpy array of losses for each training iteration the
         model runs
-        :rtype: np.array
         """
         if self._state_ast is None:
             raise Exception("The state model has not been trained yet")
@@ -381,6 +379,25 @@ class Astir:
             + str(len(self._type_dset))
             + " cells."
         )
+    
+    def diagnostics_celltype(self, threshold:float=0.7, alpha:float=0.01) -> pd.DataFrame:       
+        """Run diagnostics on cell type assignments
+
+        This performs a basic test that cell types express their markers at
+        higher levels than in other cell types. This function performs the following steps:
+
+        1. Iterates through every cell type and every marker for that cell type
+        2. Given a cell type *c* and marker *g*, find the set of cell types *D* that don't have *g* as a marker
+        3. For each cell type *d* in *D*, perform a t-test between the expression of marker *g* in *c* vs *d*
+        4. If *g* is not expressed significantly higher (at significance *alpha*), output a diagnostic explaining this for further investigation.
+
+        :param threshold: The threshold at which cell types are assigned (see `get_celltypes`)
+        :param alpha: The significance threshold for t-tests for determining over-expression
+        :return: Either a :class:`pd.DataFrame` listing cell types whose markers
+            aren't expressed signficantly higher, or `None` if no issues are found.
+        """
+        celltypes = list(self.get_celltypes(threshold=threshold)['cell_type'])
+        return self.get_type_model().diagnostics(celltypes, alpha=alpha)
 
 
 class NotClassifiableError(RuntimeError):
