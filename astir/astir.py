@@ -40,7 +40,7 @@ class Astir:
         marker_dict: Dict,
         design=None,
         random_seed=1234,
-        include_beta=True,
+        include_beta=False,
     ) -> None:
 
         if not isinstance(random_seed, int):
