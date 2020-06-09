@@ -46,8 +46,9 @@ class CellStateModel:
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
 
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+        # self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._device = 'cpu'
+        # print(self._device)
         self._include_beta = include_beta
         self._alpha_random = alpha_random
 
