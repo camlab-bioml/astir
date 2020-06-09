@@ -34,6 +34,7 @@ class Astir:
         data or the marker is not classifiable
 
     """
+
     def __init__(
         self,
         input_expr: pd.DataFrame,
@@ -119,7 +120,7 @@ class Astir:
         learning_rate=1e-2,
         batch_size=24,
         delta_loss=1e-3,
-        n_init=5
+        n_init=5,
     ) -> None:
         """Run Variational Bayes to infer cell types
 
@@ -179,6 +180,7 @@ class Astir:
         max_epochs=100,
         learning_rate=1e-3,
         n_init=5,
+        batch_size=64,
         delta_loss=1e-3,
         delta_loss_batch=10,
     ) -> None:
@@ -216,10 +218,11 @@ class Astir:
                 + " ----------"
             )
             # Fitting the model
-            n_init_epochs = min(max_epochs, 100)
+            n_init_epochs = min(max_epochs, batch_size)
             losses = model.fit(
                 max_epochs=n_init_epochs,
                 lr=learning_rate,
+                batch_size=batch_size,
                 delta_loss=delta_loss,
                 delta_loss_batch=delta_loss_batch,
             )
@@ -272,7 +275,7 @@ class Astir:
 
     def get_type_model(self):
         return self._type_ast
-    
+
     def get_state_model(self):
         return self._state_ast
 
@@ -329,10 +332,7 @@ class Astir:
             raise Exception("The state model has not been trained yet")
         return self._state_assignments
 
-    def predict_cellstates(
-            self,
-            new_dset: SCDataset
-    ) -> pd.DataFrame:
+    def predict_cellstates(self, new_dset: SCDataset) -> pd.DataFrame:
         """ Get the prediction cell state activations on a dataset on an
         existing model
 
