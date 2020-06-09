@@ -252,7 +252,7 @@ class Astir:
             )
             warnings.warn(msg)
 
-        g = self._state_ast.get_final_mu_z().detach().numpy()
+        g = self._state_ast.get_final_mu_z().detach().cpu().numpy()
 
         self._state_assignments = pd.DataFrame(g)
         self._state_assignments.columns = self._state_dset.get_classes()

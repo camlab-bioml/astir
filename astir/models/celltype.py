@@ -102,29 +102,29 @@ class CellTypeModel:
         t = torch.distributions.Normal(torch.tensor(0.0), torch.tensor(0.2))
         log_delta_init = t.sample((G, C + 1))
 
-        mu_init = torch.log(self._dset.get_mu())
+        mu_init = torch.log(self._dset.get_mu()).to(self._device)
         # mu_init = self._dset.get_mu()
 
-        mu_init = mu_init - (self._data["rho"] * torch.exp(log_delta_init)).mean(1)
+        mu_init = mu_init - (self._data["rho"] * torch.exp(log_delta_init).to(self._device)).mean(1)
         mu_init = mu_init.reshape(-1, 1)
 
         # Create initialization dictionary
         initializations = {
             "mu": mu_init,
-            "log_sigma": torch.log(self._dset.get_sigma()),
+            "log_sigma": torch.log(self._dset.get_sigma()).to(self._device),
             "log_delta": log_delta_init,
-            "p": torch.zeros(G, C + 1),
+            "p": torch.zeros(G, C + 1).to(self._device),
         }
 
         P = self._dset.design.shape[1]
         # Add additional columns of mu for anything in the design matrix
         initializations["mu"] = torch.cat(
-            [initializations["mu"], torch.zeros((G, P - 1)).double()], 1
-        )
+            [initializations["mu"], torch.zeros((G, P - 1)).double().to(self._device)], 1
+        ).to(self._device)
 
         # Create trainable variables
         self._variables = {
-            n: Variable(v.clone(), requires_grad=True).to(self._device) for (n, v) in initializations.items()
+            n: Variable(v.clone(), requires_grad=True).to(self._device).detach() for (n, v) in initializations.items()
         }
 
         if self.include_beta:
@@ -238,7 +238,7 @@ class CellTypeModel:
                     self._dset.get_exprs(), exprs_X, self._dset.design
                 )
                 .detach()
-                .numpy()
+                .cpu().numpy()
             )
             if losses.shape[0] > 0:
                 per = abs((l - losses[-1]) / losses[-1])
@@ -250,7 +250,7 @@ class CellTypeModel:
                 break
 
         ## Save output
-        g = self._recog.forward(exprs_X).detach().numpy()
+        g = self._recog.forward(exprs_X).detach().cpu().numpy()
         if self._losses is None:
             self._losses = losses
         else:

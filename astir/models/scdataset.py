@@ -29,6 +29,7 @@ class SCDataset(Dataset):
         self._marker_dict = marker_dict
         self._m_features = list(set([l for s in marker_dict.values() for l in s]))
         self._classes = list(marker_dict.keys())
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         ## sanitize features
         if len(self._classes) <= 1:
             raise NotClassifiableError(
@@ -74,7 +75,7 @@ class SCDataset(Dataset):
                 + "overlap between marked features and expression features for "
                 + "the classification of cell type/state."
             )
-        return torch.from_numpy(Y_np)
+        return torch.from_numpy(Y_np).to(self._device)
 
     def _process_np_input(self, np_input):
         """Process the input as Tuple[np.array, np.array, np.array] and convert it 
@@ -105,7 +106,7 @@ class SCDataset(Dataset):
             temp = [cell[i] for i in ind]
             Y_np.append(np.array(temp))
         Y_np = np.concatenate([Y_np], axis=0)
-        return torch.from_numpy(Y_np)
+        return torch.from_numpy(Y_np).to(self._device)
 
     def _construct_marker_mat(self, include_other_column: bool) -> torch.Tensor:
         """ Construct a marker matrix.
@@ -118,7 +119,7 @@ class SCDataset(Dataset):
         G = self.get_n_features()
         C = self.get_n_classes()
 
-        marker_mat = torch.zeros((G, C + 1 if include_other_column else C))
+        marker_mat = torch.zeros((G, C + 1 if include_other_column else C)).to(self._device)
         for g, feature in enumerate(self._m_features):
             for c, cell_class in enumerate(self._classes):
                 if feature in self._marker_dict[cell_class]:
@@ -137,9 +138,9 @@ class SCDataset(Dataset):
     def _fix_design(self, design: np.array) -> torch.tensor:
         d = None
         if design is None:
-            d = torch.ones((self._exprs.shape[0], 1)).double()
+            d = torch.ones((self._exprs.shape[0], 1)).double().to(self._device)
         else:
-            d = torch.from_numpy(design).double()
+            d = torch.from_numpy(design).double().to(self._device)
 
         if d.shape[0] != self._exprs.shape[0]:
             raise NotClassifiableError(

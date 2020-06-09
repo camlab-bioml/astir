@@ -77,7 +77,7 @@ class CellStateModel:
         )
 
         self._variables = {
-            n: Variable(i.clone(), requires_grad=True).to(self._device)
+            n: Variable(i.clone(), requires_grad=True).to(self._device).detach()
             for (n, i) in initializations.items()
         }
 
@@ -216,7 +216,7 @@ class CellStateModel:
 
                 self._optimizer.step()
 
-            losses[ep] = loss.detach().numpy()
+            losses[ep] = loss.detach().cpu().numpy()
 
             start_index = ep - delta_loss_batch + 1
             if start_index >= 0:
