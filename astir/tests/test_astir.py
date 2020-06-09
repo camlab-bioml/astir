@@ -31,7 +31,7 @@ class TestAstir(TestCase):
             os.path.dirname(__file__), "test-data/test-dir-read"
         )
 
-        self.expr = pd.read_csv(self.expr_csv_file)
+        self.expr = pd.read_csv(self.expr_csv_file, index_col=0)
         with open(self.marker_yaml_file, "r") as stream:
             self.marker_dict = yaml.safe_load(stream)
 

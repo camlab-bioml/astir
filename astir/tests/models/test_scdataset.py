@@ -40,6 +40,8 @@ class TestSCDataset(unittest.TestCase):
 
         self.design = pd.read_csv(self.design_file, index_col=0)
 
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         # Initializing the actual model
         self.ds = SCDataset(
             include_other_column=False,
@@ -104,7 +106,7 @@ class TestSCDataset(unittest.TestCase):
         expected_C = len(self.state_markers)
         # actual_C = self.ds.get_class_amount()
 
-        expected_marker_mat = torch.zeros((expected_G, expected_C))
+        expected_marker_mat = torch.zeros((expected_G, expected_C)).to(self._device)
         actual_marker_mat = self.ds.get_marker_mat()
 
         for g, protein in enumerate(sorted(self.marker_genes)):
@@ -140,7 +142,7 @@ class TestSCDataset(unittest.TestCase):
         G = self.ds.get_n_features()
         C = self.ds.get_n_classes()
 
-        expected_marker_mat = torch.zeros((G, C + 1))
+        expected_marker_mat = torch.zeros((G, C + 1)).to(self._device)
         actual_marker_mat = self.ds.get_marker_mat()
         for g, feature in enumerate(sorted(self.marker_genes)):
             for c, cell_class in enumerate(self.type_markers):
@@ -148,15 +150,15 @@ class TestSCDataset(unittest.TestCase):
                     expected_marker_mat[g, c] = 1.0
 
         self.assertTrue(
-            torch.all(torch.eq(expected_marker_mat, actual_marker_mat)).item()
+            torch.all(torch.eq(expected_marker_mat, actual_marker_mat).to(self._device)).item()
         )
 
     def test_fix_design_none(self):
 
-        expected_design = torch.ones((len(self.ds), 1)).double()
+        expected_design = torch.ones((len(self.ds), 1)).double().to(self._device)
         actual_design = self.ds.design
 
-        self.assertTrue(torch.all(torch.eq(expected_design, actual_design)).item())
+        self.assertTrue(torch.all(torch.eq(expected_design, actual_design).to(self._device)).item())
 
     def test_fix_design_not_none(self):
         self.design = self.design.to_numpy()
@@ -168,10 +170,10 @@ class TestSCDataset(unittest.TestCase):
             design=self.design,
         )
 
-        expected_design = torch.from_numpy(self.design).double()
+        expected_design = torch.from_numpy(self.design).double().to(self._device)
         actual_design = self.ds.design
 
-        self.assertTrue(torch.all(torch.eq(expected_design, actual_design)).item())
+        self.assertTrue(torch.all(torch.eq(expected_design, actual_design).to(self._device)).item())
 
     # # To implement: but not significant
     # def test_mu(self):

@@ -129,7 +129,7 @@ class CellTypeModel:
 
         if self.include_beta:
             self._variables["beta"] = Variable(
-                torch.zeros(G, C + 1), requires_grad=True
+                torch.zeros(G, C + 1).to(self._device).detach(), requires_grad=True
             )
 
     ## Declare pytorch forward fn
@@ -216,7 +216,9 @@ class CellTypeModel:
         per = 1
 
         ## Construct optimizer
-        opt_params = list(self._variables.values()) + list(self._recog.parameters())
+        opt_params = \
+                        list(self._variables.values()) + \
+                        list(self._recog.parameters())
 
         if self.include_beta:
             opt_params = opt_params + [self._variables["beta"]]
@@ -296,8 +298,8 @@ class CellTypeModel:
         cells_x = np.array(cell_types) == curr_type
         cells_y = np.array(cell_types) == celltype_to_compare
 
-        x = self._dset.get_exprs().detach().numpy()[cells_x, current_marker_ind]
-        y = self._dset.get_exprs().detach().numpy()[cells_y, current_marker_ind]
+        x = self._dset.get_exprs().detach().cpu().numpy()[cells_x, current_marker_ind]
+        y = self._dset.get_exprs().detach().cpu().numpy()[cells_y, current_marker_ind]
 
         stat = np.NaN
         pval = np.Inf
@@ -333,7 +335,7 @@ class CellTypeModel:
 
         # Want to construct a data frame that models rho with
         # cell type names on the columns and feature names on the rows
-        g_df = pd.DataFrame(self._data['rho'].detach().numpy())
+        g_df = pd.DataFrame(self._data['rho'].detach().cpu().numpy())
         g_df.columns = self._dset.get_classes() + ["Other"]
         g_df.index = self._dset.get_features()
 
