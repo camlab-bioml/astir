@@ -27,7 +27,8 @@ class SCDataset(Dataset):
         include_other_column: bool,
     ) -> None:
         self._marker_dict = marker_dict
-        self._m_features = list(set([l for s in marker_dict.values() for l in s]))
+        self._m_features = sorted(list(set([l for s in marker_dict.values()
+                                           for l in s])))
         self._classes = list(marker_dict.keys())
         ## sanitize features
         if len(self._classes) <= 1:

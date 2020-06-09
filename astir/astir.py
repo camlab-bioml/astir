@@ -19,7 +19,7 @@ from .models.scdataset import SCDataset
 
 
 class Astir:
-    r"""Create an Astir object
+    """Create an Astir object
 
     :param df_gex: A `pd.DataFrame` holding single-cell expression data,
         where rows are cells and columns are features. Column names refer to

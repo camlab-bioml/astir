@@ -37,8 +37,11 @@ class CellStateModel:
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
         # Setting random seeds
-        torch.manual_seed(random_seed)
         self.random_seed = random_seed
+        torch.manual_seed(self.random_seed)
+        torch.cuda.manual_seed_all(self.random_seed)
+        torch.cuda.manual_seed(self.random_seed)
+        np.random.seed(self.random_seed)
 
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
@@ -77,7 +80,7 @@ class CellStateModel:
         )
 
         self._variables = {
-            n: Variable(i.clone(), requires_grad=True).to(self._device)
+            n: i.to(self._device).detach().clone().requires_grad_()
             for (n, i) in initializations.items()
         }
 
@@ -198,11 +201,10 @@ class CellStateModel:
         prev_mean = None
         delta_cond_met = False
 
-        # TODO
-        # iterator = trange(max_epochs, desc="training astir", unit="epochs",)
+        iterator = trange(max_epochs, desc="training astir", unit="epochs",)
         train_iterator = DataLoader(self._dset,
                                     batch_size=min(batch_size, len(self._dset)))
-        for ep in range(max_epochs):
+        for ep in iterator:
             for i, (y_in, x_in, _) in enumerate(train_iterator):
                 self._optimizer.zero_grad()
 
@@ -216,7 +218,7 @@ class CellStateModel:
 
                 self._optimizer.step()
 
-            losses[ep] = loss.detach().numpy()
+            losses[ep] = loss.cpu().detach().numpy()
 
             start_index = ep - delta_loss_batch + 1
             if start_index >= 0:
@@ -230,7 +232,7 @@ class CellStateModel:
             if delta_cond_met:
                 losses = losses[0 : ep + 1]
                 self._is_converged = True
-                # iterator.close()
+                iterator.close()
                 print("Reached convergence -- breaking from training loop")
                 break
 
