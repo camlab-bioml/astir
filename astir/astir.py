@@ -136,6 +136,7 @@ class Astir:
             CellTypeModel(self._type_dset, self._include_beta, self._design, int(seed))
             for seed in seeds
         ]
+        n_init_epochs = min(max_epochs, 1)
         gs = []
         for i in range(n_init):
             print(
@@ -146,16 +147,18 @@ class Astir:
                 + " ----------"
             )
             gs.append(
-                type_models[i].fit(max_epochs, learning_rate, batch_size, delta_loss)
+                type_models[i].fit(n_init_epochs, learning_rate, batch_size, delta_loss)
             )
         if max_epochs >= 2:
             losses = [m.get_losses()[-2:].mean() for m in type_models]
         else:
             losses = [m.get_losses()[0] for m in type_models]
 
-
         best_ind = np.argmin(losses)
         self._type_ast = type_models[best_ind]
+
+        n_epoch_remaining = max_epochs - 1
+        self._type_ast.fit(n_epoch_remaining, learning_rate, batch_size, delta_loss)
         if not self._type_ast.is_converged():
             msg = (
                 "Maximum epochs reached. More iteration may be needed to"
@@ -249,7 +252,7 @@ class Astir:
             )
             warnings.warn(msg)
 
-        g = self._state_ast.get_final_mu_z().detach().numpy()
+        g = self._state_ast.get_final_mu_z().detach().cpu().numpy()
 
         self._state_assignments = pd.DataFrame(g)
         self._state_assignments.columns = self._state_dset.get_classes()
@@ -258,7 +261,7 @@ class Astir:
     def predict_type(self, dset):
         if self._type_ast is None:
             raise Exception("The type model has not been trained yet")
-        g = self._type_ast.predict(dset)
+        g = self._type_ast.predict(dset).numpy()
         return pd.DataFrame(g)
 
     def get_type_dataset(self):

@@ -13,6 +13,7 @@ from torch.utils.data import Dataset, DataLoader
 
 import pandas as pd
 import numpy as np
+import loompy
 
 from sklearn.preprocessing import StandardScaler
 from scipy import stats
@@ -73,6 +74,7 @@ class CellTypeModel:
         self._losses = None
 
         self._dset = dset
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Does this model use separate beta?
         self.include_beta = include_beta
@@ -81,7 +83,8 @@ class CellTypeModel:
         #     if isinstance(design, pd.DataFrame):
         #         design = design.to_numpy()
 
-        self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features())
+        self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(self._device)
+        self._param_init()
 
     def _param_init(self) -> None:
         """Initialize parameters and design matrices.
@@ -91,37 +94,37 @@ class CellTypeModel:
 
         # Establish data
         self._data = {
-            "log_alpha": torch.log(torch.ones(C + 1) / (C + 1)),
-            "rho": self._dset.get_marker_mat(),
+            "log_alpha": torch.log(torch.ones(C + 1) / (C + 1)).to(self._device),
+            "rho": self._dset.get_marker_mat().to(self._device),
         }
         
         # Initialize mu, log_delta
         t = torch.distributions.Normal(torch.tensor(0.0), torch.tensor(0.2))
         log_delta_init = t.sample((G, C + 1))
 
-        mu_init = torch.log(self._dset.get_mu())
+        mu_init = torch.log(self._dset.get_mu()).to(self._device)
         # mu_init = self._dset.get_mu()
 
-        mu_init = mu_init - (self._data["rho"] * torch.exp(log_delta_init)).mean(1)
+        mu_init = mu_init - (self._data["rho"] * torch.exp(log_delta_init).to(self._device)).mean(1)
         mu_init = mu_init.reshape(-1, 1)
 
         # Create initialization dictionary
         initializations = {
             "mu": mu_init,
-            "log_sigma": torch.log(self._dset.get_sigma()),
+            "log_sigma": torch.log(self._dset.get_sigma()).to(self._device),
             "log_delta": log_delta_init,
-            "p": torch.zeros(G, C + 1),
+            "p": torch.zeros(G, C + 1).to(self._device),
         }
 
         P = self._dset.design.shape[1]
         # Add additional columns of mu for anything in the design matrix
         initializations["mu"] = torch.cat(
-            [initializations["mu"], torch.zeros((G, P - 1)).double()], 1
-        )
+            [initializations["mu"], torch.zeros((G, P - 1)).double().to(self._device)], 1
+        ).to(self._device)
 
         # Create trainable variables
         self._variables = {
-            n: Variable(v.clone(), requires_grad=True) for (n, v) in initializations.items()
+            n: Variable(v.clone(), requires_grad=True).to(self._device).detach() for (n, v) in initializations.items()
         }
 
         if self.include_beta:
@@ -203,7 +206,6 @@ class CellTypeModel:
         :param batch_size: [description], defaults to 1024
         :type batch_size: int, optional
         """
-        self._param_init()
         ## Make dataloader
         dataloader = DataLoader(
             self._dset, batch_size=min(batch_size, len(self._dset)), shuffle=True
@@ -236,7 +238,7 @@ class CellTypeModel:
                     self._dset.get_exprs(), exprs_X, self._dset.design
                 )
                 .detach()
-                .numpy()
+                .cpu().numpy()
             )
             if losses.shape[0] > 0:
                 per = abs((l - losses[-1]) / losses[-1])
@@ -248,15 +250,26 @@ class CellTypeModel:
                 break
 
         ## Save output
-        g = self._recog.forward(exprs_X).detach().numpy()
-        self._losses = losses
+        g = self._recog.forward(exprs_X).detach().cpu().numpy()
+        if self._losses is None:
+            self._losses = losses
+        else:
+            self._losses = np.append(self._losses, losses)
+        self.save_model(max_epochs, learning_rate, batch_size, delta_loss)
         print("Done!")
         return g
 
     def predict(self, dset):
         _, exprs_X, _ = dset[torch.arange(len(dset))]
-        g = self._recog.forward(exprs_X).detach().numpy()
+        g = self._recog(exprs_X)
         return g
+
+    def save_model(self, max_epochs, learning_rate, batch_size, delta_loss):
+        row_attrs = {"epochs": list(range(len(self._losses)))}
+        params_attr = {"parameters": list(self._variables.keys()) + list(self._data.keys())}
+        params_val = np.array(list(self._variables.values()) + list(self._data.values()))
+        info_attrs = {"run_info": ["max_epochs", "learning_rate", "batch_size", "delta_loss"]}
+        info_val = np.array([max_epochs, learning_rate, batch_size, delta_loss])
 
     def get_losses(self) -> float:
         """ Getter for losses
