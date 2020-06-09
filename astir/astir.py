@@ -344,7 +344,7 @@ class Astir:
             msg = "The state model has not been trained yet"
             warnings.warn(msg)
 
-        g = self._state_ast.get_final_mu_z(new_dset).detach().numpy()
+        g = self._state_ast.get_final_mu_z(new_dset).detach().cpu().numpy()
 
         state_assignments = pd.DataFrame(g)
         state_assignments.columns = self._state_dset.get_classes()

@@ -130,7 +130,7 @@ class CellTypeModel:
         if self.include_beta:
             self._variables["beta"] = Variable(
                 torch.zeros(G, C + 1), requires_grad=True
-            )
+            ).to(self._device)
 
     ## Declare pytorch forward fn
     def _forward(
