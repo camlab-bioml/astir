@@ -107,7 +107,7 @@ class TestSCDataset(unittest.TestCase):
         expected_marker_mat = torch.zeros((expected_G, expected_C))
         actual_marker_mat = self.ds.get_marker_mat()
 
-        for g, protein in enumerate(self.marker_genes):
+        for g, protein in enumerate(sorted(self.marker_genes)):
             for c, state in enumerate(self.state_markers):
                 if protein in self.state_markers[state]:
                     expected_marker_mat[g, c] = 1.0
@@ -142,7 +142,7 @@ class TestSCDataset(unittest.TestCase):
 
         expected_marker_mat = torch.zeros((G, C + 1))
         actual_marker_mat = self.ds.get_marker_mat()
-        for g, feature in enumerate(self.marker_genes):
+        for g, feature in enumerate(sorted(self.marker_genes)):
             for c, cell_class in enumerate(self.type_markers):
                 if feature in self.type_markers[cell_class]:
                     expected_marker_mat[g, c] = 1.0
