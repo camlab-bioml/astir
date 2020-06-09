@@ -255,7 +255,7 @@ class CellTypeModel:
             self._losses = losses
         else:
             self._losses = np.append(self._losses, losses)
-        self.save_model(max_epochs, learning_rate, batch_size, delta_loss)
+        # self.save_model(max_epochs, learning_rate, batch_size, delta_loss)
         print("Done!")
         return g
 
