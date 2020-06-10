@@ -209,7 +209,26 @@ class SCDataset(Dataset):
 
     def get_classes(self):
         return self._classes
+    
+    def normalize(self, percentile_lower:int = 1, percentile_upper:int = 99) -> None:
+        """Normalize the expression data
 
+        This performs a two-step normalization:
+        1. A `log(1+x)` transformation to the data
+        2. Winsorizes to (:param:`percentile_lower`, :param:`percentile_upper`)
+        """
+
+        with torch.no_grad():
+            exprs = self.get_exprs().numpy()
+            exprs = np.log1p(exprs)
+            q_low = np.percentile(exprs, (percentile_lower), axis=0)
+            q_high = np.percentile(exprs, (percentile_upper), axis=0)
+
+            for g in range(exprs.shape[1]):
+                exprs[:,g][exprs[:,g] < q_low[g]] = q_low[g]
+                exprs[:,g][exprs[:,g] > q_high[g]] = q_high[g]
+
+            self._exprs = torch.tensor(exprs)
 
 class NotClassifiableError(RuntimeError):
     pass

@@ -116,8 +116,8 @@ class Astir:
 
     def fit_type(
         self,
-        max_epochs=10,
-        learning_rate=1e-2,
+        max_epochs=50,
+        learning_rate=5e-3,
         batch_size=24,
         delta_loss=1e-3,
         n_init=5,
@@ -177,10 +177,10 @@ class Astir:
 
     def fit_state(
         self,
-        max_epochs=100,
+        max_epochs=50,
         learning_rate=1e-3,
         n_init=5,
-        batch_size=64,
+        batch_size=24,
         delta_loss=1e-3,
         delta_loss_batch=10,
     ) -> None:
@@ -422,6 +422,19 @@ class Astir:
         """
         celltypes = list(self.get_celltypes(threshold=threshold)['cell_type'])
         return self.get_type_model().diagnostics(celltypes, alpha=alpha)
+
+    def normalize(self, percentile_lower:int = 1, percentile_upper:int = 99) -> None:
+        """Normalize the expression data
+
+        This performs a two-step normalization:
+        1. A `log(1+x)` transformation to the data
+        2. Winsorizes to (:param:`percentile_lower`, :param:`percentile_upper`)
+
+        :param percentile_lower: Lower percentile for winsorization
+        :param percentile_upper: Upper percentile for winsorization
+        """
+        self.get_type_dataset().normalize(percentile_lower, percentile_upper)
+        self.get_state_dataset().normalize(percentile_lower, percentile_upper)
 
 
 class NotClassifiableError(RuntimeError):
