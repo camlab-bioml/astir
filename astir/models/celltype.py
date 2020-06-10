@@ -282,6 +282,9 @@ class CellTypeModel:
         if self._losses is None:
             raise Exception("The type model has not been trained yet")
         return self._losses
+    
+    def get_scdataset(self):
+        return self._dset
 
     def is_converged(self) -> bool:
         return self._is_converged

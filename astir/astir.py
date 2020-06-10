@@ -264,7 +264,7 @@ class Astir:
     def predict_type(self, dset):
         if self._type_ast is None:
             raise Exception("The type model has not been trained yet")
-        g = self._type_ast.predict(dset).numpy()
+        g = self._type_ast.predict(dset).detach().numpy()
         return pd.DataFrame(g)
 
     def get_type_dataset(self):
