@@ -290,6 +290,26 @@ class TestAstir(TestCase):
         self.assertTrue(state_assignments.shape, (len(dset),
                                                   dset.get_n_classes()))
 
+    def test_celltype_assignment(self):
+        self.a.fit_type(max_epochs=50, n_init=1)
+
+        type_assignments = self.a.get_celltypes()
+
+        n_classes = len(list(self.marker_dict.keys()))
+
+        self.assertTrue(type_assignments.shape, (len(self.expr), n_classes+1))
+
+    def test_celltype_predicted_assignment(self):
+        dset = SCDataset(expr_input=self.expr,
+                         marker_dict=self.marker_dict["cell_types"],
+                         design=None,
+                         include_other_column=True)
+        
+        self.a.fit_type(max_epochs=50, n_init=1)
+
+        type_assignments = self.a.predict_type(dset)
+        self.assertTrue(type_assignments.shape, (len(dset), dset.get_n_classes()+1))
+
     def test_adata_reading(self):
         ast = from_anndata_yaml(
             self.adata_file,

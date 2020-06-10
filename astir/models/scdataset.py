@@ -30,6 +30,7 @@ class SCDataset(Dataset):
         self._m_features = sorted(list(set([l for s in marker_dict.values()
                                            for l in s])))
         self._classes = list(marker_dict.keys())
+
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         ## sanitize features
         if len(self._classes) <= 1:
@@ -40,6 +41,7 @@ class SCDataset(Dataset):
         self._marker_mat = self._construct_marker_mat(
             include_other_column=include_other_column
         )
+
         if isinstance(expr_input, pd.DataFrame):
             self._exprs = self._process_df_input(expr_input)
             self._expr_features = list(expr_input.columns)
