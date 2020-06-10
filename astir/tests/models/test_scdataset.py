@@ -121,7 +121,7 @@ class TestSCDataset(unittest.TestCase):
     def test_cell_names(self):
 
         expected_cell_names = sorted(self.expr.index)
-        actual_cell_names = sorted(self.ds.get_cells())
+        actual_cell_names = sorted(self.ds.get_cell_names())
 
         self.assertTrue(expected_cell_names, actual_cell_names)
 

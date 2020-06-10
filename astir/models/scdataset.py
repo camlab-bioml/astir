@@ -43,10 +43,10 @@ class SCDataset(Dataset):
         if isinstance(expr_input, pd.DataFrame):
             self._exprs = self._process_df_input(expr_input)
             self._expr_features = list(expr_input.columns)
-            self._core_names = list(expr_input.index)
+            self._cell_names = list(expr_input.index)
         elif isinstance(expr_input, tuple):
             self._expr_features = expr_input[1]
-            self._core_names = expr_input[2]
+            self._cell_names = expr_input[2]
             self._exprs = self._process_np_input(expr_input[0])
         self.design = self._fix_design(design)
         ## sanitize df
@@ -154,30 +154,58 @@ class SCDataset(Dataset):
         self._exprs = self._exprs / (self.get_sigma())
 
     def get_exprs(self):
+        """Return the expression data as a :class:`torch.Tensor`
+
+        """
         return self._exprs
+    
+    def get_exprs_df(self):
+        """Return the expression data as a :class:`pandas.DataFrame`
+
+        """
+        df = pd.DataFrame(self.get_exprs().detach().numpy())
+        df.index = self.get_cell_names()
+        df.columns = self.get_features()
+        return df
 
     def get_marker_mat(self):
+        """Return the marker matrix as a :class:`torch.Tensor`
+
+        """
         return self._marker_mat
 
     def get_mu(self):
+        """Get the mean expression of each protein as a :class:`torch.Tensor`
+
+        """
         return self._exprs_mean
 
     def get_sigma(self):
         return self._exprs_std
 
-    def get_n_classes(self):
-        ## C
+    def get_n_classes(self) -> int:
+        """Get the number of 'classes': either the number of cell types or cell states 
+
+        """
         return len(self._classes)
 
-    def get_n_features(self):
-        ## G
+    def get_n_cells(self) -> int:
+        """Get the number of cells: either the number of cell types or cell states 
+
+        """
+        return len(self.get_cell_names())
+
+    def get_n_features(self) -> int:
+        """Get the number of features (proteins)
+
+        """
         return len(self._m_features)
 
     def get_features(self):
         return self._m_features
 
-    def get_cells(self):
-        return self._core_names
+    def get_cell_names(self):
+        return self._cell_names
 
     def get_classes(self):
         return self._classes

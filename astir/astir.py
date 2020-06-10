@@ -173,7 +173,7 @@ class Astir:
 
         self._type_assignments = pd.DataFrame(gs[best_ind])
         self._type_assignments.columns = self._type_dset.get_classes() + ["Other"]
-        self._type_assignments.index = self._type_dset.get_cells()
+        self._type_assignments.index = self._type_dset.get_cell_names()
 
     def fit_state(
         self,
@@ -259,7 +259,7 @@ class Astir:
 
         self._state_assignments = pd.DataFrame(g)
         self._state_assignments.columns = self._state_dset.get_classes()
-        self._state_assignments.index = self._state_dset.get_cells()
+        self._state_assignments.index = self._state_dset.get_cell_names()
 
     def predict_type(self, dset):
         if self._type_ast is None:
@@ -348,7 +348,7 @@ class Astir:
 
         state_assignments = pd.DataFrame(g)
         state_assignments.columns = self._state_dset.get_classes()
-        state_assignments.index = self._state_dset.get_cells()
+        state_assignments.index = self._state_dset.get_cell_names()
 
         return state_assignments
 
