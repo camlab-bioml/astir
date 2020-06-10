@@ -1,4 +1,4 @@
-name: astir
+name: CI (pip)
 
 on: [push]
 
@@ -36,3 +36,6 @@ jobs:
         pip install pytest
         pip install pytest-cov
         pytest --cov=astir
+    - name: Upload coverage
+      shell: pwsh
+      run: coverage report -m

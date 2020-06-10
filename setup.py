@@ -30,6 +30,7 @@ setuptools.setup(
         "matplotlib",
         "loompy",
         "tqdm",
+        "anndata"
     ],
     include_package_data=True,
     zip_safe=False,

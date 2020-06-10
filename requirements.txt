@@ -7,3 +7,4 @@ argparse
 matplotlib
 loompy
 tqdm
+anndata

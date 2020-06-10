@@ -115,7 +115,7 @@ class CellStateModel:
 
         :return: the loss
         """
-        S = y_in.shape[0]
+        S = 1
 
         # log posterior q(z) approx p(z|y)
         q_z_dist = torch.distributions.Normal(loc=mu_z, scale=torch.exp(std_z))
@@ -154,6 +154,7 @@ class CellStateModel:
         std = torch.exp(std_z)
         eps = torch.randn_like(std)
         z_sample = eps * std + mu_z
+
 
         return mu_z, std_z, z_sample
 

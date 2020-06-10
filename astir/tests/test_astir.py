@@ -6,9 +6,10 @@ import pytest
 import yaml
 import numpy as np
 import warnings
+import torch
 
 from astir import Astir
-from astir.data_readers import from_csv_yaml, from_csv_dir_yaml
+from astir.data_readers import from_csv_yaml, from_csv_dir_yaml, from_anndata_yaml
 from astir.models.scdataset import SCDataset
 
 import os, contextlib
@@ -29,6 +30,9 @@ class TestAstir(TestCase):
         )
         self.test_dir = os.path.join(
             os.path.dirname(__file__), "test-data/test-dir-read"
+        )
+        self.adata_file = os.path.join(
+            os.path.dirname(__file__), "test-data/adata_small.h5ad"
         )
 
         self.expr = pd.read_csv(self.expr_csv_file, index_col=0)
@@ -285,3 +289,17 @@ class TestAstir(TestCase):
 
         self.assertTrue(state_assignments.shape, (len(dset),
                                                   dset.get_n_classes()))
+
+    def test_adata_reading(self):
+        ast = from_anndata_yaml(
+            self.adata_file,
+            self.marker_yaml_file,
+            protein_name="protein",
+            cell_name="cell_name",
+            batch_name="batch"
+        )
+
+        self.assertTrue(ast.get_type_dataset().get_n_features() == 14)
+        self.assertTrue(ast.get_type_dataset().get_n_classes() == 6)
+        self.assertIsInstance(ast.get_type_dataset().get_exprs(), torch.Tensor)
+        self.assertEqual(ast.get_type_dataset().get_exprs().shape[0], 10)
