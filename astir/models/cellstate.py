@@ -264,8 +264,8 @@ class CellStateModel:
         :return: diagnostics
         """
         state_assignment = self.get_final_mu_z().detach().cpu().numpy()
-
         y_in = self._dset.get_exprs()
+
         feature_names = self._dset.get_features()
         state_names = self._dset.get_classes()
         G = self._dset.get_n_features()
@@ -285,31 +285,41 @@ class CellStateModel:
 
         # Smallest correlation values for each pathway
         min_marker_corr = np.min(marker_corr, axis=1).reshape(-1, 1)
+        min_marker_proteins = np.take(feature_names, np.argmin(marker_corr, axis=1))
 
         # Correlation values of all non marker proteins
-        non_marker_mat = 1 - self._dset.get_marker_mat().T.numpy()
+        non_marker_mat = (1 - self._dset.get_marker_mat().T.numpy())
         non_marker_corr = non_marker_mat * corr_mat
         non_marker_corr[non_marker_mat == 0] = -np.inf
 
         # Any correlation values where non marker proteins is greater than
         # the smallest correlation values of marker proteins
-        bad_corr_marker = np.array(non_marker_corr > min_marker_corr, dtype=np.int32)
+        bad_corr_marker = np.array(non_marker_corr > min_marker_corr,
+                                   dtype=np.int32)
 
         # Problem summary
         indices = np.argwhere(bad_corr_marker > 0)
 
-        col_names = [
-            "this non marker protein",
-            "should not have a higher correlation with cell state than "
-            "its marker protein",
-        ]
+        col_names = ["pathway", "protein A", "correlation of protein A",
+                     "protein B", "correlation of protein B", "note"]
+
         problems = []
         for index in indices:
-            non_marker_protein = feature_names[index[1]]
+            state_index = index[0]
+            protein_index = index[1]
             state = state_names[index[0]]
+            marker_protein = min_marker_proteins[state_index]
+            non_marker_protein = feature_names[protein_index]
             problem = {
-                "current_marker": non_marker_protein,
-                "curr_state": state,
+                "pathway": state,
+                "marker_protein": marker_protein,
+                "corr_of_marker_protein": min_marker_corr[state_index][0],
+                "non_marker_protein": non_marker_protein,
+                "corr_of_non_marker_protein": non_marker_corr[state_index,
+                                                              protein_index],
+                "msg": "{} is marker for {} but {} isn't".format(
+                    marker_protein, state, non_marker_protein
+                )
             }
             problems.append(problem)
 
