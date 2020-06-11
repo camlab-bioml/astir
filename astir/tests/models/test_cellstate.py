@@ -5,6 +5,8 @@ import os
 import yaml
 import torch
 
+import torch
+
 from astir.models import CellStateModel
 from astir.data_readers import from_csv_yaml
 from astir.astir import SCDataset
