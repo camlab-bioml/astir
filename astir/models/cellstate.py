@@ -290,6 +290,12 @@ class CellStateModel:
         """
         return self._is_converged
 
+    def get_data(self):
+        return self._data
+
+    def get_variables(self):
+        return self._variables
+
 
 class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
