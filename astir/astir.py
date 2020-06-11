@@ -243,6 +243,7 @@ class Astir:
         self._state_ast.fit(
             max_epochs=n_epoch_remaining,
             lr=learning_rate,
+            batch_size=batch_size,
             delta_loss=delta_loss,
             delta_loss_batch=delta_loss_batch,
         )
