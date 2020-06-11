@@ -71,7 +71,7 @@ class TestCellStateModel(TestCase):
         variables = self.model.get_variables()
         s = list(data.values()) + list(variables.values())
         comp = [ss.dtype == torch.float32 for ss in s]
-        assertTrue(all(comp))
+        self.assertTrue(all(comp))
 
     # def test_same_seed_same_result(self):
     #     """ Test whether the loss after one epoch one two different models
