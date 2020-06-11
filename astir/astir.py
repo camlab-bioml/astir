@@ -121,6 +121,7 @@ class Astir:
         batch_size=24,
         delta_loss=1e-3,
         n_init=5,
+        n_initial_epochs = 5,
     ) -> None:
         """Run Variational Bayes to infer cell types
 
@@ -137,7 +138,7 @@ class Astir:
             CellTypeModel(self._type_dset, self._include_beta, self._design, int(seed))
             for seed in seeds
         ]
-        n_init_epochs = min(max_epochs, 1)
+        n_init_epochs = min(max_epochs, n_initial_epochs)
         for i in range(n_init):
             print(
                 "---------- Astir Training "

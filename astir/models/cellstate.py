@@ -254,7 +254,7 @@ class CellStateModel:
             _, x_in, _ = self._dset[:]  # should be the scaled one
         else:
             _, x_in, _ = new_dset[:]
-        final_mu_z, _, _ = self._forward(x_in.float())
+        final_mu_z, _, _ = self._forward(x_in.float().to(self._device))
 
         return final_mu_z
 
@@ -344,12 +344,24 @@ class CellStateModel:
     def get_scdataset(self):
         return self._dset
 
+    def get_data(self):
+        return self._data
+    
+    def get_variables(self):
+        return self._variables
+
     def is_converged(self) -> bool:
         """ Returns True if the model converged
 
         :return: self._is_converged
         """
         return self._is_converged
+
+    def get_data(self):
+        return self._data
+
+    def get_variables(self):
+        return self._variables
 
 
 class NotClassifiableError(RuntimeError):
