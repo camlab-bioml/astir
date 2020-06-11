@@ -277,6 +277,12 @@ class CellStateModel:
     def get_scdataset(self):
         return self._dset
 
+    def get_data(self):
+        return self._data
+    
+    def get_variables(self):
+        return self._variables
+
     def is_converged(self) -> bool:
         """ Returns True if the model converged
 
