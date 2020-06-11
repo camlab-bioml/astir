@@ -46,18 +46,15 @@ class CellStateModel:
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
 
-        # self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self._device = 'cpu'
-        # print(self._device)
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._include_beta = include_beta
         self._alpha_random = alpha_random
 
         self._dset = dset
 
         self._optimizer = None
-        self._losses = None
-        self._variables = None
-        self._data = None
+        self._losses = np.empty(0)
+        self._param_init()
 
         # Convergence flag
         self._is_converged = False
@@ -185,9 +182,6 @@ class CellStateModel:
         if self._is_converged:
             return losses[:0]
 
-        torch.manual_seed(self.random_seed)
-        self._param_init()
-
         if delta_loss_batch >= max_epochs:
             warnings.warn("Delta loss batch size is greater than the number of epochs")
 
@@ -199,7 +193,11 @@ class CellStateModel:
                          list(self._variables.values())
             self._optimizer = torch.optim.Adam(opt_params, lr=lr)
 
-        prev_mean = None
+        if self._losses.shape[0] >= delta_loss_batch:
+            prev_mean = np.mean(self._losses[-delta_loss_batch:])
+        else:
+            prev_mean = None
+
         delta_cond_met = False
 
         iterator = trange(max_epochs, desc="training astir", unit="epochs",)
@@ -214,7 +212,6 @@ class CellStateModel:
 
                 loss = self._loss_fn(mu_z, std_z,
                                      z_samples, x_in.to(self._device))
-
                 loss.backward()
 
                 self._optimizer.step()
@@ -222,13 +219,21 @@ class CellStateModel:
             losses[ep] = loss.cpu().detach().numpy()
 
             start_index = ep - delta_loss_batch + 1
+            end_index = start_index + delta_loss_batch
             if start_index >= 0:
-                end_index = start_index + delta_loss_batch
                 curr_mean = np.mean(losses[start_index:end_index])
-                if prev_mean is not None:
-                    curr_delta_loss = (prev_mean - curr_mean) / prev_mean
-                    delta_cond_met = 0 <= curr_delta_loss < delta_loss
-                prev_mean = curr_mean
+            elif self._losses.shape[0] >= -start_index:
+                last_ten_losses = np.append(self._losses[start_index:],
+                                            losses[:end_index])
+                curr_mean = np.mean(last_ten_losses)
+            else:
+                curr_mean = None
+
+            if prev_mean is not None:
+                curr_delta_loss = (prev_mean - curr_mean) / prev_mean
+                delta_cond_met = 0 <= curr_delta_loss < delta_loss
+
+            prev_mean = curr_mean
 
             if delta_cond_met:
                 losses = losses[0 : ep + 1]
@@ -262,6 +267,62 @@ class CellStateModel:
         final_mu_z, _, _ = self._forward(x_in.float())
 
         return final_mu_z
+
+    def diagnostics(self):
+        g = self.get_final_mu_z().detach().cpu().numpy()
+
+        state_assignment = pd.DataFrame(g)
+        state_assignment.columns = self._dset.get_classes()
+        state_assignment.index = self._dset.get_features()
+
+        marker_mat = self._dset.get_marker_mat().T
+        Y = self._dset.get_exprs()
+        G = self._dset.get_n_features()
+        C = self._dset.get_n_classes()
+        corr_mat = np.zeros((C, G))
+        for c, state in enumerate(self._dset.get_classes()):
+            for g, feature in enumerate(self._dset.get_features()):
+                states = state_assignment[state]
+                protein = Y[:,g]
+                corr_mat[c, g] = np.corrcoef(protein, states)[0, 1]
+
+        problems = []
+
+        for c, state in enumerate(self._dset.get_classes()):
+            min_marker_corr = np.inf
+            marker_name = None
+            for g, feature in enumerate(self._dset.get_features()):
+                if marker_mat[c, g] == 1 and corr_mat[c, g] < min_marker_corr:
+                    min_marker_corr = corr_mat[c, g]
+                    marker_name = feature
+
+            print(marker_name, min_marker_corr)
+
+            if marker_name is None:
+                continue
+
+            for g, feature in enumerate(self._dset.get_features()):
+                if marker_mat[c, g] == 0 and corr_mat[c, g] >= min_marker_corr:
+                    print(state, feature)
+                    problem = {
+                        'current_marker': feature,
+                        'curr_state': state,
+                        'cellstate_to_compare': marker_name,
+                    }
+                    problems.append(problem)
+
+        col_names = ['feature',
+                     'should have higher correlation with cell state',
+                     'than this feature']
+
+        if len(problems) > 0:
+            df_issues = pd.DataFrame(problems)
+            df_issues.columns = col_names
+        else:
+            df_issues = pd.DataFrame(columns=col_names)
+
+        return df_issues
+
 
     def get_losses(self) -> np.array:
         """ Getter for losses
