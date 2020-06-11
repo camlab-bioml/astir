@@ -274,6 +274,9 @@ class CellStateModel:
             raise Exception("The state model has not been trained yet")
         return self._losses
 
+    def get_scdataset(self):
+        return self._dset
+
     def is_converged(self) -> bool:
         """ Returns True if the model converged
 

@@ -78,7 +78,7 @@ class SCDataset(Dataset):
                 + "overlap between marked features and expression features for "
                 + "the classification of cell type/state."
             )
-        return torch.from_numpy(Y_np).to(self._device)
+        return torch.from_numpy(Y_np).float().to(self._device)
 
     def _process_np_input(self, np_input):
         """Process the input as Tuple[np.array, np.array, np.array] and convert it 
@@ -141,9 +141,9 @@ class SCDataset(Dataset):
     def _fix_design(self, design: np.array) -> torch.tensor:
         d = None
         if design is None:
-            d = torch.ones((self._exprs.shape[0], 1)).double().to(self._device)
+            d = torch.ones((self._exprs.shape[0], 1)).float().to(self._device)
         else:
-            d = torch.from_numpy(design).double().to(self._device)
+            d = torch.from_numpy(design).float().to(self._device)
 
         if d.shape[0] != self._exprs.shape[0]:
             raise NotClassifiableError(
@@ -178,7 +178,6 @@ class SCDataset(Dataset):
 
     def get_mu(self):
         """Get the mean expression of each protein as a :class:`torch.Tensor`
-
         """
         return self._exprs_mean
 

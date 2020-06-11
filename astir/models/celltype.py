@@ -119,7 +119,7 @@ class CellTypeModel:
         P = self._dset.design.shape[1]
         # Add additional columns of mu for anything in the design matrix
         initializations["mu"] = torch.cat(
-            [initializations["mu"], torch.zeros((G, P - 1)).double().to(self._device)], 1
+            [initializations["mu"], torch.zeros((G, P - 1)).float().to(self._device)], 1
         ).to(self._device)
 
         # Create trainable variables
@@ -224,7 +224,7 @@ class CellTypeModel:
             opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
-        _, exprs_X, _ = self._dset[torch.arange(len(self._dset))] # calls dset.get_item
+        _, exprs_X, _ = self._dset[:] # calls dset.get_item
 
         iterator = trange(max_epochs, desc="training astir", unit="epochs")
         for ep in iterator:
@@ -261,9 +261,10 @@ class CellTypeModel:
         print("Done!")
         return g
 
-    def predict(self, dset):
-        _, exprs_X, _ = dset[torch.arange(len(dset))]
-        g = self._recog(exprs_X)
+    def predict(self, new_dset):
+        _, exprs_X, _ = new_dset[:]
+        g = self._recog.forward(exprs_X)
+        # g, _, _ = self._forward(exprs_X.float())
         return g
 
     def save_model(self, max_epochs, learning_rate, batch_size, delta_loss):

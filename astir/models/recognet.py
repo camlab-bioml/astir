@@ -7,8 +7,8 @@ import torch.nn as nn
 class RecognitionNet(nn.Module):
     def __init__(self, C: int, G: int, hidden_size=10) -> None:
         super(RecognitionNet, self).__init__()
-        self.hidden_1 = nn.Linear(G, hidden_size).double()
-        self.hidden_2 = nn.Linear(hidden_size, C + 1).double()
+        self.hidden_1 = nn.Linear(G, hidden_size).float()
+        self.hidden_2 = nn.Linear(hidden_size, C + 1).float()
 
     def forward(self, x):
         x = self.hidden_1(x)

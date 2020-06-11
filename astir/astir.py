@@ -261,14 +261,6 @@ class Astir:
         self._state_assignments.columns = self._state_dset.get_classes()
         self._state_assignments.index = self._state_dset.get_cell_names()
 
-    def predict_type(self, dset):
-        if self._type_ast is None:
-            raise Exception("The type model has not been trained yet")
-        g = self._type_ast.predict(dset).detach().numpy()
-        df = pd.DataFrame(g)
-        df.columns = dset.get_classes()+["others"]
-        return df
-
     def get_type_dataset(self):
         return self._type_dset
 
@@ -333,6 +325,21 @@ class Astir:
         if self._state_assignments is None:
             raise Exception("The state model has not been trained yet")
         return self._state_assignments
+    
+    def predict_celltypes(self, dset = None):
+        if self._type_ast is None:
+            raise Exception("The type model has not been trained yet")
+        if not self._type_ast.is_converged():
+            msg = "The state model has not been trained for enough epochs yet"
+            warnings.warn(msg)
+        if dset is None:
+            dset = self.get_type_dataset()
+        g = self._type_ast.predict(dset).detach().cpu().numpy()
+
+        type_assignments = pd.DataFrame(g)
+        type_assignments.columns = dset.get_classes()+["others"]
+        type_assignments.index = dset.get_cell_names()
+        return type_assignments
 
     def predict_cellstates(self, new_dset: SCDataset) -> pd.DataFrame:
         """ Get the prediction cell state activations on a dataset on an
@@ -343,7 +350,7 @@ class Astir:
         :return: the prediction of cell state activations
         """
         if not self._state_ast.is_converged():
-            msg = "The state model has not been trained yet"
+            msg = "The state model has not been trained for enough epochs yet"
             warnings.warn(msg)
 
         g = self._state_ast.get_final_mu_z(new_dset).detach().cpu().numpy()
