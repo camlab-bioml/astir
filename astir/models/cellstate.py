@@ -260,7 +260,7 @@ class CellStateModel:
             _, x_in, _ = self._dset[:] # should be the scaled one
         else:
             _, x_in, _ = new_dset[:]
-        final_mu_z, _, _ = self._forward(x_in.float())
+        final_mu_z, _, _ = self._forward(x_in.float().to(self._device))
 
         return final_mu_z
 

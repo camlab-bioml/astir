@@ -50,7 +50,7 @@ class SCDataset(Dataset):
             self._expr_features = expr_input[1]
             self._cell_names = expr_input[2]
             self._exprs = self._process_np_input(expr_input[0])
-        self.design = self._fix_design(design)
+        self._design = self._fix_design(design)
         ## sanitize df
         if self._exprs.shape[0] <= 0:
             raise NotClassifiableError(
@@ -210,6 +210,9 @@ class SCDataset(Dataset):
 
     def get_classes(self):
         return self._classes
+
+    def get_design(self):
+        return self._design
     
     def normalize(self, percentile_lower:int = 1, percentile_upper:int = 99) -> None:
         """Normalize the expression data

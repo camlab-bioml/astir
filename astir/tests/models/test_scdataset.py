@@ -175,6 +175,14 @@ class TestSCDataset(unittest.TestCase):
 
         self.assertTrue(torch.all(torch.eq(expected_design, actual_design).to(self._device)).item())
 
+    def test_dtype(self):
+        comp = []
+        comp.append(self.ds.get_exprs().dtype == torch.float32)
+        comp.append(self.ds.get_design().dtype == torch.float32)
+        comp.append(self.ds.get_mu().dtype.dtype == torch.float32)
+        comp.append(self.ds.get_sigma.dtype.dtype == torch.float32)
+        self.assertTrue(all(comp))
+
     # # To implement: but not significant
     # def test_mu(self):
     #     pass

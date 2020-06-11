@@ -63,6 +63,13 @@ class TestCellStateModel(TestCase):
         """
         self.assertIsNone(self.model._optimizer)
 
+    def test_dtype(self):
+        data = self.model.get_data()
+        variables = self.model.get_variables()
+        s = list(data.values()) + list(variables.values())
+        comp = [ss.dtype == torch.float32 for ss in s]
+        assertTrue(all(comp))
+
     # def test_same_seed_same_result(self):
     #     """ Test whether the loss after one epoch one two different models
     #     with the same random seed have the

@@ -47,3 +47,10 @@ class TestCellTypeModel(TestCase):
         """ Testing if the instance is created or not
         """
         self.assertIsInstance(self.model, CellTypeModel)
+
+    def test_dtype(self):
+        data = self.model.get_data()
+        variables = self.model.get_variables()
+        s = list(data.values()) + list(variables.values())
+        comp = [ss.dtype == torch.float32 for ss in s]
+        assertTrue(all(comp))

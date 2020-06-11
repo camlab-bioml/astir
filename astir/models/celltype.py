@@ -129,7 +129,7 @@ class CellTypeModel:
 
         if self.include_beta:
             self._variables["beta"] = Variable(
-                torch.zeros(G, C + 1).to(self._device).detach(), requires_grad=True
+                torch.zeros(G, C + 1).to(self._device), requires_grad=True
             )
 
     ## Declare pytorch forward fn
@@ -287,6 +287,12 @@ class CellTypeModel:
     
     def get_scdataset(self):
         return self._dset
+    
+    def get_data(self):
+        return self._data
+    
+    def get_variables(self):
+        return self._variables
 
     def is_converged(self) -> bool:
         return self._is_converged
