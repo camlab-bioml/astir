@@ -11,6 +11,7 @@ import pandas as pd
 import yaml
 
 from .scdataset import SCDataset
+from .cellstate_recognet import StateRecognitionNet
 from tqdm import trange
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
@@ -66,6 +67,7 @@ class CellStateModel:
         """
         N = len(self._dset)
         C = self._dset.get_n_classes()
+        G = self._dset.get_n_features()
 
         initializations = {
             "log_sigma": torch.log(self._dset.get_sigma().mean()),
@@ -85,16 +87,7 @@ class CellStateModel:
             "rho": self._dset.get_marker_mat().T.to(self._device),
         }
 
-        self._models = {
-            "main": nn.Sequential(
-                nn.Linear(self._dset.get_n_features(), 2 * C),
-                nn.ReLU(),
-                nn.Linear(2 * C, 2 * C),
-                nn.ReLU(),
-            ).to(self._device),
-            "model_mu": nn.Linear(2 * C, C).to(self._device),
-            "model_std": nn.Linear(2 * C, C).to(self._device),
-        }
+        self._models = StateRecognitionNet(C, G).to(self._device)
 
     def _loss_fn(
         self,
@@ -144,9 +137,7 @@ class CellStateModel:
 
         :return: mu_z, std_z, z_sample
         """
-        hidden = self._models["main"](y_in)
-        mu_z = self._models["model_mu"](hidden)
-        std_z = self._models["model_std"](hidden)
+        mu_z, std_z = self._models(y_in)
 
         std = torch.exp(std_z)
         eps = torch.randn_like(std)
@@ -189,9 +180,7 @@ class CellStateModel:
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
             opt_params = (
-                list(self._models["main"].parameters())
-                + list(self._models["model_mu"].parameters())
-                + list(self._models["model_std"].parameters())
+                list(self._models.parameters())
                 + list(self._variables.values())
             )
             self._optimizer = torch.optim.Adam(opt_params, lr=lr)
