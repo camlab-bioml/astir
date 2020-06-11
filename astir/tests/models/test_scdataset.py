@@ -156,7 +156,7 @@ class TestSCDataset(unittest.TestCase):
     def test_fix_design_none(self):
 
         expected_design = torch.ones((len(self.ds), 1)).double().to(self._device)
-        actual_design = self.ds.design
+        actual_design = self.ds.get_design()
 
         self.assertTrue(torch.all(torch.eq(expected_design, actual_design).to(self._device)).item())
 
@@ -171,7 +171,7 @@ class TestSCDataset(unittest.TestCase):
         )
 
         expected_design = torch.from_numpy(self.design).double().to(self._device)
-        actual_design = self.ds.design
+        actual_design = self.ds.get_design()
 
         self.assertTrue(torch.all(torch.eq(expected_design, actual_design).to(self._device)).item())
 
@@ -179,8 +179,8 @@ class TestSCDataset(unittest.TestCase):
         comp = []
         comp.append(self.ds.get_exprs().dtype == torch.float32)
         comp.append(self.ds.get_design().dtype == torch.float32)
-        comp.append(self.ds.get_mu().dtype.dtype == torch.float32)
-        comp.append(self.ds.get_sigma.dtype.dtype == torch.float32)
+        comp.append(self.ds.get_mu().dtype == torch.float32)
+        comp.append(self.ds.get_sigma().dtype == torch.float32)
         self.assertTrue(all(comp))
 
     # # To implement: but not significant

@@ -136,7 +136,7 @@ class SCDataset(Dataset):
     def __getitem__(self, idx):
         y = self._exprs[idx, :]
         x = (y - self._exprs_mean) / self._exprs_std
-        return y, x, self.design[idx, :]
+        return y, x, self._design[idx, :]
 
     def _fix_design(self, design: np.array) -> torch.tensor:
         d = None

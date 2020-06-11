@@ -116,7 +116,7 @@ class CellTypeModel:
             "p": torch.zeros(G, C + 1).to(self._device),
         }
 
-        P = self._dset.design.shape[1]
+        P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
         initializations["mu"] = torch.cat(
             [initializations["mu"], torch.zeros((G, P - 1)).float().to(self._device)], 1
@@ -237,7 +237,7 @@ class CellTypeModel:
                 optimizer.step()
             l = (
                 self._forward(
-                    self._dset.get_exprs(), exprs_X, self._dset.design
+                    self._dset.get_exprs(), exprs_X, self._dset.get_design()
                 )
                 .detach()
                 .cpu().numpy()

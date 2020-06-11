@@ -3,6 +3,7 @@ from unittest import TestCase
 import pandas as pd
 import os
 import yaml
+import torch 
 
 from astir.models import CellTypeModel
 from astir.data_readers import from_csv_yaml
@@ -49,8 +50,9 @@ class TestCellTypeModel(TestCase):
         self.assertIsInstance(self.model, CellTypeModel)
 
     def test_dtype(self):
+        self.model.fit(max_epochs=1)
         data = self.model.get_data()
         variables = self.model.get_variables()
         s = list(data.values()) + list(variables.values())
         comp = [ss.dtype == torch.float32 for ss in s]
-        assertTrue(all(comp))
+        self.assertTrue(all(comp))
