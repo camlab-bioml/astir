@@ -18,5 +18,4 @@ class RecognitionNet(nn.Module):
         x = F.relu(x)
         x = self.hidden_2(x)
         x = F.softmax(x, dim=1)
-        print("x: " + str(x.is_cuda))
         return x
