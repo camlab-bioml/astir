@@ -183,7 +183,7 @@ class CellTypeModel:
         v2 = torch.pow(sigma,2) * (1 - torch.pow(self._data["rho"] * p, 2)).T
 
         v1 = v1.reshape(1, C+1, G, 1).repeat(N, 1, 1, 1) # extra 1 is the "rank"
-        v2 = v2.reshape(1, C+1, G).repeat(N, 1, 1)
+        v2 = v2.reshape(1, C+1, G).repeat(N, 1, 1) + 1e-6
 
 
         dist = LowRankMultivariateNormal(
