@@ -113,24 +113,32 @@ class CellTypeModel:
             "mu": mu_init,
             "log_sigma": torch.log(self._dset.get_sigma()).to(self._device),
             "log_delta": log_delta_init,
-            "p": torch.zeros(G, C + 1).to(self._device),
+            "p": torch.zeros((G, C + 1), device=self._device),
         }
 
-        P = self._dset.design.shape[1]
+        P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
         initializations["mu"] = torch.cat(
-            [initializations["mu"], torch.zeros((G, P - 1)).float().to(self._device)], 1
-        ).to(self._device)
+            [initializations["mu"], torch.zeros((G, P - 1), dtype=torch.float32, device=self._device)], 1
+        )
 
         # Create trainable variables
-        self._variables = {
-            n: Variable(v.clone(), requires_grad=True).to(self._device).detach() for (n, v) in initializations.items()
-        }
+        # self._variables = {
+        #     n: Variable(v.clone(), requires_grad=True).to(self._device) for (n, v) in initializations.items()
+        # }
+        self._variables = {}
+        for (n, v) in initializations.items():
+            self._variables[n] = Variable(v.clone()).to(self._device)
+            self._variables[n].requires_grad = True
 
         if self.include_beta:
+            # self._variables["beta"] = Variable(
+            #     torch.zeros(G, C + 1).to(self._device), requires_grad=True
+            # )
             self._variables["beta"] = Variable(
-                torch.zeros(G, C + 1).to(self._device).detach(), requires_grad=True
-            )
+                torch.zeros(G, C + 1)
+            ).to(self._device)
+            self._variables["beta"].requires_grad = True
 
     ## Declare pytorch forward fn
     def _forward(
@@ -237,7 +245,7 @@ class CellTypeModel:
                 optimizer.step()
             l = (
                 self._forward(
-                    self._dset.get_exprs(), exprs_X, self._dset.design
+                    self._dset.get_exprs(), exprs_X, self._dset.get_design()
                 )
                 .detach()
                 .cpu().numpy()
@@ -287,6 +295,12 @@ class CellTypeModel:
     
     def get_scdataset(self):
         return self._dset
+    
+    def get_data(self):
+        return self._data
+    
+    def get_variables(self):
+        return self._variables
 
     def is_converged(self) -> bool:
         return self._is_converged

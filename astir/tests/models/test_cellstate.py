@@ -3,6 +3,9 @@ from unittest import TestCase
 import pandas as pd
 import os
 import yaml
+import torch
+
+import torch
 
 from astir.models import CellStateModel
 from astir.data_readers import from_csv_yaml
@@ -43,6 +46,10 @@ class TestCellStateModel(TestCase):
             dset=self._dset, include_beta=True, alpha_random=True, random_seed=42
         )
 
+        self.model.fit(max_epochs=1)
+        self.data = self.model.get_data()
+        self.variables = self.model.get_variables()
+
     def test_basic_instance_creation(self):
         """ Testing if the instance is created or not
         """
@@ -58,10 +65,20 @@ class TestCellStateModel(TestCase):
         """
         self.assertTrue(self.model._alpha_random)
 
-    def test_optimizer(self):
-        """ Test initial optimizer
-        """
-        self.assertIsNone(self.model._optimizer)
+    # def test_optimizer(self):
+    #     """ Test initial optimizer
+    #     """
+    #     self.assertIsNone(self.model._optimizer)
+
+    def test_dtype(self):
+        params = list(self.data.values()) + list(self.variables.values())
+        comp = [ss.dtype == torch.float32 for ss in params]
+        self.assertTrue(all(comp))
+
+    # def test_trainability(self):
+    #     params = list(self.data.values()) + list(self.variables.values())
+    #     s = [param.requires_grad for param in params]
+    #     self.assertTrue(all(s))
 
     # def test_same_seed_same_result(self):
     #     """ Test whether the loss after one epoch one two different models
