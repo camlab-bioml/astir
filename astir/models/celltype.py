@@ -124,7 +124,7 @@ class CellTypeModel:
 
         # Create trainable variables
         self._variables = {
-            n: Variable(v.clone(), requires_grad=True).to(self._device).detach() for (n, v) in initializations.items()
+            n: Variable(v.clone(), requires_grad=True).to(self._device) for (n, v) in initializations.items()
         }
 
         if self.include_beta:
