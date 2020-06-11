@@ -325,3 +325,9 @@ class TestAstir(TestCase):
         self.assertTrue(ast.get_type_dataset().get_n_classes() == 6)
         self.assertIsInstance(ast.get_type_dataset().get_exprs(), torch.Tensor)
         self.assertEqual(ast.get_type_dataset().get_exprs().shape[0], 10)
+
+    def test_cellstate_diagnostics(self):
+        self.a.fit_state(max_epochs=50, n_init=1)
+
+        state_diagnostics = self.a.diagnostics_cellstate()
+        self.assertIsInstance(state_diagnostics, pd.DataFrame)

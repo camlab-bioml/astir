@@ -29,11 +29,13 @@ class CellStateModel:
         otherwise alpha is initialized to zeros
     """
 
-    def __init__(self,
-                 dset: SCDataset,
-                 include_beta: bool = True,
-                 alpha_random: bool = True,
-                 random_seed: int = 42) -> None:
+    def __init__(
+        self,
+        dset: SCDataset,
+        include_beta: bool = True,
+        alpha_random: bool = True,
+        random_seed: int = 42,
+    ) -> None:
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
         # Setting random seeds
@@ -71,11 +73,8 @@ class CellStateModel:
         }
 
         # Include beta or not
-        d = torch.distributions.Uniform(torch.tensor(0.0),
-                                        torch.tensor(1.5))
-        initializations["log_w"] = torch.log(
-            d.sample((C, self._dset.get_n_features()))
-        )
+        d = torch.distributions.Uniform(torch.tensor(0.0), torch.tensor(1.5))
+        initializations["log_w"] = torch.log(d.sample((C, self._dset.get_n_features())))
 
         self._variables = {
             n: i.to(self._device).detach().clone().requires_grad_()
@@ -84,7 +83,6 @@ class CellStateModel:
 
         self._data = {
             "rho": self._dset.get_marker_mat().T.to(self._device),
-            "Y": self._dset.get_exprs().to(self._device),
         }
 
         self._models = {
@@ -92,17 +90,19 @@ class CellStateModel:
                 nn.Linear(self._dset.get_n_features(), 2 * C),
                 nn.ReLU(),
                 nn.Linear(2 * C, 2 * C),
-                nn.ReLU()
+                nn.ReLU(),
             ).to(self._device),
             "model_mu": nn.Linear(2 * C, C).to(self._device),
-            "model_std": nn.Linear(2 * C, C).to(self._device)
+            "model_std": nn.Linear(2 * C, C).to(self._device),
         }
 
-    def _loss_fn(self,
-                 mu_z: torch.Tensor,
-                 std_z: torch.Tensor,
-                 z_sample: torch.Tensor,
-                 y_in: torch.Tensor) -> torch.Tensor:
+    def _loss_fn(
+        self,
+        mu_z: torch.Tensor,
+        std_z: torch.Tensor,
+        z_sample: torch.Tensor,
+        y_in: torch.Tensor,
+    ) -> torch.Tensor:
         """ Returns the calculated loss
 
         :param mu_z: the predicted mean of z
@@ -112,15 +112,14 @@ class CellStateModel:
 
         :return: the loss
         """
-        S = 1
+        S = y_in.shape[0]
 
         # log posterior q(z) approx p(z|y)
         q_z_dist = torch.distributions.Normal(loc=mu_z, scale=torch.exp(std_z))
         log_q_z = q_z_dist.log_prob(z_sample)
 
         # log likelihood p(y|z)
-        rho_w = torch.mul(self._data["rho"],
-                          torch.exp(self._variables["log_w"]))
+        rho_w = torch.mul(self._data["rho"], torch.exp(self._variables["log_w"]))
         mean = self._variables["mu"] + torch.matmul(z_sample, rho_w)
         std = torch.exp(self._variables["log_sigma"]).reshape(1, -1)
         p_y_given_z_dist = torch.distributions.Normal(loc=mean, scale=std)
@@ -130,14 +129,15 @@ class CellStateModel:
         p_z_dist = torch.distributions.Normal(0, 1)
         log_p_z = p_z_dist.log_prob(z_sample)
 
-        loss = (1 / S) * (torch.sum(log_q_z) - torch.sum(log_p_y_given_z)
-                          - torch.sum(log_p_z))
+        loss = (1 / S) * (
+            torch.sum(log_q_z) - torch.sum(log_p_y_given_z) - torch.sum(log_p_z)
+        )
 
         return loss
 
-    def _forward(self, y_in: torch.Tensor) -> Tuple[torch.Tensor,
-                                                    torch.Tensor,
-                                                    torch.Tensor]:
+    def _forward(
+        self, y_in: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """ One forward pass
 
         :param y_in: dataset to do forward pass on
@@ -152,15 +152,15 @@ class CellStateModel:
         eps = torch.randn_like(std)
         z_sample = eps * std + mu_z
 
-
         return mu_z, std_z, z_sample
 
-    def fit(self,
-            max_epochs: int,
-            lr:float = 1e-3,
-            batch_size: int = 64,
-            delta_loss: float = 1e-3,
-            delta_loss_batch: int = 10
+    def fit(
+        self,
+        max_epochs: int,
+        lr: float = 1e-3,
+        batch_size: int = 64,
+        delta_loss: float = 1e-3,
+        delta_loss_batch: int = 10,
     ) -> np.array:
         """ Runs train loops until the convergence reaches delta_loss for
         delta_loss_batch sizes or for max_epochs number of times
@@ -188,10 +188,12 @@ class CellStateModel:
 
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
-            opt_params = list(self._models["main"].parameters()) + \
-                         list(self._models["model_mu"].parameters()) + \
-                         list(self._models["model_std"].parameters()) + \
-                         list(self._variables.values())
+            opt_params = (
+                list(self._models["main"].parameters())
+                + list(self._models["model_mu"].parameters())
+                + list(self._models["model_std"].parameters())
+                + list(self._variables.values())
+            )
             self._optimizer = torch.optim.Adam(opt_params, lr=lr)
 
         if self._losses.shape[0] >= delta_loss_batch:
@@ -202,17 +204,17 @@ class CellStateModel:
         delta_cond_met = False
 
         iterator = trange(max_epochs, desc="training astir", unit="epochs",)
-        train_iterator = DataLoader(self._dset,
-                                    batch_size=min(batch_size, len(self._dset)))
+        train_iterator = DataLoader(
+            self._dset, batch_size=min(batch_size, len(self._dset))
+        )
         for ep in iterator:
             for i, (y_in, x_in, _) in enumerate(train_iterator):
                 self._optimizer.zero_grad()
 
-                mu_z, std_z, z_samples = \
-                    self._forward(x_in.float().to(self._device))
+                mu_z, std_z, z_samples = self._forward(x_in)
 
-                loss = self._loss_fn(mu_z, std_z,
-                                     z_samples, x_in.to(self._device))
+                loss = self._loss_fn(mu_z, std_z, z_samples, x_in)
+
                 loss.backward()
 
                 self._optimizer.step()
@@ -224,8 +226,9 @@ class CellStateModel:
             if start_index >= 0:
                 curr_mean = np.mean(losses[start_index:end_index])
             elif self._losses.shape[0] >= -start_index:
-                last_ten_losses = np.append(self._losses[start_index:],
-                                            losses[:end_index])
+                last_ten_losses = np.append(
+                    self._losses[start_index:], losses[:end_index]
+                )
                 curr_mean = np.mean(last_ten_losses)
             else:
                 curr_mean = None
@@ -250,10 +253,7 @@ class CellStateModel:
 
         return losses
 
-    def get_final_mu_z(
-            self,
-            new_dset: SCDataset = None
-    ) -> torch.Tensor:
+    def get_final_mu_z(self, new_dset: SCDataset = None) -> torch.Tensor:
         """ Returns the mean of the predicted z values for each core
 
         :param new_dset: returns the predicted z values of this dataset on
@@ -262,59 +262,67 @@ class CellStateModel:
         :return: the mean of the predicted z values for each core
         """
         if new_dset is None:
-            _, x_in, _ = self._dset[:] # should be the scaled one
+            _, x_in, _ = self._dset[:]  # should be the scaled one
         else:
             _, x_in, _ = new_dset[:]
         final_mu_z, _, _ = self._forward(x_in.float())
 
         return final_mu_z
 
-    def diagnostics(self):
-        g = self.get_final_mu_z().detach().cpu().numpy()
+    def diagnostics(self) -> pd.DataFrame:
+        """ Run diagnostics on cell state assignments
 
-        state_assignment = pd.DataFrame(g)
-        state_assignment.columns = self._dset.get_classes()
-        state_assignment.index = self._dset.get_features()
+        :return: diagnostics
+        """
+        state_assignment = self.get_final_mu_z().detach().cpu().numpy()
 
-        marker_mat = self._dset.get_marker_mat().T
-        Y = self._dset.get_exprs()
+        y_in = self._dset.get_exprs()
+        feature_names = self._dset.get_features()
+        state_names = self._dset.get_classes()
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
         corr_mat = np.zeros((C, G))
-        for c, state in enumerate(self._dset.get_classes()):
-            for g, feature in enumerate(self._dset.get_features()):
-                states = state_assignment[state]
-                protein = Y[:,g]
+        # Make a matrix of correlations between all states and proteins
+        for c, state in enumerate(state_names):
+            for g, feature in enumerate(feature_names):
+                states = state_assignment[:, c]
+                protein = y_in[:, g]
                 corr_mat[c, g] = np.corrcoef(protein, states)[0, 1]
 
+        # Correlation values of all marker proteins
+        marker_mat = self._dset.get_marker_mat().T.numpy()
+        marker_corr = marker_mat * corr_mat
+        marker_corr[marker_mat == 0] = np.inf
+
+        # Smallest correlation values for each pathway
+        min_marker_corr = np.min(marker_corr, axis=1).reshape(-1, 1)
+
+        # Correlation values of all non marker proteins
+        non_marker_mat = 1 - self._dset.get_marker_mat().T.numpy()
+        non_marker_corr = non_marker_mat * corr_mat
+        non_marker_corr[non_marker_mat == 0] = -np.inf
+
+        # Any correlation values where non marker proteins is greater than
+        # the smallest correlation values of marker proteins
+        bad_corr_marker = np.array(non_marker_corr > min_marker_corr, dtype=np.int32)
+
+        # Problem summary
+        indices = np.argwhere(bad_corr_marker > 0)
+
+        col_names = [
+            "this non marker protein",
+            "should not have a higher correlation with cell state than "
+            "its marker protein",
+        ]
         problems = []
-
-        for c, state in enumerate(self._dset.get_classes()):
-            min_marker_corr = np.inf
-            marker_name = None
-            for g, feature in enumerate(self._dset.get_features()):
-                if marker_mat[c, g] == 1 and corr_mat[c, g] < min_marker_corr:
-                    min_marker_corr = corr_mat[c, g]
-                    marker_name = feature
-
-            print(marker_name, min_marker_corr)
-
-            if marker_name is None:
-                continue
-
-            for g, feature in enumerate(self._dset.get_features()):
-                if marker_mat[c, g] == 0 and corr_mat[c, g] >= min_marker_corr:
-                    print(state, feature)
-                    problem = {
-                        'current_marker': feature,
-                        'curr_state': state,
-                        'cellstate_to_compare': marker_name,
-                    }
-                    problems.append(problem)
-
-        col_names = ['feature',
-                     'should have higher correlation with cell state',
-                     'than this feature']
+        for index in indices:
+            non_marker_protein = feature_names[index[1]]
+            state = state_names[index[0]]
+            problem = {
+                "current_marker": non_marker_protein,
+                "curr_state": state,
+            }
+            problems.append(problem)
 
         if len(problems) > 0:
             df_issues = pd.DataFrame(problems)
@@ -323,7 +331,6 @@ class CellStateModel:
             df_issues = pd.DataFrame(columns=col_names)
 
         return df_issues
-
 
     def get_losses(self) -> np.array:
         """ Getter for losses

@@ -297,7 +297,6 @@ class Astir:
 
         return cell_types[np.argmax(row)]
 
-
     def get_celltypes(self, threshold=0.7) -> pd.DataFrame:
         """
         Get the most likely cell types
@@ -311,10 +310,15 @@ class Astir:
         probs = self.get_celltype_probabilities()
         cell_types = list(probs.columns)
 
-        cell_type_assignments = probs.apply(self._most_likely_celltype, axis=1, threshold=threshold, cell_types=cell_types)
+        cell_type_assignments = probs.apply(
+            self._most_likely_celltype,
+            axis=1,
+            threshold=threshold,
+            cell_types=cell_types,
+        )
         cell_type_assignments = pd.DataFrame(cell_type_assignments)
-        cell_type_assignments.columns = ['cell_type']
-        
+        cell_type_assignments.columns = ["cell_type"]
+
         return cell_type_assignments
 
     def get_cellstates(self) -> pd.DataFrame:
@@ -326,8 +330,8 @@ class Astir:
         if self._state_assignments is None:
             raise Exception("The state model has not been trained yet")
         return self._state_assignments
-    
-    def predict_celltypes(self, dset = None):
+
+    def predict_celltypes(self, dset=None):
         if self._type_ast is None:
             raise Exception("The type model has not been trained yet")
         if not self._type_ast.is_converged():
@@ -338,7 +342,7 @@ class Astir:
         g = self._type_ast.predict(dset).detach().cpu().numpy()
 
         type_assignments = pd.DataFrame(g)
-        type_assignments.columns = dset.get_classes()+["others"]
+        type_assignments.columns = dset.get_classes() + ["others"]
         type_assignments.index = dset.get_cell_names()
         return type_assignments
 
@@ -413,8 +417,10 @@ class Astir:
             + str(len(self._type_dset))
             + " cells."
         )
-    
-    def diagnostics_celltype(self, threshold:float=0.7, alpha:float=0.01) -> pd.DataFrame:       
+
+    def diagnostics_celltype(
+        self, threshold: float = 0.7, alpha: float = 0.01
+    ) -> pd.DataFrame:
         """Run diagnostics on cell type assignments
 
         This performs a basic test that cell types express their markers at
@@ -430,10 +436,22 @@ class Astir:
         :return: Either a :class:`pd.DataFrame` listing cell types whose markers
             aren't expressed signficantly higher.
         """
-        celltypes = list(self.get_celltypes(threshold=threshold)['cell_type'])
+        celltypes = list(self.get_celltypes(threshold=threshold)["cell_type"])
         return self.get_type_model().diagnostics(celltypes, alpha=alpha)
 
-    def normalize(self, percentile_lower:int = 1, percentile_upper:int = 99) -> None:
+    def diagnostics_cellstate(self) -> pd.DataFrame:
+        """ Run diagnostics on cell state assignments
+
+        This performs a basic test by comparing the correlation values
+        between all marker genes and all non marker genes. It detects where the
+        non marker gene has higher correlation values than the smallest
+        correlation values of marker genes.
+
+        :return: diagnostics
+        """
+        return self.get_state_model().diagnostics()
+
+    def normalize(self, percentile_lower: int = 1, percentile_upper: int = 99) -> None:
         """Normalize the expression data
 
         This performs a two-step normalization:
