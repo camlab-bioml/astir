@@ -179,8 +179,8 @@ class TestSCDataset(unittest.TestCase):
         comp = []
         comp.append(self.ds.get_exprs().dtype == torch.float32)
         comp.append(self.ds.get_design().dtype == torch.float32)
-        comp.append(self.ds.get_mu().dtype.dtype == torch.float32)
-        comp.append(self.ds.get_sigma.dtype.dtype == torch.float32)
+        comp.append(self.ds.get_mu().dtype == torch.float32)
+        comp.append(self.ds.get_sigma.dtype == torch.float32)
         self.assertTrue(all(comp))
 
     # # To implement: but not significant
