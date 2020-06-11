@@ -124,7 +124,7 @@ class CellTypeModel:
 
         # Create trainable variables
         self._variables = {
-            n: Variable(v.clone(), requires_grad=True).to(self._device).detach() for (n, v) in initializations.items()
+            n: Variable(v.clone(), requires_grad=True).to(self._device) for (n, v) in initializations.items()
         }
 
         if self.include_beta:
@@ -253,6 +253,7 @@ class CellTypeModel:
 
         ## Save output
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
+
         if self._losses is None:
             self._losses = losses
         else:
@@ -263,7 +264,7 @@ class CellTypeModel:
 
     def predict(self, new_dset):
         _, exprs_X, _ = new_dset[:]
-        g = self._recog.forward(exprs_X)
+        g = self._recog.forward(exprs_X).detach().cpu().numpy()
         # g, _, _ = self._forward(exprs_X.float())
         return g
 

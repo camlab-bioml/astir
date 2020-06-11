@@ -138,7 +138,6 @@ class Astir:
             for seed in seeds
         ]
         n_init_epochs = min(max_epochs, 1)
-        gs = []
         for i in range(n_init):
             print(
                 "---------- Astir Training "
@@ -147,9 +146,8 @@ class Astir:
                 + str(n_init)
                 + " ----------"
             )
-            gs.append(
-                type_models[i].fit(n_init_epochs, learning_rate, batch_size, delta_loss)
-            )
+            type_models[i].fit(n_init_epochs, learning_rate, batch_size, delta_loss)
+
         if max_epochs >= 2:
             losses = [m.get_losses()[-2:].mean() for m in type_models]
         else:
@@ -159,7 +157,7 @@ class Astir:
         self._type_ast = type_models[best_ind]
 
         n_epoch_remaining = max_epochs - 1
-        self._type_ast.fit(n_epoch_remaining, learning_rate, batch_size, delta_loss)
+        assignment = self._type_ast.fit(n_epoch_remaining, learning_rate, batch_size, delta_loss)
         if not self._type_ast.is_converged():
             msg = (
                 "Maximum epochs reached. More iteration may be needed to"
@@ -171,7 +169,7 @@ class Astir:
         # plt.ylabel('losses')
         # plt.show()
 
-        self._type_assignments = pd.DataFrame(gs[best_ind])
+        self._type_assignments = pd.DataFrame(assignment)
         self._type_assignments.columns = self._type_dset.get_classes() + ["Other"]
         self._type_assignments.index = self._type_dset.get_cell_names()
 
@@ -339,10 +337,10 @@ class Astir:
             warnings.warn(msg)
         if dset is None:
             dset = self.get_type_dataset()
-        g = self._type_ast.predict(dset).detach().cpu().numpy()
+        g = self._type_ast.predict(dset)
 
         type_assignments = pd.DataFrame(g)
-        type_assignments.columns = dset.get_classes() + ["others"]
+        type_assignments.columns = dset.get_classes()+["Other"]
         type_assignments.index = dset.get_cell_names()
         return type_assignments
 
