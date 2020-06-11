@@ -66,6 +66,7 @@ class TestCellStateModel(TestCase):
         self.assertIsNone(self.model._optimizer)
 
     def test_dtype(self):
+        self.model.fit(max_epochs=1)
         data = self.model.get_data()
         variables = self.model.get_variables()
         s = list(data.values()) + list(variables.values())
