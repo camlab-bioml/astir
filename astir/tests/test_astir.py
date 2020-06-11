@@ -6,9 +6,10 @@ import pytest
 import yaml
 import numpy as np
 import warnings
+import torch
 
 from astir import Astir
-from astir.data_readers import from_csv_yaml, from_csv_dir_yaml
+from astir.data_readers import from_csv_yaml, from_csv_dir_yaml, from_anndata_yaml
 from astir.models.scdataset import SCDataset
 
 import os, contextlib
@@ -30,8 +31,11 @@ class TestAstir(TestCase):
         self.test_dir = os.path.join(
             os.path.dirname(__file__), "test-data/test-dir-read"
         )
+        self.adata_file = os.path.join(
+            os.path.dirname(__file__), "test-data/adata_small.h5ad"
+        )
 
-        self.expr = pd.read_csv(self.expr_csv_file)
+        self.expr = pd.read_csv(self.expr_csv_file, index_col=0)
         with open(self.marker_yaml_file, "r") as stream:
             self.marker_dict = yaml.safe_load(stream)
 
@@ -285,3 +289,39 @@ class TestAstir(TestCase):
 
         self.assertTrue(state_assignments.shape, (len(dset),
                                                   dset.get_n_classes()))
+
+    def test_celltype_assignment(self):
+        self.a.fit_type(max_epochs=50, n_init=1)
+
+        type_assignments = self.a.get_celltypes()
+
+        n_classes = len(list(self.marker_dict.keys()))
+
+        self.assertTrue(type_assignments.shape, (len(self.expr), n_classes+1))
+
+    # def test_celltype_predicted_assignment(self):
+    #     # dset = SCDataset(expr_input=self.expr,
+    #     #                  marker_dict=self.marker_dict["cell_types"],
+    #     #                  design=None,
+    #     #                  include_other_column=True)
+        
+    #     self.a.fit_type(max_epochs=50, n_init=1)
+
+    #     type_predict = self.a.predict_type()
+    #     type_assignment = self.a.get_celltypes()
+    #     comp = type_predict == type_assignment
+    #     self.assertTrue(comp.all().all())
+
+    def test_adata_reading(self):
+        ast = from_anndata_yaml(
+            self.adata_file,
+            self.marker_yaml_file,
+            protein_name="protein",
+            cell_name="cell_name",
+            batch_name="batch"
+        )
+
+        self.assertTrue(ast.get_type_dataset().get_n_features() == 14)
+        self.assertTrue(ast.get_type_dataset().get_n_classes() == 6)
+        self.assertIsInstance(ast.get_type_dataset().get_exprs(), torch.Tensor)
+        self.assertEqual(ast.get_type_dataset().get_exprs().shape[0], 10)

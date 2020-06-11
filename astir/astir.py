@@ -41,7 +41,7 @@ class Astir:
         marker_dict: Dict,
         design=None,
         random_seed=1234,
-        include_beta=True,
+        include_beta=False,
     ) -> None:
 
         if not isinstance(random_seed, int):
@@ -116,8 +116,8 @@ class Astir:
 
     def fit_type(
         self,
-        max_epochs=10,
-        learning_rate=1e-2,
+        max_epochs=50,
+        learning_rate=5e-3,
         batch_size=24,
         delta_loss=1e-3,
         n_init=5,
@@ -173,14 +173,14 @@ class Astir:
 
         self._type_assignments = pd.DataFrame(gs[best_ind])
         self._type_assignments.columns = self._type_dset.get_classes() + ["Other"]
-        self._type_assignments.index = self._type_dset.get_cells()
+        self._type_assignments.index = self._type_dset.get_cell_names()
 
     def fit_state(
         self,
-        max_epochs=100,
+        max_epochs=50,
         learning_rate=1e-3,
         n_init=5,
-        batch_size=64,
+        batch_size=24,
         delta_loss=1e-3,
         delta_loss_batch=10,
     ) -> None:
@@ -260,13 +260,7 @@ class Astir:
 
         self._state_assignments = pd.DataFrame(g)
         self._state_assignments.columns = self._state_dset.get_classes()
-        self._state_assignments.index = self._state_dset.get_cells()
-
-    def predict_type(self, dset):
-        if self._type_ast is None:
-            raise Exception("The type model has not been trained yet")
-        g = self._type_ast.predict(dset).numpy()
-        return pd.DataFrame(g)
+        self._state_assignments.index = self._state_dset.get_cell_names()
 
     def get_type_dataset(self):
         return self._type_dset
@@ -332,6 +326,21 @@ class Astir:
         if self._state_assignments is None:
             raise Exception("The state model has not been trained yet")
         return self._state_assignments
+    
+    def predict_celltypes(self, dset = None):
+        if self._type_ast is None:
+            raise Exception("The type model has not been trained yet")
+        if not self._type_ast.is_converged():
+            msg = "The state model has not been trained for enough epochs yet"
+            warnings.warn(msg)
+        if dset is None:
+            dset = self.get_type_dataset()
+        g = self._type_ast.predict(dset).detach().cpu().numpy()
+
+        type_assignments = pd.DataFrame(g)
+        type_assignments.columns = dset.get_classes()+["others"]
+        type_assignments.index = dset.get_cell_names()
+        return type_assignments
 
     def predict_cellstates(self, new_dset: SCDataset) -> pd.DataFrame:
         """ Get the prediction cell state activations on a dataset on an
@@ -342,14 +351,14 @@ class Astir:
         :return: the prediction of cell state activations
         """
         if not self._state_ast.is_converged():
-            msg = "The state model has not been trained yet"
+            msg = "The state model has not been trained for enough epochs yet"
             warnings.warn(msg)
 
-        g = self._state_ast.get_final_mu_z(new_dset).detach().numpy()
+        g = self._state_ast.get_final_mu_z(new_dset).detach().cpu().numpy()
 
         state_assignments = pd.DataFrame(g)
         state_assignments.columns = self._state_dset.get_classes()
-        state_assignments.index = self._state_dset.get_cells()
+        state_assignments.index = self._state_dset.get_cell_names()
 
         return state_assignments
 
@@ -423,6 +432,19 @@ class Astir:
         """
         celltypes = list(self.get_celltypes(threshold=threshold)['cell_type'])
         return self.get_type_model().diagnostics(celltypes, alpha=alpha)
+
+    def normalize(self, percentile_lower:int = 1, percentile_upper:int = 99) -> None:
+        """Normalize the expression data
+
+        This performs a two-step normalization:
+        1. A `log(1+x)` transformation to the data
+        2. Winsorizes to (:param:`percentile_lower`, :param:`percentile_upper`)
+
+        :param percentile_lower: Lower percentile for winsorization
+        :param percentile_upper: Upper percentile for winsorization
+        """
+        self.get_type_dataset().normalize(percentile_lower, percentile_upper)
+        self.get_state_dataset().normalize(percentile_lower, percentile_upper)
 
 
 class NotClassifiableError(RuntimeError):

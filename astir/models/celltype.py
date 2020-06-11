@@ -119,7 +119,7 @@ class CellTypeModel:
         P = self._dset.design.shape[1]
         # Add additional columns of mu for anything in the design matrix
         initializations["mu"] = torch.cat(
-            [initializations["mu"], torch.zeros((G, P - 1)).double().to(self._device)], 1
+            [initializations["mu"], torch.zeros((G, P - 1)).float().to(self._device)], 1
         ).to(self._device)
 
         # Create trainable variables
@@ -129,7 +129,7 @@ class CellTypeModel:
 
         if self.include_beta:
             self._variables["beta"] = Variable(
-                torch.zeros(G, C + 1), requires_grad=True
+                torch.zeros(G, C + 1).to(self._device).detach(), requires_grad=True
             )
 
     ## Declare pytorch forward fn
@@ -216,13 +216,15 @@ class CellTypeModel:
         per = 1
 
         ## Construct optimizer
-        opt_params = list(self._variables.values()) + list(self._recog.parameters())
+        opt_params = \
+                        list(self._variables.values()) + \
+                        list(self._recog.parameters())
 
         if self.include_beta:
             opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
-        _, exprs_X, _ = self._dset[torch.arange(len(self._dset))] # calls dset.get_item
+        _, exprs_X, _ = self._dset[:] # calls dset.get_item
 
         iterator = trange(max_epochs, desc="training astir", unit="epochs")
         for ep in iterator:
@@ -255,13 +257,14 @@ class CellTypeModel:
             self._losses = losses
         else:
             self._losses = np.append(self._losses, losses)
-        self.save_model(max_epochs, learning_rate, batch_size, delta_loss)
+        # self.save_model(max_epochs, learning_rate, batch_size, delta_loss)
         print("Done!")
         return g
 
-    def predict(self, dset):
-        _, exprs_X, _ = dset[torch.arange(len(dset))]
-        g = self._recog(exprs_X)
+    def predict(self, new_dset):
+        _, exprs_X, _ = new_dset[:]
+        g = self._recog.forward(exprs_X)
+        # g, _, _ = self._forward(exprs_X.float())
         return g
 
     def save_model(self, max_epochs, learning_rate, batch_size, delta_loss):
@@ -280,6 +283,9 @@ class CellTypeModel:
         if self._losses is None:
             raise Exception("The type model has not been trained yet")
         return self._losses
+    
+    def get_scdataset(self):
+        return self._dset
 
     def is_converged(self) -> bool:
         return self._is_converged
@@ -296,8 +302,8 @@ class CellTypeModel:
         cells_x = np.array(cell_types) == curr_type
         cells_y = np.array(cell_types) == celltype_to_compare
 
-        x = self._dset.get_exprs().detach().numpy()[cells_x, current_marker_ind]
-        y = self._dset.get_exprs().detach().numpy()[cells_y, current_marker_ind]
+        x = self._dset.get_exprs().detach().cpu().numpy()[cells_x, current_marker_ind]
+        y = self._dset.get_exprs().detach().cpu().numpy()[cells_y, current_marker_ind]
 
         stat = np.NaN
         pval = np.Inf
@@ -333,7 +339,7 @@ class CellTypeModel:
 
         # Want to construct a data frame that models rho with
         # cell type names on the columns and feature names on the rows
-        g_df = pd.DataFrame(self._data['rho'].detach().numpy())
+        g_df = pd.DataFrame(self._data['rho'].detach().cpu().numpy())
         g_df.columns = self._dset.get_classes() + ["Other"]
         g_df.index = self._dset.get_features()
 

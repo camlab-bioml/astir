@@ -30,6 +30,7 @@ class SCDataset(Dataset):
         self._m_features = sorted(list(set([l for s in marker_dict.values()
                                            for l in s])))
         self._classes = list(marker_dict.keys())
+
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         ## sanitize features
         if len(self._classes) <= 1:
@@ -40,13 +41,14 @@ class SCDataset(Dataset):
         self._marker_mat = self._construct_marker_mat(
             include_other_column=include_other_column
         )
+
         if isinstance(expr_input, pd.DataFrame):
             self._exprs = self._process_df_input(expr_input)
             self._expr_features = list(expr_input.columns)
-            self._core_names = list(expr_input.index)
+            self._cell_names = list(expr_input.index)
         elif isinstance(expr_input, tuple):
             self._expr_features = expr_input[1]
-            self._core_names = expr_input[2]
+            self._cell_names = expr_input[2]
             self._exprs = self._process_np_input(expr_input[0])
         self.design = self._fix_design(design)
         ## sanitize df
@@ -76,7 +78,7 @@ class SCDataset(Dataset):
                 + "overlap between marked features and expression features for "
                 + "the classification of cell type/state."
             )
-        return torch.from_numpy(Y_np).to(self._device)
+        return torch.from_numpy(Y_np).float().to(self._device)
 
     def _process_np_input(self, np_input):
         """Process the input as Tuple[np.array, np.array, np.array] and convert it 
@@ -139,9 +141,9 @@ class SCDataset(Dataset):
     def _fix_design(self, design: np.array) -> torch.tensor:
         d = None
         if design is None:
-            d = torch.ones((self._exprs.shape[0], 1)).double().to(self._device)
+            d = torch.ones((self._exprs.shape[0], 1)).float().to(self._device)
         else:
-            d = torch.from_numpy(design).double().to(self._device)
+            d = torch.from_numpy(design).float().to(self._device)
 
         if d.shape[0] != self._exprs.shape[0]:
             raise NotClassifiableError(
@@ -154,34 +156,80 @@ class SCDataset(Dataset):
         self._exprs = self._exprs / (self.get_sigma())
 
     def get_exprs(self):
+        """Return the expression data as a :class:`torch.Tensor`
+
+        """
         return self._exprs
+    
+    def get_exprs_df(self):
+        """Return the expression data as a :class:`pandas.DataFrame`
+
+        """
+        df = pd.DataFrame(self.get_exprs().detach().numpy())
+        df.index = self.get_cell_names()
+        df.columns = self.get_features()
+        return df
 
     def get_marker_mat(self):
+        """Return the marker matrix as a :class:`torch.Tensor`
+
+        """
         return self._marker_mat
 
     def get_mu(self):
+        """Get the mean expression of each protein as a :class:`torch.Tensor`
+        """
         return self._exprs_mean
 
     def get_sigma(self):
         return self._exprs_std
 
-    def get_n_classes(self):
-        ## C
+    def get_n_classes(self) -> int:
+        """Get the number of 'classes': either the number of cell types or cell states 
+
+        """
         return len(self._classes)
 
-    def get_n_features(self):
-        ## G
+    def get_n_cells(self) -> int:
+        """Get the number of cells: either the number of cell types or cell states 
+
+        """
+        return len(self.get_cell_names())
+
+    def get_n_features(self) -> int:
+        """Get the number of features (proteins)
+
+        """
         return len(self._m_features)
 
     def get_features(self):
         return self._m_features
 
-    def get_cells(self):
-        return self._core_names
+    def get_cell_names(self):
+        return self._cell_names
 
     def get_classes(self):
         return self._classes
+    
+    def normalize(self, percentile_lower:int = 1, percentile_upper:int = 99) -> None:
+        """Normalize the expression data
 
+        This performs a two-step normalization:
+        1. A `log(1+x)` transformation to the data
+        2. Winsorizes to (:param:`percentile_lower`, :param:`percentile_upper`)
+        """
+
+        with torch.no_grad():
+            exprs = self.get_exprs().numpy()
+            exprs = np.log1p(exprs)
+            q_low = np.percentile(exprs, (percentile_lower), axis=0)
+            q_high = np.percentile(exprs, (percentile_upper), axis=0)
+
+            for g in range(exprs.shape[1]):
+                exprs[:,g][exprs[:,g] < q_low[g]] = q_low[g]
+                exprs[:,g][exprs[:,g] > q_high[g]] = q_high[g]
+
+            self._exprs = torch.tensor(exprs)
 
 class NotClassifiableError(RuntimeError):
     pass

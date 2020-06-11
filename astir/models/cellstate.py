@@ -112,7 +112,7 @@ class CellStateModel:
 
         :return: the loss
         """
-        S = y_in.shape[0]
+        S = 1
 
         # log posterior q(z) approx p(z|y)
         q_z_dist = torch.distributions.Normal(loc=mu_z, scale=torch.exp(std_z))
@@ -151,6 +151,7 @@ class CellStateModel:
         std = torch.exp(std_z)
         eps = torch.randn_like(std)
         z_sample = eps * std + mu_z
+
 
         return mu_z, std_z, z_sample
 
@@ -333,6 +334,9 @@ class CellStateModel:
         if self._losses is None:
             raise Exception("The state model has not been trained yet")
         return self._losses
+
+    def get_scdataset(self):
+        return self._dset
 
     def is_converged(self) -> bool:
         """ Returns True if the model converged
