@@ -107,7 +107,8 @@ class CellTypeModel:
             "rho": self._dset.get_marker_mat().to(self._device),
         }
         # Initialize mu, log_delta
-        t = torch.distributions.Normal(torch.tensor(0.0, dtype=dtype), torch.tensor(0.2, dtype=dtype))
+        delta_init_mean = torch.log(torch.log(torch.tensor(3., dtype=dtype))) # the log of the log of this is the multiplier
+        t = torch.distributions.Normal(torch.tensor(delta_init_mean, dtype=dtype), torch.tensor(0.1, dtype=dtype))
         log_delta_init = t.sample((G, C + 1))
 
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
