@@ -108,7 +108,7 @@ class CellTypeModel:
         }
         # Initialize mu, log_delta
         delta_init_mean = torch.log(torch.log(torch.tensor(3., dtype=dtype))) # the log of the log of this is the multiplier
-        t = torch.distributions.Normal(torch.tensor(delta_init_mean, dtype=dtype), torch.tensor(0.1, dtype=dtype))
+        t = torch.distributions.Normal(delta_init_mean.clone().detach().to(dtype), torch.tensor(0.1, dtype=dtype))
         log_delta_init = t.sample((G, C + 1))
 
         mu_init = torch.log(self._dset.get_mu()).to(self._device)

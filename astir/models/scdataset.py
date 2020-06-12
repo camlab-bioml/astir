@@ -80,10 +80,7 @@ class SCDataset(Dataset):
                 + "overlap between marked features and expression features for "
                 + "the classification of cell type/state."
             )
-        if self._dtype == torch.float64:
-            return torch.from_numpy(Y_np).double().to(self._device)
-        elif self._dtype == torch.float32:
-            return torch.from_numpy(Y_np).float().to(self._device)
+        return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
 
     def _process_np_input(self, np_input):
         """Process the input as Tuple[np.array, np.array, np.array] and convert it 
@@ -114,10 +111,7 @@ class SCDataset(Dataset):
             temp = [cell[i] for i in ind]
             Y_np.append(np.array(temp))
         Y_np = np.concatenate([Y_np], axis=0)
-        if self._dtype == torch.float64:
-            return torch.from_numpy(Y_np).double().to(self._device)
-        elif self._dtype == torch.float32:
-            return torch.from_numpy(Y_np).float().to(self._device)
+        return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
 
     def _construct_marker_mat(self, include_other_column: bool) -> torch.Tensor:
         """ Construct a marker matrix.
@@ -151,10 +145,7 @@ class SCDataset(Dataset):
         if design is None:
             d = torch.ones((self._exprs.shape[0], 1), dtype=self._dtype).to(self._device)
         else:
-            if self._dtype == torch.float32:
-                d = torch.from_numpy(design).float().to(self._device)
-            elif self._dtype == torch.float64:
-                d = torch.from_numpy(design).double().to(self._device)
+            d = torch.from_numpy(design).to(device=self._device, dtype=self._dtype)
 
         if d.shape[0] != self._exprs.shape[0]:
             raise NotClassifiableError(
