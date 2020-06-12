@@ -274,11 +274,11 @@ class CellStateModel:
         for c, state in enumerate(state_names):
             for g, feature in enumerate(feature_names):
                 states = state_assignment[:, c]
-                protein = y_in[:, g]
+                protein = y_in[:, g].cpu()
                 corr_mat[c, g] = np.corrcoef(protein, states)[0, 1]
 
         # Correlation values of all marker proteins
-        marker_mat = self._dset.get_marker_mat().T.numpy()
+        marker_mat = self._dset.get_marker_mat().T.cpu().numpy()
         marker_corr = marker_mat * corr_mat
         marker_corr[marker_mat == 0] = np.inf
 
@@ -287,7 +287,7 @@ class CellStateModel:
         min_marker_proteins = np.take(feature_names, np.argmin(marker_corr, axis=1))
 
         # Correlation values of all non marker proteins
-        non_marker_mat = 1 - self._dset.get_marker_mat().T.numpy()
+        non_marker_mat = 1 - self._dset.get_marker_mat().T.cpu().numpy()
         non_marker_corr = non_marker_mat * corr_mat
         non_marker_corr[non_marker_mat == 0] = -np.inf
 
