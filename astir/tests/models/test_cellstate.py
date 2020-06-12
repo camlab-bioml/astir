@@ -40,10 +40,11 @@ class TestCellStateModel(TestCase):
             expr_input=input_expr,
             marker_dict=state_dict,
             design=None,
+            dtype=torch.float32
         )
 
         self.model = CellStateModel(
-            dset=self._dset, include_beta=True, alpha_random=True, random_seed=42
+            dset=self._dset, include_beta=True, alpha_random=True, random_seed=42, dtype=torch.float32
         )
 
         self.model.fit(max_epochs=1)

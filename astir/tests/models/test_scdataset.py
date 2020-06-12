@@ -48,6 +48,7 @@ class TestSCDataset(unittest.TestCase):
             expr_input=self.input_expr,
             marker_dict=self.state_markers,
             design=None,
+            dtype=torch.float32
         )
 
     def _expr_input_tuple(self):
@@ -137,6 +138,7 @@ class TestSCDataset(unittest.TestCase):
             expr_input=self.input_expr,
             marker_dict=self.type_markers,
             design=None,
+            dtype=torch.float32
         )
 
         G = self.ds.get_n_features()
