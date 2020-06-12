@@ -25,7 +25,9 @@ class SCDataset(Dataset):
         marker_dict: Dict[str, str],
         design: np.array,
         include_other_column: bool,
+        dtype=torch.float64
     ) -> None:
+        self._dtype = dtype
         self._marker_dict = marker_dict
         self._m_features = sorted(list(set([l for s in marker_dict.values()
                                            for l in s])))
@@ -78,7 +80,10 @@ class SCDataset(Dataset):
                 + "overlap between marked features and expression features for "
                 + "the classification of cell type/state."
             )
-        return torch.from_numpy(Y_np).float().to(self._device)
+        if self._dtype == torch.float64:
+            return torch.from_numpy(Y_np).double().to(self._device)
+        elif self._dtype == torch.float32:
+            return torch.from_numpy(Y_np).float().to(self._device)
 
     def _process_np_input(self, np_input):
         """Process the input as Tuple[np.array, np.array, np.array] and convert it 
@@ -109,7 +114,10 @@ class SCDataset(Dataset):
             temp = [cell[i] for i in ind]
             Y_np.append(np.array(temp))
         Y_np = np.concatenate([Y_np], axis=0)
-        return torch.from_numpy(Y_np).to(self._device)
+        if self._dtype == torch.float64:
+            return torch.from_numpy(Y_np).double().to(self._device)
+        elif self._dtype == torch.float32:
+            return torch.from_numpy(Y_np).float().to(self._device)
 
     def _construct_marker_mat(self, include_other_column: bool) -> torch.Tensor:
         """ Construct a marker matrix.
@@ -122,7 +130,7 @@ class SCDataset(Dataset):
         G = self.get_n_features()
         C = self.get_n_classes()
 
-        marker_mat = torch.zeros((G, C + 1 if include_other_column else C)).to(self._device)
+        marker_mat = torch.zeros((G, C + 1 if include_other_column else C), dtype=self._dtype).to(self._device)
         for g, feature in enumerate(self._m_features):
             for c, cell_class in enumerate(self._classes):
                 if feature in self._marker_dict[cell_class]:
@@ -141,9 +149,12 @@ class SCDataset(Dataset):
     def _fix_design(self, design: np.array) -> torch.tensor:
         d = None
         if design is None:
-            d = torch.ones((self._exprs.shape[0], 1)).float().to(self._device)
+            d = torch.ones((self._exprs.shape[0], 1), dtype=self._dtype).to(self._device)
         else:
-            d = torch.from_numpy(design).float().to(self._device)
+            if self._dtype == torch.float32:
+                d = torch.from_numpy(design).float().to(self._device)
+            elif self._dtype == torch.float64:
+                d = torch.from_numpy(design).double().to(self._device)
 
         if d.shape[0] != self._exprs.shape[0]:
             raise NotClassifiableError(

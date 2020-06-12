@@ -29,10 +29,17 @@ class CellStateModel:
     """
 
     def __init__(
-        self, dset: SCDataset, include_beta: bool = True, random_seed: int = 42,
+        self,
+        dset: SCDataset,
+        include_beta: bool = True,
+        random_seed: int = 42,
+        dtype = torch.float64
     ) -> None:
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
+
+        if dtype != torch.float32 and dtype != torch.float64:
+            raise NotClassifiableError("Dtype must be one of torch.float32 and torch.float64.")
         # Setting random seeds
         self.random_seed = random_seed
         torch.manual_seed(self.random_seed)
@@ -50,12 +57,12 @@ class CellStateModel:
 
         self._optimizer = None
         self._losses = np.empty(0)
-        self._param_init()
+        self._param_init(dtype)
 
         # Convergence flag
         self._is_converged = False
 
-    def _param_init(self) -> None:
+    def _param_init(self, dtype) -> None:
         """ Initializes sets of parameters
         """
         N = len(self._dset)
@@ -68,7 +75,7 @@ class CellStateModel:
         }
 
         # Include beta or not
-        d = torch.distributions.Uniform(torch.tensor(0.0), torch.tensor(1.5))
+        d = torch.distributions.Uniform(torch.tensor(0.0, dtype=dtype), torch.tensor(1.5, dtype=dtype))
         initializations["log_w"] = torch.log(d.sample((C, self._dset.get_n_features())))
 
         self._variables = {
@@ -80,7 +87,7 @@ class CellStateModel:
             "rho": self._dset.get_marker_mat().T.to(self._device),
         }
 
-        self._models = StateRecognitionNet(C, G).to(self._device)
+        self._models = StateRecognitionNet(C, G).to(device=self._device, dtype=dtype)
 
     def _loss_fn(
         self,

@@ -7,8 +7,8 @@ import torch.nn as nn
 class RecognitionNet(nn.Module):
     def __init__(self, C: int, G: int, hidden_size=10) -> None:
         super(RecognitionNet, self).__init__()
-        self.hidden_1 = nn.Linear(G, hidden_size).float()
-        self.hidden_2 = nn.Linear(hidden_size, C + 1).float()
+        self.hidden_1 = nn.Linear(G, hidden_size)
+        self.hidden_2 = nn.Linear(hidden_size, C + 1)
         # print("hidden_1: " + str(self.hidden_1.is_cuda))
         # print("hidden_2: " + str(self.hidden_2.is_cuda))
 

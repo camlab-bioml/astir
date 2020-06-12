@@ -48,7 +48,7 @@ class CellTypeModel:
     """
 
     def __init__(
-        self, dset: SCDataset, include_beta=False, design=None, random_seed=1234,
+        self, dset: SCDataset, include_beta=False, design=None, random_seed=1234, dtype=torch.float64
     ) -> None:
         """Initializes an Astir object
 
@@ -70,6 +70,9 @@ class CellTypeModel:
             raise NotClassifiableError("Random seed is expected to be an integer.")
         torch.manual_seed(random_seed)
 
+        if dtype != torch.float32 and dtype != torch.float64:
+            raise NotClassifiableError("Dtype must be one of torch.float32 and torch.float64.")
+
         self.losses = None  # losses after optimization
         self._is_converged = False
         self.cov_mat = None  # temporary -- remove
@@ -88,11 +91,11 @@ class CellTypeModel:
         #         design = design.to_numpy()
 
         self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(
-            self._device
+            self._device, dtype=dtype
         )
-        self._param_init()
+        self._param_init(dtype)
 
-    def _param_init(self) -> None:
+    def _param_init(self, dtype) -> None:
         """Initialize parameters and design matrices.
         """
         G = self._dset.get_n_features()
@@ -100,12 +103,11 @@ class CellTypeModel:
 
         # Establish data
         self._data = {
-            "log_alpha": torch.log(torch.ones(C + 1) / (C + 1)).to(self._device),
+            "log_alpha": torch.log(torch.ones(C + 1, dtype = dtype) / (C + 1)).to(self._device),
             "rho": self._dset.get_marker_mat().to(self._device),
         }
-
         # Initialize mu, log_delta
-        t = torch.distributions.Normal(torch.tensor(0.0), torch.tensor(0.2))
+        t = torch.distributions.Normal(torch.tensor(0.0, dtype=dtype), torch.tensor(0.2, dtype=dtype))
         log_delta_init = t.sample((G, C + 1))
 
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
@@ -121,17 +123,13 @@ class CellTypeModel:
             "mu": mu_init,
             "log_sigma": torch.log(self._dset.get_sigma()).to(self._device),
             "log_delta": log_delta_init,
-            "p": torch.zeros((G, C + 1), device=self._device),
+            "p": torch.zeros((G, C + 1), dtype=dtype, device=self._device),
         }
 
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
         initializations["mu"] = torch.cat(
-            [
-                initializations["mu"],
-                torch.zeros((G, P - 1), dtype=torch.float32, device=self._device),
-            ],
-            1,
+            [initializations["mu"], torch.zeros((G, P - 1), dtype=dtype, device=self._device)], 1
         )
 
         # Create trainable variables
@@ -149,6 +147,13 @@ class CellTypeModel:
             # )
             self._variables["beta"] = Variable(torch.zeros(G, C + 1)).to(self._device)
             self._variables["beta"].requires_grad = True
+            print("beta: " + str(self._variables["beta"].dtype))
+
+        # print("mu: " + str(self._variables["mu"].dtype))
+        # print("log_sigma: " + str(self._variables["log_sigma"].dtype))
+        # print("log_delta: " + str(self._variables["log_delta"].dtype))
+        # print("p: " + str(self._variables["p"].dtype))
+        
 
     ## Declare pytorch forward fn
     def _forward(
