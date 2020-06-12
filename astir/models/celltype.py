@@ -145,9 +145,9 @@ class CellTypeModel:
             # self._variables["beta"] = Variable(
             #     torch.zeros(G, C + 1).to(self._device), requires_grad=True
             # )
-            self._variables["beta"] = Variable(torch.zeros(G, C + 1)).to(self._device)
+            self._variables["beta"] = Variable(torch.zeros(G, C + 1, dtype=dtype)).to(self._device)
             self._variables["beta"].requires_grad = True
-            print("beta: " + str(self._variables["beta"].dtype))
+            # print("beta: " + str(self._variables["beta"].dtype))
 
         # print("mu: " + str(self._variables["mu"].dtype))
         # print("log_sigma: " + str(self._variables["log_sigma"].dtype))
@@ -236,6 +236,8 @@ class CellTypeModel:
 
         ## Construct optimizer
         opt_params = list(self._variables.values()) + list(self._recog.parameters())
+        for param in opt_params:
+            print(str(param.dtype))
 
         if self.include_beta:
             opt_params = opt_params + [self._variables["beta"]]

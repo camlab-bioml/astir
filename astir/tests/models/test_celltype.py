@@ -29,22 +29,21 @@ class TestCellTypeModel(TestCase):
             os.path.dirname(__file__), "../test-data/jackson-2020-markers.yml"
         )
 
-        input_expr = pd.read_csv(self.expr_csv_file)
+        self.input_expr = pd.read_csv(self.expr_csv_file)
         with open(self.marker_yaml_file, "r") as stream:
             marker_dict = yaml.safe_load(stream)
 
-        type_dict = marker_dict["cell_types"]
+        self.type_dict = marker_dict["cell_types"]
 
         self._dset = SCDataset(
             include_other_column=True,
-            expr_input=input_expr,
-            marker_dict=type_dict,
-            design=None,
-            dtype=torch.float32
+            expr_input=self.input_expr,
+            marker_dict=self.type_dict,
+            design=None
         )
 
         self.model = CellTypeModel(
-            dset=self._dset, include_beta=True, random_seed=42, dtype=torch.float32
+            dset=self._dset, include_beta=True, random_seed=42
         )
         self.model.fit(max_epochs=1)
         self.data = self.model.get_data()
@@ -55,9 +54,36 @@ class TestCellTypeModel(TestCase):
         """
         self.assertIsInstance(self.model, CellTypeModel)
 
-    def test_dtype(self):
+    def test_dtype32(self):
+        ds = SCDataset(
+            include_other_column=True,
+            expr_input=self.input_expr,
+            marker_dict=self.type_dict,
+            design=None,
+            dtype=torch.float32
+        )
+        m = CellTypeModel(
+            dset=ds, include_beta=True, random_seed=42, dtype=torch.float32
+        )
+        m.fit(max_epochs=1)
         params = list(self.data.values()) + list(self.variables.values())
         comp = [ss.dtype == torch.float32 for ss in params]
+        self.assertTrue(all(comp))
+
+    def test_dtype64(self):
+        ds = SCDataset(
+            include_other_column=True,
+            expr_input=self.input_expr,
+            marker_dict=self.type_dict,
+            design=None,
+            dtype=torch.float64
+        )
+        m = CellTypeModel(
+            dset=ds, include_beta=True, random_seed=42, dtype=torch.float64
+        )
+        m.fit(max_epochs=1)
+        params = list(self.data.values()) + list(self.variables.values())
+        comp = [ss.dtype == torch.float64 for ss in params]
         self.assertTrue(all(comp))
 
     def test_trainability(self):
