@@ -237,8 +237,8 @@ class CellTypeModel:
 
         ## Construct optimizer
         opt_params = list(self._variables.values()) + list(self._recog.parameters())
-        for param in opt_params:
-            print(str(param.dtype))
+        # for param in opt_params:
+        #     print(str(param.dtype))
 
         if self.include_beta:
             opt_params = opt_params + [self._variables["beta"]]

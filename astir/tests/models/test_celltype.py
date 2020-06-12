@@ -46,8 +46,6 @@ class TestCellTypeModel(TestCase):
             dset=self._dset, include_beta=True, random_seed=42
         )
         self.model.fit(max_epochs=1)
-        self.data = self.model.get_data()
-        self.variables = self.model.get_variables()
 
     def test_basic_instance_creation(self):
         """ Testing if the instance is created or not
@@ -66,7 +64,9 @@ class TestCellTypeModel(TestCase):
             dset=ds, include_beta=True, random_seed=42, dtype=torch.float32
         )
         m.fit(max_epochs=1)
-        params = list(self.data.values()) + list(self.variables.values())
+        data = m.get_data()
+        variables = m.get_variables()
+        params = list(data.values()) + list(variables.values())
         comp = [ss.dtype == torch.float32 for ss in params]
         self.assertTrue(all(comp))
 
@@ -82,7 +82,9 @@ class TestCellTypeModel(TestCase):
             dset=ds, include_beta=True, random_seed=42, dtype=torch.float64
         )
         m.fit(max_epochs=1)
-        params = list(self.data.values()) + list(self.variables.values())
+        data = m.get_data()
+        variables = m.get_variables()
+        params = list(data.values()) + list(variables.values())
         comp = [ss.dtype == torch.float64 for ss in params]
         self.assertTrue(all(comp))
 
