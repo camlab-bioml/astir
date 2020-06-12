@@ -1,18 +1,17 @@
-from unittest import TestCase
-import pandas as pd
+import contextlib
 import os
-
-import pytest
-import yaml
-import numpy as np
 import warnings
+from unittest import TestCase
+
+import numpy as np
+import pandas as pd
 import torch
+import yaml
 
 from astir import Astir
-from astir.data_readers import from_csv_yaml, from_csv_dir_yaml, from_anndata_yaml
+from astir.data_readers import from_csv_yaml, from_csv_dir_yaml, \
+    from_anndata_yaml
 from astir.models.scdataset import SCDataset
-
-import os, contextlib
 
 
 class TestAstir(TestCase):

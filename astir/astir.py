@@ -117,11 +117,11 @@ class Astir:
     def fit_type(
         self,
         max_epochs=50,
-        learning_rate=5e-3,
+        learning_rate=1e-3,
         batch_size=24,
         delta_loss=1e-3,
         n_init=5,
-        n_initial_epochs = 5,
+        n_initial_epochs=5,
     ) -> None:
         """Run Variational Bayes to infer cell types
 
@@ -158,7 +158,9 @@ class Astir:
         self._type_ast = type_models[best_ind]
 
         n_epoch_remaining = max_epochs - 1
-        assignment = self._type_ast.fit(n_epoch_remaining, learning_rate, batch_size, delta_loss)
+        assignment = self._type_ast.fit(
+            n_epoch_remaining, learning_rate, batch_size, delta_loss
+        )
         if not self._type_ast.is_converged():
             msg = (
                 "Maximum epochs reached. More iteration may be needed to"
@@ -178,9 +180,10 @@ class Astir:
         self,
         max_epochs=50,
         learning_rate=1e-3,
-        n_init=5,
         batch_size=24,
         delta_loss=1e-3,
+        n_init=5,
+        n_init_epochs=5,
         delta_loss_batch=10,
     ) -> None:
         """Run Variational Bayes to infer cell states
@@ -198,14 +201,21 @@ class Astir:
         cellstate_losses = []
 
         if delta_loss_batch >= max_epochs:
-            warnings.warn("Delta loss batch size is greater than the number of epochs")
+            warnings.warn(
+                "Delta loss batch size is greater than the number " "of epochs"
+            )
+
+        if n_init_epochs > max_epochs:
+            warnings.warn(
+                "n_init_epochs cannot be greater than the "
+                "max_epochs. Models will be trained with max_epochs."
+            )
 
         for i in range(n_init):
             # Initializing a model
             model = CellStateModel(
                 dset=self._state_dset,
                 include_beta=True,
-                alpha_random=True,
                 random_seed=(self.random_seed + i),
             )
 
@@ -217,10 +227,10 @@ class Astir:
                 + " ----------"
             )
             # Fitting the model
-            n_init_epochs = min(max_epochs, batch_size)
+            n_init_epochs = min(max_epochs, n_init_epochs)
             losses = model.fit(
                 max_epochs=n_init_epochs,
-                lr=learning_rate,
+                learning_rate=learning_rate,
                 batch_size=batch_size,
                 delta_loss=delta_loss,
                 delta_loss_batch=delta_loss_batch,
@@ -241,7 +251,7 @@ class Astir:
 
         self._state_ast.fit(
             max_epochs=n_epoch_remaining,
-            lr=learning_rate,
+            learning_rate=learning_rate,
             batch_size=batch_size,
             delta_loss=delta_loss,
             delta_loss_batch=delta_loss_batch,
@@ -341,11 +351,11 @@ class Astir:
         g = self._type_ast.predict(dset)
 
         type_assignments = pd.DataFrame(g)
-        type_assignments.columns = dset.get_classes()+["Other"]
+        type_assignments.columns = dset.get_classes() + ["Other"]
         type_assignments.index = dset.get_cell_names()
         return type_assignments
 
-    def predict_cellstates(self, new_dset: SCDataset) -> pd.DataFrame:
+    def predict_cellstates(self, dset: SCDataset = None) -> pd.DataFrame:
         """ Get the prediction cell state activations on a dataset on an
         existing model
 
@@ -357,7 +367,7 @@ class Astir:
             msg = "The state model has not been trained for enough epochs yet"
             warnings.warn(msg)
 
-        g = self._state_ast.get_final_mu_z(new_dset).detach().cpu().numpy()
+        g = self._state_ast.get_final_mu_z(dset).detach().cpu().numpy()
 
         state_assignments = pd.DataFrame(g)
         state_assignments.columns = self._state_dset.get_classes()

@@ -26,16 +26,10 @@ class CellStateModel:
     :param random_seed: seed number to reproduce results, defaults to 1234
     :param include_beta: model parameter that measures with arbitrary unit,
         by how much feature g contributes to pathway p
-    :param alpha_random: adds Gaussian noise to alpha initialization if True
-        otherwise alpha is initialized to zeros
     """
 
     def __init__(
-        self,
-        dset: SCDataset,
-        include_beta: bool = True,
-        alpha_random: bool = True,
-        random_seed: int = 42,
+        self, dset: SCDataset, include_beta: bool = True, random_seed: int = 42,
     ) -> None:
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
@@ -51,7 +45,6 @@ class CellStateModel:
 
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._include_beta = include_beta
-        self._alpha_random = alpha_random
 
         self._dset = dset
 
@@ -129,15 +122,15 @@ class CellStateModel:
         return loss
 
     def _forward(
-        self, y_in: torch.Tensor
+        self, Y: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """ One forward pass
 
-        :param y_in: dataset to do forward pass on
+        :param Y: dataset to do forward pass on
 
         :return: mu_z, std_z, z_sample
         """
-        mu_z, std_z = self._models(y_in)
+        mu_z, std_z = self._models(Y)
 
         std = torch.exp(std_z)
         eps = torch.randn_like(std)
@@ -147,9 +140,9 @@ class CellStateModel:
 
     def fit(
         self,
-        max_epochs: int,
-        lr: float = 1e-3,
-        batch_size: int = 64,
+        max_epochs: int = 50,
+        learning_rate: float = 1e-3,
+        batch_size: int = 24,
         delta_loss: float = 1e-3,
         delta_loss_batch: int = 10,
     ) -> np.array:
@@ -157,7 +150,7 @@ class CellStateModel:
         delta_loss_batch sizes or for max_epochs number of times
 
         :param max_epochs: number of train loop iterations
-        :param lr: the learning rate, defaults to 0.01
+        :param learning_rate: the learning rate, defaults to 0.01
         :param batch_size: the batch size
         :param delta_loss: stops iteration once the loss rate reaches
         delta_loss, defaults to 0.001
@@ -179,11 +172,10 @@ class CellStateModel:
 
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
-            opt_params = (
-                list(self._models.parameters())
-                + list(self._variables.values())
+            opt_params = list(self._models.parameters()) + list(
+                self._variables.values()
             )
-            self._optimizer = torch.optim.Adam(opt_params, lr=lr)
+            self._optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
         if self._losses.shape[0] >= delta_loss_batch:
             prev_mean = np.mean(self._losses[-delta_loss_batch:])
@@ -254,7 +246,7 @@ class CellStateModel:
             _, x_in, _ = self._dset[:]  # should be the scaled one
         else:
             _, x_in, _ = new_dset[:]
-        final_mu_z, _, _ = self._forward(x_in.float().to(self._device))
+        final_mu_z, _, _ = self._forward(x_in)
 
         return final_mu_z
 
@@ -288,20 +280,25 @@ class CellStateModel:
         min_marker_proteins = np.take(feature_names, np.argmin(marker_corr, axis=1))
 
         # Correlation values of all non marker proteins
-        non_marker_mat = (1 - self._dset.get_marker_mat().T.numpy())
+        non_marker_mat = 1 - self._dset.get_marker_mat().T.numpy()
         non_marker_corr = non_marker_mat * corr_mat
         non_marker_corr[non_marker_mat == 0] = -np.inf
 
         # Any correlation values where non marker proteins is greater than
         # the smallest correlation values of marker proteins
-        bad_corr_marker = np.array(non_marker_corr > min_marker_corr,
-                                   dtype=np.int32)
+        bad_corr_marker = np.array(non_marker_corr > min_marker_corr, dtype=np.int32)
 
         # Problem summary
         indices = np.argwhere(bad_corr_marker > 0)
 
-        col_names = ["pathway", "protein A", "correlation of protein A",
-                     "protein B", "correlation of protein B", "note"]
+        col_names = [
+            "pathway",
+            "protein A",
+            "correlation of protein A",
+            "protein B",
+            "correlation of protein B",
+            "note",
+        ]
 
         problems = []
         for index in indices:
@@ -315,11 +312,12 @@ class CellStateModel:
                 "marker_protein": marker_protein,
                 "corr_of_marker_protein": min_marker_corr[state_index][0],
                 "non_marker_protein": non_marker_protein,
-                "corr_of_non_marker_protein": non_marker_corr[state_index,
-                                                              protein_index],
+                "corr_of_non_marker_protein": non_marker_corr[
+                    state_index, protein_index
+                ],
                 "msg": "{} is marker for {} but {} isn't".format(
                     marker_protein, state, non_marker_protein
-                )
+                ),
             }
             problems.append(problem)
 
@@ -341,14 +339,8 @@ class CellStateModel:
             raise Exception("The state model has not been trained yet")
         return self._losses
 
-    def get_scdataset(self):
+    def get_scdataset(self) -> SCDataset:
         return self._dset
-
-    def get_data(self):
-        return self._data
-    
-    def get_variables(self):
-        return self._variables
 
     def is_converged(self) -> bool:
         """ Returns True if the model converged
@@ -357,10 +349,18 @@ class CellStateModel:
         """
         return self._is_converged
 
-    def get_data(self):
+    def get_data(self) -> Dict[str, torch.Tensor]:
+        """ Returns data parameter
+
+        :return: self._data
+        """
         return self._data
 
-    def get_variables(self):
+    def get_variables(self) -> Dict[str, torch.Tensor]:
+        """ Returns all variables
+
+        :return: self._variables
+        """
         return self._variables
 
 

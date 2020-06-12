@@ -43,7 +43,7 @@ class TestCellStateModel(TestCase):
         )
 
         self.model = CellStateModel(
-            dset=self._dset, include_beta=True, alpha_random=True, random_seed=42
+            dset=self._dset, include_beta=True, random_seed=42
         )
 
         self.model.fit(max_epochs=1)
@@ -59,11 +59,6 @@ class TestCellStateModel(TestCase):
         """ Test include_beta variable
         """
         self.assertTrue(self.model._include_beta)
-
-    def test_alpha_random(self):
-        """ Test alpha_random variable
-        """
-        self.assertTrue(self.model._alpha_random)
 
     # def test_optimizer(self):
     #     """ Test initial optimizer

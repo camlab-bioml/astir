@@ -1,4 +1,3 @@
-
 import re
 from typing import Tuple, List, Dict
 import warnings
@@ -6,7 +5,12 @@ from tqdm import trange
 
 import torch
 from torch.autograd import Variable
-from torch.distributions import Normal, StudentT, MultivariateNormal, LowRankMultivariateNormal
+from torch.distributions import (
+    Normal,
+    StudentT,
+    MultivariateNormal,
+    LowRankMultivariateNormal,
+)
 import torch.nn.functional as F
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -83,7 +87,9 @@ class CellTypeModel:
         #     if isinstance(design, pd.DataFrame):
         #         design = design.to_numpy()
 
-        self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(self._device)
+        self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(
+            self._device
+        )
         self._param_init()
 
     def _param_init(self) -> None:
@@ -97,7 +103,7 @@ class CellTypeModel:
             "log_alpha": torch.log(torch.ones(C + 1) / (C + 1)).to(self._device),
             "rho": self._dset.get_marker_mat().to(self._device),
         }
-        
+
         # Initialize mu, log_delta
         t = torch.distributions.Normal(torch.tensor(0.0), torch.tensor(0.2))
         log_delta_init = t.sample((G, C + 1))
@@ -105,7 +111,9 @@ class CellTypeModel:
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
         # mu_init = self._dset.get_mu()
 
-        mu_init = mu_init - (self._data["rho"] * torch.exp(log_delta_init).to(self._device)).mean(1)
+        mu_init = mu_init - (
+            self._data["rho"] * torch.exp(log_delta_init).to(self._device)
+        ).mean(1)
         mu_init = mu_init.reshape(-1, 1)
 
         # Create initialization dictionary
@@ -119,7 +127,11 @@ class CellTypeModel:
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
         initializations["mu"] = torch.cat(
-            [initializations["mu"], torch.zeros((G, P - 1), dtype=torch.float32, device=self._device)], 1
+            [
+                initializations["mu"],
+                torch.zeros((G, P - 1), dtype=torch.float32, device=self._device),
+            ],
+            1,
         )
 
         # Create trainable variables
@@ -135,9 +147,7 @@ class CellTypeModel:
             # self._variables["beta"] = Variable(
             #     torch.zeros(G, C + 1).to(self._device), requires_grad=True
             # )
-            self._variables["beta"] = Variable(
-                torch.zeros(G, C + 1)
-            ).to(self._device)
+            self._variables["beta"] = Variable(torch.zeros(G, C + 1)).to(self._device)
             self._variables["beta"].requires_grad = True
 
     ## Declare pytorch forward fn
@@ -159,7 +169,7 @@ class CellTypeModel:
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
         N = Y.shape[0]
-        
+
         Y_spread = Y.reshape(-1, G, 1).repeat(1, 1, C + 1)
 
         delta_tilde = torch.exp(self._variables["log_delta"])  # + np.log(0.5)
@@ -180,18 +190,14 @@ class CellTypeModel:
 
         sigma = torch.exp(self._variables["log_sigma"])
         v1 = (self._data["rho"] * p).T * sigma
-        v2 = torch.pow(sigma,2) * (1 - torch.pow(self._data["rho"] * p, 2)).T
+        v2 = torch.pow(sigma, 2) * (1 - torch.pow(self._data["rho"] * p, 2)).T
 
-        v1 = v1.reshape(1, C+1, G, 1).repeat(N, 1, 1, 1) # extra 1 is the "rank"
-        v2 = v2.reshape(1, C+1, G).repeat(N, 1, 1) + 1e-6
-
+        v1 = v1.reshape(1, C + 1, G, 1).repeat(N, 1, 1, 1)  # extra 1 is the "rank"
+        v2 = v2.reshape(1, C + 1, G).repeat(N, 1, 1) + 1e-6
 
         dist = LowRankMultivariateNormal(
-            loc=torch.exp(mean).permute(0, 2, 1),
-            cov_factor = v1,
-            cov_diag = v2
+            loc=torch.exp(mean).permute(0, 2, 1), cov_factor=v1, cov_diag=v2
         )
-
 
         log_p_y_on_c = dist.log_prob(Y_spread.permute(0, 2, 1))
 
@@ -203,7 +209,7 @@ class CellTypeModel:
         return -elbo
 
     def fit(
-        self, max_epochs=10, learning_rate=1e-2, batch_size=24, delta_loss=0.001
+        self, max_epochs=50, learning_rate=1e-3, batch_size=24, delta_loss=1e-3
     ) -> None:
         """Fit the model.
 
@@ -224,15 +230,13 @@ class CellTypeModel:
         per = 1
 
         ## Construct optimizer
-        opt_params = \
-                        list(self._variables.values()) + \
-                        list(self._recog.parameters())
+        opt_params = list(self._variables.values()) + list(self._recog.parameters())
 
         if self.include_beta:
             opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
-        _, exprs_X, _ = self._dset[:] # calls dset.get_item
+        _, exprs_X, _ = self._dset[:]  # calls dset.get_item
 
         iterator = trange(max_epochs, desc="training astir", unit="epochs")
         for ep in iterator:
@@ -244,11 +248,10 @@ class CellTypeModel:
                 L.backward()
                 optimizer.step()
             l = (
-                self._forward(
-                    self._dset.get_exprs(), exprs_X, self._dset.get_design()
-                )
+                self._forward(self._dset.get_exprs(), exprs_X, self._dset.get_design())
                 .detach()
-                .cpu().numpy()
+                .cpu()
+                .numpy()
             )
             if losses.shape[0] > 0:
                 per = abs((l - losses[-1]) / losses[-1])
@@ -278,9 +281,15 @@ class CellTypeModel:
 
     def save_model(self, max_epochs, learning_rate, batch_size, delta_loss):
         row_attrs = {"epochs": list(range(len(self._losses)))}
-        params_attr = {"parameters": list(self._variables.keys()) + list(self._data.keys())}
-        params_val = np.array(list(self._variables.values()) + list(self._data.values()))
-        info_attrs = {"run_info": ["max_epochs", "learning_rate", "batch_size", "delta_loss"]}
+        params_attr = {
+            "parameters": list(self._variables.keys()) + list(self._data.keys())
+        }
+        params_val = np.array(
+            list(self._variables.values()) + list(self._data.values())
+        )
+        info_attrs = {
+            "run_info": ["max_epochs", "learning_rate", "batch_size", "delta_loss"]
+        }
         info_val = np.array([max_epochs, learning_rate, batch_size, delta_loss])
 
     def get_losses(self) -> float:
@@ -292,28 +301,28 @@ class CellTypeModel:
         if self._losses is None:
             raise Exception("The type model has not been trained yet")
         return self._losses
-    
+
     def get_scdataset(self):
         return self._dset
-    
+
     def get_data(self):
         return self._data
-    
+
     def get_variables(self):
         return self._variables
 
     def is_converged(self) -> bool:
         return self._is_converged
 
-    
-
-    def _compare_marker_between_types(self, curr_type, celltype_to_compare, marker, cell_types, alpha=0.05):
+    def _compare_marker_between_types(
+        self, curr_type, celltype_to_compare, marker, cell_types, alpha=0.05
+    ):
         """For a given cell type and two proteins, ensure marker
         is expressed at higher level using t-test
 
         """
         current_marker_ind = np.array(self._dset.get_features()) == marker
-        
+
         cells_x = np.array(cell_types) == curr_type
         cells_y = np.array(cell_types) == celltype_to_compare
 
@@ -322,7 +331,7 @@ class CellTypeModel:
 
         stat = np.NaN
         pval = np.Inf
-        note = 'Only 1 cell in a type: comparison not possible'
+        note = "Only 1 cell in a type: comparison not possible"
 
         if len(x) > 1 and len(y) > 1:
             tt = stats.ttest_ind(x, y)
@@ -332,17 +341,17 @@ class CellTypeModel:
 
         if not (stat > 0 and pval < alpha):
             rdict = {
-                'current_marker': marker,
-                'curr_type': curr_type,
-                'celltype_to_compare': celltype_to_compare,
-                'mean_A': x.mean(),
-                'mean_Y': y.mean(),
-                'p-val': pval,
-                'note': note
+                "current_marker": marker,
+                "curr_type": curr_type,
+                "celltype_to_compare": celltype_to_compare,
+                "mean_A": x.mean(),
+                "mean_Y": y.mean(),
+                "p-val": pval,
+                "note": note,
             }
-            
+
             return rdict
-        
+
         return None
 
     def diagnostics(self, cell_type_assignments: list, alpha: float) -> pd.DataFrame:
@@ -354,16 +363,13 @@ class CellTypeModel:
 
         # Want to construct a data frame that models rho with
         # cell type names on the columns and feature names on the rows
-        g_df = pd.DataFrame(self._data['rho'].detach().cpu().numpy())
+        g_df = pd.DataFrame(self._data["rho"].detach().cpu().numpy())
         g_df.columns = self._dset.get_classes() + ["Other"]
         g_df.index = self._dset.get_features()
-
 
         for curr_type in self._dset.get_classes():
             if not curr_type in cell_type_assignments:
                 continue
-
-                
 
             current_markers = g_df.index[g_df[curr_type] == 1]
 
@@ -374,26 +380,35 @@ class CellTypeModel:
                 for celltype_to_compare in celltypes_to_compare:
                     if not celltype_to_compare in cell_type_assignments:
                         continue
-                    
-                    is_problem = self._compare_marker_between_types(curr_type, 
-                        celltype_to_compare, 
-                        current_marker, 
-                        cell_type_assignments, 
-                        alpha)
-                    
+
+                    is_problem = self._compare_marker_between_types(
+                        curr_type,
+                        celltype_to_compare,
+                        current_marker,
+                        cell_type_assignments,
+                        alpha,
+                    )
+
                     if is_problem is not None:
                         problems.append(is_problem)
 
-        col_names = ['feature', 'should be expressed higher in', 'than', 'mean cell type 1', 'mean cell type 2', 'p-value', 'note']
+        col_names = [
+            "feature",
+            "should be expressed higher in",
+            "than",
+            "mean cell type 1",
+            "mean cell type 2",
+            "p-value",
+            "note",
+        ]
         df_issues = None
         if len(problems) > 0:
             df_issues = pd.DataFrame(problems)
             df_issues.columns = col_names
         else:
             df_issues = pd.DataFrame(columns=col_names)
-        
+
         return df_issues
-            
 
 
 ## NotClassifiableError: an error to be raised when the dataset fails
