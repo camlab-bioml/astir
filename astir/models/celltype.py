@@ -72,6 +72,7 @@ class CellTypeModel:
 
         if dtype != torch.float32 and dtype != torch.float64:
             raise NotClassifiableError("Dtype must be one of torch.float32 and torch.float64.")
+        self._dtype = dtype
 
         self.losses = None  # losses after optimization
         self._is_converged = False
@@ -93,9 +94,9 @@ class CellTypeModel:
         self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(
             self._device, dtype=dtype
         )
-        self._param_init(dtype)
+        self._param_init()
 
-    def _param_init(self, dtype) -> None:
+    def _param_init(self) -> None:
         """Initialize parameters and design matrices.
         """
         G = self._dset.get_n_features()
@@ -103,12 +104,12 @@ class CellTypeModel:
 
         # Establish data
         self._data = {
-            "log_alpha": torch.log(torch.ones(C + 1, dtype = dtype) / (C + 1)).to(self._device),
+            "log_alpha": torch.log(torch.ones(C + 1, dtype = self._dtype) / (C + 1)).to(self._device),
             "rho": self._dset.get_marker_mat().to(self._device),
         }
         # Initialize mu, log_delta
-        delta_init_mean = torch.log(torch.log(torch.tensor(3., dtype=dtype))) # the log of the log of this is the multiplier
-        t = torch.distributions.Normal(delta_init_mean.clone().detach().to(dtype), torch.tensor(0.1, dtype=dtype))
+        delta_init_mean = torch.log(torch.log(torch.tensor(3., dtype=self._dtype))) # the log of the log of this is the multiplier
+        t = torch.distributions.Normal(delta_init_mean.clone().detach().to(self._dtype), torch.tensor(0.1, dtype=self._dtype))
         log_delta_init = t.sample((G, C + 1))
 
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
@@ -124,13 +125,13 @@ class CellTypeModel:
             "mu": mu_init,
             "log_sigma": torch.log(self._dset.get_sigma()).to(self._device),
             "log_delta": log_delta_init,
-            "p": torch.zeros((G, C + 1), dtype=dtype, device=self._device),
+            "p": torch.zeros((G, C + 1), dtype=self._dtype, device=self._device),
         }
 
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
         initializations["mu"] = torch.cat(
-            [initializations["mu"], torch.zeros((G, P - 1), dtype=dtype, device=self._device)], 1
+            [initializations["mu"], torch.zeros((G, P - 1), dtype=self._dtype, device=self._device)], 1
         )
 
         # Create trainable variables
@@ -146,7 +147,7 @@ class CellTypeModel:
             # self._variables["beta"] = Variable(
             #     torch.zeros(G, C + 1).to(self._device), requires_grad=True
             # )
-            self._variables["beta"] = Variable(torch.zeros(G, C + 1, dtype=dtype)).to(self._device)
+            self._variables["beta"] = Variable(torch.zeros(G, C + 1, dtype=self._dtype)).to(self._device)
             self._variables["beta"].requires_grad = True
             # print("beta: " + str(self._variables["beta"].dtype))
 
@@ -234,7 +235,7 @@ class CellTypeModel:
         )
 
         ## Run training loop
-        losses = np.empty(0)
+        losses = []
         per = 1
 
         ## Construct optimizer
@@ -251,22 +252,25 @@ class CellTypeModel:
         iterator = trange(max_epochs, desc="training astir", unit="epochs")
         for ep in iterator:
             L = None
+            loss = torch.tensor(0., dtype=self._dtype)
             for batch in dataloader:
                 Y, X, design = batch
                 optimizer.zero_grad()
                 L = self._forward(Y, X, design)
                 L.backward()
                 optimizer.step()
-            l = (
-                self._forward(self._dset.get_exprs(), exprs_X, self._dset.get_design())
-                .detach()
-                .cpu()
-                .numpy().mean()
-            )
-            print(l)
-            if losses.shape[0] > 0:
-                per = abs((l - losses[-1]) / losses[-1])
-            losses = np.append(losses, l)
+                with torch.no_grad():
+                    loss = loss + L
+            # l = (
+            #     self._forward(self._dset.get_exprs(), exprs_X, self._dset.get_design())
+            #     .detach()
+            #     .cpu()
+            #     .numpy().mean()
+            # )
+            print(loss)
+            if len(losses) > 0:
+                per = abs((loss - losses[-1]) / losses[-1])
+            losses.append(loss)
             if per <= delta_loss:
                 self._is_converged = True
                 iterator.close()
@@ -277,9 +281,9 @@ class CellTypeModel:
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
 
         if self._losses is None:
-            self._losses = losses
+            self._losses = torch.tensor(losses)
         else:
-            self._losses = np.append(self._losses, losses)
+            self._losses = torch.cat((self._losses.view(self._losses.shape[0]), torch.tensor(losses)), dim=0)
         # self.save_model(max_epochs, learning_rate, batch_size, delta_loss)
         print(self._losses.shape)
         print("Done!")

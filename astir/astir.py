@@ -158,11 +158,11 @@ class Astir:
             type_models[i].fit(n_init_epochs, learning_rate, batch_size, delta_loss)
 
         if max_epochs >= 2:
-            losses = [m.get_losses()[-2:].mean() for m in type_models]
+            losses = torch.tensor([m.get_losses()[-2:].mean() for m in type_models])
         else:
-            losses = [m.get_losses()[0] for m in type_models]
+            losses = torch.tensor([m.get_losses()[0] for m in type_models])
 
-        best_ind = np.argmin(losses)
+        best_ind = torch.argmin(losses)
         self._type_ast = type_models[best_ind]
 
         n_epoch_remaining = max_epochs - 1
