@@ -24,6 +24,7 @@ setuptools.setup(
         "torch",
         "pandas",
         "numpy",
+        "nbformat",
         "pyyaml",
         "sklearn",
         "argparse",
