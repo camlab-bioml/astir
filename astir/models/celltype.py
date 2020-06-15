@@ -215,7 +215,7 @@ class CellTypeModel:
         return -elbo
 
     def fit(
-        self, max_epochs=50, learning_rate=1e-3, batch_size=24, delta_loss=1e-3
+        self, max_epochs=50, learning_rate=1e-3, batch_size=128, delta_loss=1e-3
     ) -> None:
         """Fit the model.
 

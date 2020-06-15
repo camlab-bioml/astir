@@ -149,7 +149,7 @@ class CellStateModel:
         self,
         max_epochs: int = 50,
         learning_rate: float = 1e-3,
-        batch_size: int = 24,
+        batch_size: int = 128,
         delta_loss: float = 1e-3,
         delta_loss_batch: int = 10,
     ) -> np.array:
