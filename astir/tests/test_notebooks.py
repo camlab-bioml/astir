@@ -1,6 +1,7 @@
 import unittest
 import os
 import nbformat
+import rootpath
 
 from nbconvert.preprocessors import ExecutePreprocessor
 
@@ -28,7 +29,11 @@ def run_notebook(notebook_path):
 
 class TestNotebook(unittest.TestCase):
     def test_for_errors(self):
-        dirname = '../../docs/tutorials/notebooks'
+        root_path = rootpath.detect()
+        dirname = os.path.join(root_path, 'docs/tutorials/notebooks')
+        print(os.getcwd())
+        print(os.path.dirname(os.path.abspath(__file__)))
+
         nb_names = [os.path.join(dirname, fn) for fn in os.listdir(dirname)
                     if os.path.splitext(fn)[1] == '.ipynb']
 
