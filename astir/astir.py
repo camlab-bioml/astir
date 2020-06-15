@@ -464,6 +464,13 @@ class Astir:
         non marker gene has higher correlation values than the smallest
         correlation values of marker genes.
 
+        1. Get correlations between all cell states and proteins
+        2. For each cell state *c*, get the smallest correlation with marker *g*
+        3. For each cell state *c* and its non marker *g*, find any correlation that is
+        bigger than those smallest correlation for *c*.
+        4. Any *c* and *g* pairs found in step 3 will be included in the output of
+        `Astir.diagnostics_cellstate()`, including an explanation.
+
         :return: diagnostics
         """
         return self.get_state_model().diagnostics()
