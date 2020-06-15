@@ -157,15 +157,12 @@ class Astir:
             )
             type_models[i].fit(n_init_epochs, learning_rate, batch_size, delta_loss)
 
-        if max_epochs >= 2:
-            losses = torch.tensor([m.get_losses()[-2:].mean() for m in type_models])
-        else:
-            losses = torch.tensor([m.get_losses()[0] for m in type_models])
+        losses = torch.tensor([m.get_losses()[-1] for m in type_models])
 
         best_ind = torch.argmin(losses)
         self._type_ast = type_models[best_ind]
 
-        n_epoch_remaining = max_epochs - 1
+        n_epoch_remaining = max_epochs
         assignment = self._type_ast.fit(
             n_epoch_remaining, learning_rate, batch_size, delta_loss
         )
@@ -183,6 +180,8 @@ class Astir:
         self._type_assignments = pd.DataFrame(assignment)
         self._type_assignments.columns = self._type_dset.get_classes() + ["Other"]
         self._type_assignments.index = self._type_dset.get_cell_names()
+
+        self._type_ast.save_model("celltype_training_summary.loom", max_epochs, learning_rate, batch_size, delta_loss, n_init, n_init_epochs)
 
     def fit_state(
         self,

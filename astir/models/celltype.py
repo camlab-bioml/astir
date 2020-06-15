@@ -267,7 +267,7 @@ class CellTypeModel:
             #     .cpu()
             #     .numpy().mean()
             # )
-            print(loss)
+            # print(loss)
             if len(losses) > 0:
                 per = abs((loss - losses[-1]) / losses[-1])
             losses.append(loss)
@@ -285,7 +285,7 @@ class CellTypeModel:
         else:
             self._losses = torch.cat((self._losses.view(self._losses.shape[0]), torch.tensor(losses)), dim=0)
         # self.save_model(max_epochs, learning_rate, batch_size, delta_loss)
-        print(self._losses.shape)
+        # print(self._losses.shape)
         print("Done!")
         return g
 
@@ -295,8 +295,8 @@ class CellTypeModel:
         # g, _, _ = self._forward(exprs_X.float())
         return g
 
-    def save_model(self, max_epochs, learning_rate, batch_size, delta_loss):
-        row_attrs = {"epochs": list(range(len(self._losses)))}
+    def save_model(self, loom_name, max_epochs, learning_rate, batch_size, delta_loss, n_init, n_init_epochs):
+        col_attr = {"epochs": list(range(len(self._losses)))}
         params_attr = {
             "parameters": list(self._variables.keys()) + list(self._data.keys())
         }
@@ -304,9 +304,21 @@ class CellTypeModel:
             list(self._variables.values()) + list(self._data.values())
         )
         info_attrs = {
-            "run_info": ["max_epochs", "learning_rate", "batch_size", "delta_loss"]
+            "run_info": ["max_epochs", "learning_rate", "batch_size", "delta_loss", "n_init", "n_init_epochs"]
         }
         info_val = np.array([max_epochs, learning_rate, batch_size, delta_loss])
+        loss_attr = {"losses": ["losses"]}
+        loompy.create(loom_name, self._losses[None, :].numpy(), loss_attr, col_attr)
+        with loompy.connect(loom_name) as ds:
+            ds.attrs["max_epochs"] = max_epochs
+            ds.attrs["learning_rate"] = learning_rate
+            ds.attrs["batch_size"] = batch_size
+            ds.attrs["delta_loss"] = delta_loss
+            ds.attrs["n_init"] = n_init
+            ds.attrs["n_init_epochs"] = n_init_epochs
+            dic = dict(list(self._variables.items()) + list(self._data.items()))
+            for key, val in dic.items():
+                ds.attrs[key] = val.detach().cpu().numpy()
 
     def get_losses(self) -> float:
         """ Getter for losses
