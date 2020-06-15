@@ -121,6 +121,7 @@ class Astir:
             )
         return type_dict, state_dict
 
+    # @profile
     def fit_type(
         self,
         max_epochs=50,

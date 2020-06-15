@@ -207,7 +207,7 @@ class CellStateModel:
 
                 self._optimizer.step()
 
-            losses[ep] = loss.cpu().detach().numpy()
+            losses[ep] = loss.cpu().detach().numpy().mean()
 
             start_index = ep - delta_loss_batch + 1
             end_index = start_index + delta_loss_batch

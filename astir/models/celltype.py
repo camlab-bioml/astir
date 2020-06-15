@@ -156,6 +156,7 @@ class CellTypeModel:
         # print("p: " + str(self._variables["p"].dtype))
         
 
+    # @profile 
     ## Declare pytorch forward fn
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
@@ -214,6 +215,7 @@ class CellTypeModel:
 
         return -elbo
 
+    # @profile
     def fit(
         self, max_epochs=50, learning_rate=1e-3, batch_size=24, delta_loss=1e-3
     ) -> None:
@@ -259,8 +261,9 @@ class CellTypeModel:
                 self._forward(self._dset.get_exprs(), exprs_X, self._dset.get_design())
                 .detach()
                 .cpu()
-                .numpy()
+                .numpy().mean()
             )
+            print(l)
             if losses.shape[0] > 0:
                 per = abs((l - losses[-1]) / losses[-1])
             losses = np.append(losses, l)
@@ -278,6 +281,7 @@ class CellTypeModel:
         else:
             self._losses = np.append(self._losses, losses)
         # self.save_model(max_epochs, learning_rate, batch_size, delta_loss)
+        print(self._losses.shape)
         print("Done!")
         return g
 
