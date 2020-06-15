@@ -10,3 +10,4 @@ loompy
 tqdm
 anndata
 rootpath
+nbconvert

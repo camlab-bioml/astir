@@ -32,7 +32,8 @@ setuptools.setup(
         "loompy",
         "tqdm",
         "anndata",
-        "rootpath"
+        "rootpath",
+        "nbconvert"
     ],
     include_package_data=True,
     zip_safe=False,
