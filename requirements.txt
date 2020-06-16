@@ -15,3 +15,4 @@ nbformat
 seaborn
 jupyter_client
 ipykernel
+ipython
