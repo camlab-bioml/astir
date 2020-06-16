@@ -22,6 +22,8 @@ class TestCellStateModel(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestCellStateModel, self).__init__(*args, **kwargs)
 
+        warnings.filterwarnings("ignore", category=UserWarning)
+
         self.expr_csv_file = os.path.join(
             os.path.dirname(__file__), "../test-data/sce.csv"
         )

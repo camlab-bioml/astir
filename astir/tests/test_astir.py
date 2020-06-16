@@ -17,7 +17,7 @@ from astir.models.scdataset import SCDataset
 class TestAstir(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestAstir, self).__init__(*args, **kwargs)
-
+        warnings.filterwarnings("ignore", category=UserWarning)
         self.expr_csv_file = os.path.join(
             os.path.dirname(__file__), "test-data/test_data.csv"
         )
@@ -268,6 +268,7 @@ class TestAstir(TestCase):
         self.assertFalse(np.abs(model1_loss - model2_loss)[-1] < 1e-6)
 
     def test_cellstate_assignment(self):
+        warnings.filterwarnings("ignore", category=UserWarning)
         self.a.fit_state(max_epochs=50, n_init=1)
 
         state_assignments = self.a.get_cellstates()
@@ -277,6 +278,7 @@ class TestAstir(TestCase):
         self.assertTrue(state_assignments.shape, (len(self.expr), n_classes))
 
     def test_cellstate_predicted_assignment(self):
+        warnings.filterwarnings("ignore", category=UserWarning)
         dset = SCDataset(expr_input=self.expr,
                          marker_dict=self.marker_dict["cell_states"],
                          design=None,
@@ -290,6 +292,7 @@ class TestAstir(TestCase):
                                                   dset.get_n_classes()))
 
     def test_celltype_assignment(self):
+        warnings.filterwarnings("ignore", category=UserWarning)
         self.a.fit_type(max_epochs=50, n_init=1)
 
         type_assignments = self.a.get_celltypes()
@@ -299,10 +302,7 @@ class TestAstir(TestCase):
         self.assertTrue(type_assignments.shape, (len(self.expr), n_classes+1))
 
     def test_celltype_predicted_assignment(self):
-        # dset = SCDataset(expr_input=self.expr,
-        #                  marker_dict=self.marker_dict["cell_types"],
-        #                  design=None,
-        #                  include_other_column=True)
+        warnings.filterwarnings("ignore", category=UserWarning)
         
         self.a.fit_type(max_epochs=50, n_init=1)
 
@@ -326,6 +326,7 @@ class TestAstir(TestCase):
         self.assertEqual(ast.get_type_dataset().get_exprs().shape[0], 10)
 
     def test_cellstate_diagnostics(self):
+        warnings.filterwarnings("ignore", category=UserWarning)
         self.a.fit_state(max_epochs=50, n_init=1)
 
         state_diagnostics = self.a.diagnostics_cellstate()
