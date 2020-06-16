@@ -17,7 +17,7 @@ from torch.utils.data import Dataset, DataLoader
 
 import pandas as pd
 import numpy as np
-import loompy
+import h5py
 
 from sklearn.preprocessing import StandardScaler
 from scipy import stats
@@ -218,7 +218,8 @@ class CellTypeModel:
 
     # @profile
     def fit(
-        self, max_epochs=50, learning_rate=1e-3, batch_size=24, delta_loss=1e-3
+        self, max_epochs=50, learning_rate=1e-3, batch_size=24, delta_loss=1e-3,
+        msg= ""
     ) -> None:
         """Fit the model.
 
@@ -249,7 +250,7 @@ class CellTypeModel:
 
         _, exprs_X, _ = self._dset[:]  # calls dset.get_item
 
-        iterator = trange(max_epochs, desc="training astir", unit="epochs")
+        iterator = trange(max_epochs, desc="training restart" + msg, unit="epochs", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]')
         for ep in iterator:
             L = None
             loss = torch.tensor(0., dtype=self._dtype)
@@ -261,20 +262,13 @@ class CellTypeModel:
                 optimizer.step()
                 with torch.no_grad():
                     loss = loss + L
-            # l = (
-            #     self._forward(self._dset.get_exprs(), exprs_X, self._dset.get_design())
-            #     .detach()
-            #     .cpu()
-            #     .numpy().mean()
-            # )
-            # print(loss)
             if len(losses) > 0:
                 per = abs((loss - losses[-1]) / losses[-1])
             losses.append(loss)
+            iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
             if per <= delta_loss:
                 self._is_converged = True
                 iterator.close()
-                print("Reached convergence -- breaking from training loop")
                 break
 
         ## Save output
@@ -285,8 +279,6 @@ class CellTypeModel:
         else:
             self._losses = torch.cat((self._losses.view(self._losses.shape[0]), torch.tensor(losses)), dim=0)
         # self.save_model(max_epochs, learning_rate, batch_size, delta_loss)
-        # print(self._losses.shape)
-        print("Done!")
         return g
 
     def predict(self, new_dset):
@@ -295,30 +287,32 @@ class CellTypeModel:
         # g, _, _ = self._forward(exprs_X.float())
         return g
 
-    def save_model(self, loom_name, max_epochs, learning_rate, batch_size, delta_loss, n_init, n_init_epochs):
-        col_attr = {"epochs": list(range(len(self._losses)))}
-        params_attr = {
-            "parameters": list(self._variables.keys()) + list(self._data.keys())
-        }
-        params_val = np.array(
-            list(self._variables.values()) + list(self._data.values())
-        )
-        info_attrs = {
-            "run_info": ["max_epochs", "learning_rate", "batch_size", "delta_loss", "n_init", "n_init_epochs"]
-        }
-        info_val = np.array([max_epochs, learning_rate, batch_size, delta_loss])
-        loss_attr = {"losses": ["losses"]}
-        loompy.create(loom_name, self._losses[None, :].numpy(), loss_attr, col_attr)
-        with loompy.connect(loom_name) as ds:
-            ds.attrs["max_epochs"] = max_epochs
-            ds.attrs["learning_rate"] = learning_rate
-            ds.attrs["batch_size"] = batch_size
-            ds.attrs["delta_loss"] = delta_loss
-            ds.attrs["n_init"] = n_init
-            ds.attrs["n_init_epochs"] = n_init_epochs
-            dic = dict(list(self._variables.items()) + list(self._data.items()))
-            for key, val in dic.items():
-                ds.attrs[key] = val.detach().cpu().numpy()
+    # def save_model(self, hdf5_name: str, max_epochs, learning_rate, batch_size, delta_loss, n_init, n_init_epochs):
+        #  with h5py.File(hdf5_name, "w") as f:
+            
+        #     col_attr = {"epochs": list(range(len(self._losses)))}
+        # params_attr = {
+        #     "parameters": list(self._variables.keys()) + list(self._data.keys())
+        # }
+        # params_val = np.array(
+        #     list(self._variables.values()) + list(self._data.values())
+        # )
+        # info_attrs = {
+        #     "run_info": ["max_epochs", "learning_rate", "batch_size", "delta_loss", "n_init", "n_init_epochs"]
+        # }
+        # info_val = np.array([max_epochs, learning_rate, batch_size, delta_loss])
+        # loss_attr = {"losses": ["losses"]}
+        # loompy.create(loom_name, self._losses[None, :].numpy(), loss_attr, col_attr)
+        # with loompy.connect(loom_name) as ds:
+        #     ds.attrs["max_epochs"] = max_epochs
+        #     ds.attrs["learning_rate"] = learning_rate
+        #     ds.attrs["batch_size"] = batch_size
+        #     ds.attrs["delta_loss"] = delta_loss
+        #     ds.attrs["n_init"] = n_init
+        #     ds.attrs["n_init_epochs"] = n_init_epochs
+        #     dic = dict(list(self._variables.items()) + list(self._data.items()))
+        #     for key, val in dic.items():
+        #         ds.attrs[key] = val.detach().cpu().numpy()
 
     def get_losses(self) -> float:
         """ Getter for losses

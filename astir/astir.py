@@ -148,14 +148,14 @@ class Astir:
         ]
         n_init_epochs = min(max_epochs, n_initial_epochs)
         for i in range(n_init):
-            print(
-                "---------- Astir Training "
-                + str(i + 1)
-                + "/"
-                + str(n_init)
-                + " ----------"
-            )
-            type_models[i].fit(n_init_epochs, learning_rate, batch_size, delta_loss)
+            # print(
+            #     "---------- Astir Training "
+            #     + str(i + 1)
+            #     + "/"
+            #     + str(n_init)
+            #     + " ----------"
+            # )
+            type_models[i].fit(n_init_epochs, learning_rate, batch_size, delta_loss, " " + str(i+1) + "/" + str(n_init))
 
         losses = torch.tensor([m.get_losses()[-1] for m in type_models])
 
@@ -164,7 +164,7 @@ class Astir:
 
         n_epoch_remaining = max_epochs
         assignment = self._type_ast.fit(
-            n_epoch_remaining, learning_rate, batch_size, delta_loss
+            n_epoch_remaining, learning_rate, batch_size, delta_loss, " (final)"
         )
         if not self._type_ast.is_converged():
             msg = (
@@ -181,7 +181,7 @@ class Astir:
         self._type_assignments.columns = self._type_dset.get_classes() + ["Other"]
         self._type_assignments.index = self._type_dset.get_cell_names()
 
-        self._type_ast.save_model("celltype_training_summary.loom", max_epochs, learning_rate, batch_size, delta_loss, n_init, n_init_epochs)
+        # self._type_ast.save_model("celltype_training_summary.loom", max_epochs, learning_rate, batch_size, delta_loss, n_init, n_init_epochs)
 
     def fit_state(
         self,
@@ -227,13 +227,13 @@ class Astir:
                 dtype=self._dtype
             )
 
-            print(
-                "---------- Astir Training "
-                + str(i + 1)
-                + "/"
-                + str(n_init)
-                + " ----------"
-            )
+            # print(
+            #     "---------- Astir Training "
+            #     + str(i + 1)
+            #     + "/"
+            #     + str(n_init)
+            #     + " ----------"
+            # )
             # Fitting the model
             n_init_epochs = min(max_epochs, n_init_epochs)
             losses = model.fit(
@@ -242,6 +242,7 @@ class Astir:
                 batch_size=batch_size,
                 delta_loss=delta_loss,
                 delta_loss_batch=delta_loss_batch,
+                msg=" " + str(i+1) + "/" + str(n_init)
             )
 
             cellstate_losses.append(losses)
@@ -254,15 +255,16 @@ class Astir:
         best_model_index = int(np.argmin(last_delta_losses_mean))
 
         self._state_ast = cellstate_models[best_model_index]
-        n_epochs_done = cellstate_losses[best_model_index].size
-        n_epoch_remaining = max(max_epochs - n_epochs_done, 0)
+        # n_epochs_done = cellstate_losses[best_model_index].size
+        # n_epoch_remaining = max(max_epochs - n_epochs_done, 0)
 
         self._state_ast.fit(
-            max_epochs=n_epoch_remaining,
+            max_epochs=max_epochs,
             learning_rate=learning_rate,
             batch_size=batch_size,
             delta_loss=delta_loss,
             delta_loss_batch=delta_loss_batch,
+            msg=" (final)"
         )
 
         # Warns the user if the model has not converged
