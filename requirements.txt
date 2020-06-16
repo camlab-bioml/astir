@@ -16,3 +16,4 @@ seaborn
 jupyter_client
 ipykernel
 ipython
+h5py

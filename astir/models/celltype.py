@@ -80,6 +80,8 @@ class CellTypeModel:
         self._data = None
         self._variables = None
         self._losses = None
+        self._assignment = None
+        self._run_info = None
 
         self._dset = dset
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -273,12 +275,13 @@ class CellTypeModel:
 
         ## Save output
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
+        self._assignment = g
+        self._run_info = {"max_epochs": max_epochs, "learning_rate": learning_rate, "batch_size": batch_size, "delta_loss": delta_loss}
 
         if self._losses is None:
             self._losses = torch.tensor(losses)
         else:
             self._losses = torch.cat((self._losses.view(self._losses.shape[0]), torch.tensor(losses)), dim=0)
-        # self.save_model(max_epochs, learning_rate, batch_size, delta_loss)
         return g
 
     def predict(self, new_dset):
@@ -287,32 +290,22 @@ class CellTypeModel:
         # g, _, _ = self._forward(exprs_X.float())
         return g
 
-    # def save_model(self, hdf5_name: str, max_epochs, learning_rate, batch_size, delta_loss, n_init, n_init_epochs):
-        #  with h5py.File(hdf5_name, "w") as f:
-            
-        #     col_attr = {"epochs": list(range(len(self._losses)))}
-        # params_attr = {
-        #     "parameters": list(self._variables.keys()) + list(self._data.keys())
-        # }
-        # params_val = np.array(
-        #     list(self._variables.values()) + list(self._data.values())
-        # )
-        # info_attrs = {
-        #     "run_info": ["max_epochs", "learning_rate", "batch_size", "delta_loss", "n_init", "n_init_epochs"]
-        # }
-        # info_val = np.array([max_epochs, learning_rate, batch_size, delta_loss])
-        # loss_attr = {"losses": ["losses"]}
-        # loompy.create(loom_name, self._losses[None, :].numpy(), loss_attr, col_attr)
-        # with loompy.connect(loom_name) as ds:
-        #     ds.attrs["max_epochs"] = max_epochs
-        #     ds.attrs["learning_rate"] = learning_rate
-        #     ds.attrs["batch_size"] = batch_size
-        #     ds.attrs["delta_loss"] = delta_loss
-        #     ds.attrs["n_init"] = n_init
-        #     ds.attrs["n_init_epochs"] = n_init_epochs
-        #     dic = dict(list(self._variables.items()) + list(self._data.items()))
-        #     for key, val in dic.items():
-        #         ds.attrs[key] = val.detach().cpu().numpy()
+    def save_model(self, hdf5_name: str, n_init, n_init_epochs):
+        if self._assignment is None:
+            raise Exception("The type model has not been trained yet")
+        with h5py.File(hdf5_name, "w") as f:
+            loss_grp = f.create_group("losses")
+            loss_grp["losses"] = self._losses.cpu().numpy()
+            param_grp = f.create_group("parameters")
+            dic = list(self._variables.items()) + list(self._data.items())
+            for key, val in dic:
+                param_grp[key] = val.detach().cpu().numpy()
+            info_grp = f.create_group("run_info")
+            for key, val in self._run_info.items():
+                info_grp[key] = val
+            info_grp["n_init"] = n_init
+            info_grp["n_init_epochs"] = n_init_epochs
+            f.create_dataset("celltype_assignment", data=self._assignment)
 
     def get_losses(self) -> float:
         """ Getter for losses
