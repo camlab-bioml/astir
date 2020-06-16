@@ -130,6 +130,7 @@ class Astir:
         delta_loss=1e-3,
         n_init=5,
         n_initial_epochs=5,
+        output_summary=None
     ) -> None:
         """Run Variational Bayes to infer cell types
 
@@ -148,13 +149,6 @@ class Astir:
         ]
         n_init_epochs = min(max_epochs, n_initial_epochs)
         for i in range(n_init):
-            # print(
-            #     "---------- Astir Training "
-            #     + str(i + 1)
-            #     + "/"
-            #     + str(n_init)
-            #     + " ----------"
-            # )
             type_models[i].fit(n_init_epochs, learning_rate, batch_size, delta_loss, " " + str(i+1) + "/" + str(n_init))
 
         losses = torch.tensor([m.get_losses()[-1] for m in type_models])
@@ -181,7 +175,8 @@ class Astir:
         self._type_assignments.columns = self._type_dset.get_classes() + ["Other"]
         self._type_assignments.index = self._type_dset.get_cell_names()
 
-        # self._type_ast.save_model("celltype_training_summary.loom", max_epochs, learning_rate, batch_size, delta_loss, n_init, n_init_epochs)
+        if output_summary != None:
+            self._type_ast.save_model(output_summary, n_init, n_init_epochs)
 
     def fit_state(
         self,
@@ -226,14 +221,6 @@ class Astir:
                 random_seed=(self.random_seed + i),
                 dtype=self._dtype
             )
-
-            # print(
-            #     "---------- Astir Training "
-            #     + str(i + 1)
-            #     + "/"
-            #     + str(n_init)
-            #     + " ----------"
-            # )
             # Fitting the model
             n_init_epochs = min(max_epochs, n_init_epochs)
             losses = model.fit(

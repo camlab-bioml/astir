@@ -33,7 +33,8 @@ setuptools.setup(
         "tqdm",
         "anndata",
         "rootpath",
-        "nbconvert"
+        "nbconvert",
+        "h5py"
     ],
     include_package_data=True,
     zip_safe=False,

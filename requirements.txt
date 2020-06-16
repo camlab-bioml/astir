@@ -11,3 +11,4 @@ tqdm
 anndata
 rootpath
 nbconvert
+h5py
