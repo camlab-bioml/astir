@@ -16,6 +16,11 @@ def run_notebook(notebook_path):
     proc = ExecutePreprocessor(timeout=600, kernel_name='astir')
     proc.allow_errors = True
 
+    # Run the notebook
+    root_path = rootpath.detect()
+    path = root_path + '/docs/tutorials/notebooks'
+    proc.preprocess(nb, {'metadata': {'path': path}})
+
     # Collect all errors
     errors = []
     for cell in nb.cells:
@@ -28,11 +33,13 @@ def run_notebook(notebook_path):
 
 
 class TestNotebook(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super(TestNotebook, self).__init__(*args, **kwargs)
+        self.maxDiff = None
+
     def test_for_errors(self):
         root_path = rootpath.detect()
         dirname = os.path.join(root_path, 'docs/tutorials/notebooks')
-        print(os.getcwd())
-        print(os.path.dirname(os.path.abspath(__file__)))
 
         nb_names = [os.path.join(dirname, fn) for fn in os.listdir(dirname)
                     if os.path.splitext(fn)[1] == '.ipynb']
@@ -40,3 +47,7 @@ class TestNotebook(unittest.TestCase):
         for fn in nb_names:
             _, errors = run_notebook(fn)
             self.assertEqual(errors, [], "Unexpected error in {}".format(fn))
+
+
+if __name__ == "__main__":
+    unittest.main()
