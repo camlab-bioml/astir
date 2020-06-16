@@ -17,7 +17,7 @@ from torch.utils.data import Dataset, DataLoader
 
 import pandas as pd
 import numpy as np
-import loompy
+import h5py
 
 from sklearn.preprocessing import StandardScaler
 from scipy import stats
@@ -72,6 +72,7 @@ class CellTypeModel:
 
         if dtype != torch.float32 and dtype != torch.float64:
             raise NotClassifiableError("Dtype must be one of torch.float32 and torch.float64.")
+        self._dtype = dtype
 
         self.losses = None  # losses after optimization
         self._is_converged = False
@@ -93,9 +94,9 @@ class CellTypeModel:
         self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(
             self._device, dtype=dtype
         )
-        self._param_init(dtype)
+        self._param_init()
 
-    def _param_init(self, dtype) -> None:
+    def _param_init(self) -> None:
         """Initialize parameters and design matrices.
         """
         G = self._dset.get_n_features()
@@ -103,12 +104,12 @@ class CellTypeModel:
 
         # Establish data
         self._data = {
-            "log_alpha": torch.log(torch.ones(C + 1, dtype = dtype) / (C + 1)).to(self._device),
+            "log_alpha": torch.log(torch.ones(C + 1, dtype = self._dtype) / (C + 1)).to(self._device),
             "rho": self._dset.get_marker_mat().to(self._device),
         }
         # Initialize mu, log_delta
-        delta_init_mean = torch.log(torch.log(torch.tensor(3., dtype=dtype))) # the log of the log of this is the multiplier
-        t = torch.distributions.Normal(delta_init_mean.clone().detach().to(dtype), torch.tensor(0.1, dtype=dtype))
+        delta_init_mean = torch.log(torch.log(torch.tensor(3., dtype=self._dtype))) # the log of the log of this is the multiplier
+        t = torch.distributions.Normal(delta_init_mean.clone().detach().to(self._dtype), torch.tensor(0.1, dtype=self._dtype))
         log_delta_init = t.sample((G, C + 1))
 
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
@@ -124,13 +125,13 @@ class CellTypeModel:
             "mu": mu_init,
             "log_sigma": torch.log(self._dset.get_sigma()).to(self._device),
             "log_delta": log_delta_init,
-            "p": torch.zeros((G, C + 1), dtype=dtype, device=self._device),
+            "p": torch.zeros((G, C + 1), dtype=self._dtype, device=self._device),
         }
 
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
         initializations["mu"] = torch.cat(
-            [initializations["mu"], torch.zeros((G, P - 1), dtype=dtype, device=self._device)], 1
+            [initializations["mu"], torch.zeros((G, P - 1), dtype=self._dtype, device=self._device)], 1
         )
 
         # Create trainable variables
@@ -146,7 +147,7 @@ class CellTypeModel:
             # self._variables["beta"] = Variable(
             #     torch.zeros(G, C + 1).to(self._device), requires_grad=True
             # )
-            self._variables["beta"] = Variable(torch.zeros(G, C + 1, dtype=dtype)).to(self._device)
+            self._variables["beta"] = Variable(torch.zeros(G, C + 1, dtype=self._dtype)).to(self._device)
             self._variables["beta"].requires_grad = True
             # print("beta: " + str(self._variables["beta"].dtype))
 
@@ -156,6 +157,7 @@ class CellTypeModel:
         # print("p: " + str(self._variables["p"].dtype))
         
 
+    # @profile 
     ## Declare pytorch forward fn
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
@@ -214,8 +216,10 @@ class CellTypeModel:
 
         return -elbo
 
+    # @profile
     def fit(
-        self, max_epochs=50, learning_rate=1e-3, batch_size=128, delta_loss=1e-3
+        self, max_epochs=50, learning_rate=1e-3, batch_size=128, delta_loss=1e-3,
+        msg= ""
     ) -> None:
         """Fit the model.
 
@@ -232,7 +236,7 @@ class CellTypeModel:
         )
 
         ## Run training loop
-        losses = np.empty(0)
+        losses = []
         per = 1
 
         ## Construct optimizer
@@ -246,39 +250,35 @@ class CellTypeModel:
 
         _, exprs_X, _ = self._dset[:]  # calls dset.get_item
 
-        iterator = trange(max_epochs, desc="training astir", unit="epochs")
+        iterator = trange(max_epochs, desc="training restart" + msg, unit="epochs", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]')
         for ep in iterator:
             L = None
+            loss = torch.tensor(0., dtype=self._dtype)
             for batch in dataloader:
                 Y, X, design = batch
                 optimizer.zero_grad()
                 L = self._forward(Y, X, design)
                 L.backward()
                 optimizer.step()
-            l = (
-                self._forward(self._dset.get_exprs(), exprs_X, self._dset.get_design())
-                .detach()
-                .cpu()
-                .numpy()
-            )
-            if losses.shape[0] > 0:
-                per = abs((l - losses[-1]) / losses[-1])
-            losses = np.append(losses, l)
+                with torch.no_grad():
+                    loss = loss + L
+            if len(losses) > 0:
+                per = abs((loss - losses[-1]) / losses[-1])
+            losses.append(loss)
+            iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
             if per <= delta_loss:
                 self._is_converged = True
                 iterator.close()
-                print("Reached convergence -- breaking from training loop")
                 break
 
         ## Save output
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
 
         if self._losses is None:
-            self._losses = losses
+            self._losses = torch.tensor(losses)
         else:
-            self._losses = np.append(self._losses, losses)
+            self._losses = torch.cat((self._losses.view(self._losses.shape[0]), torch.tensor(losses)), dim=0)
         # self.save_model(max_epochs, learning_rate, batch_size, delta_loss)
-        print("Done!")
         return g
 
     def predict(self, new_dset):
@@ -287,18 +287,32 @@ class CellTypeModel:
         # g, _, _ = self._forward(exprs_X.float())
         return g
 
-    def save_model(self, max_epochs, learning_rate, batch_size, delta_loss):
-        row_attrs = {"epochs": list(range(len(self._losses)))}
-        params_attr = {
-            "parameters": list(self._variables.keys()) + list(self._data.keys())
-        }
-        params_val = np.array(
-            list(self._variables.values()) + list(self._data.values())
-        )
-        info_attrs = {
-            "run_info": ["max_epochs", "learning_rate", "batch_size", "delta_loss"]
-        }
-        info_val = np.array([max_epochs, learning_rate, batch_size, delta_loss])
+    # def save_model(self, hdf5_name: str, max_epochs, learning_rate, batch_size, delta_loss, n_init, n_init_epochs):
+        #  with h5py.File(hdf5_name, "w") as f:
+            
+        #     col_attr = {"epochs": list(range(len(self._losses)))}
+        # params_attr = {
+        #     "parameters": list(self._variables.keys()) + list(self._data.keys())
+        # }
+        # params_val = np.array(
+        #     list(self._variables.values()) + list(self._data.values())
+        # )
+        # info_attrs = {
+        #     "run_info": ["max_epochs", "learning_rate", "batch_size", "delta_loss", "n_init", "n_init_epochs"]
+        # }
+        # info_val = np.array([max_epochs, learning_rate, batch_size, delta_loss])
+        # loss_attr = {"losses": ["losses"]}
+        # loompy.create(loom_name, self._losses[None, :].numpy(), loss_attr, col_attr)
+        # with loompy.connect(loom_name) as ds:
+        #     ds.attrs["max_epochs"] = max_epochs
+        #     ds.attrs["learning_rate"] = learning_rate
+        #     ds.attrs["batch_size"] = batch_size
+        #     ds.attrs["delta_loss"] = delta_loss
+        #     ds.attrs["n_init"] = n_init
+        #     ds.attrs["n_init_epochs"] = n_init_epochs
+        #     dic = dict(list(self._variables.items()) + list(self._data.items()))
+        #     for key, val in dic.items():
+        #         ds.attrs[key] = val.detach().cpu().numpy()
 
     def get_losses(self) -> float:
         """ Getter for losses

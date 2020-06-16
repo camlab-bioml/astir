@@ -152,6 +152,7 @@ class CellStateModel:
         batch_size: int = 128,
         delta_loss: float = 1e-3,
         delta_loss_batch: int = 10,
+        msg=""
     ) -> np.array:
         """ Runs train loops until the convergence reaches delta_loss for
         delta_loss_batch sizes or for max_epochs number of times
@@ -191,7 +192,7 @@ class CellStateModel:
 
         delta_cond_met = False
 
-        iterator = trange(max_epochs, desc="training astir", unit="epochs",)
+        iterator = trange(max_epochs, desc="training restart" + msg, unit="epochs", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]')
         train_iterator = DataLoader(
             self._dset, batch_size=min(batch_size, len(self._dset))
         )
@@ -225,13 +226,13 @@ class CellStateModel:
                 curr_delta_loss = (prev_mean - curr_mean) / prev_mean
                 delta_cond_met = 0 <= curr_delta_loss < delta_loss
 
-            prev_mean = curr_mean
+            iterator.set_postfix_str("current loss: " + str(round(losses[ep].sum(), 1)))
 
+            prev_mean = curr_mean
             if delta_cond_met:
                 losses = losses[0 : ep + 1]
                 self._is_converged = True
                 iterator.close()
-                print("Reached convergence -- breaking from training loop")
                 break
 
         if self._losses is None:
