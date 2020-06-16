@@ -33,7 +33,9 @@ setuptools.setup(
         "tqdm",
         "anndata",
         "rootpath",
-        "nbconvert"
+        "nbconvert",
+        "nbformat",
+        "seaborn"
     ],
     include_package_data=True,
     zip_safe=False,

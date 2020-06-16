@@ -11,3 +11,5 @@ tqdm
 anndata
 rootpath
 nbconvert
+nbformat
+seaborn
