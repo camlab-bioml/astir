@@ -35,7 +35,8 @@ setuptools.setup(
         "rootpath",
         "nbconvert",
         "nbformat",
-        "seaborn"
+        "seaborn",
+        "jupyter_client"
     ],
     include_package_data=True,
     zip_safe=False,
