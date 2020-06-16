@@ -13,4 +13,4 @@ rootpath
 nbconvert
 nbformat
 seaborn
-jupyter_clien
+jupyter_client
