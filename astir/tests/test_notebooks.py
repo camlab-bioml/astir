@@ -45,6 +45,8 @@ class TestNotebook(unittest.TestCase):
                     if os.path.splitext(fn)[1] == '.ipynb']
 
         for fn in nb_names:
+            if 'data_loading.ipynb' in fn:
+                continue
             _, errors = run_notebook(fn)
             self.assertEqual(errors, [], "Unexpected error in {}".format(fn))
 
