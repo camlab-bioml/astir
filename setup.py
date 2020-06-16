@@ -36,7 +36,8 @@ setuptools.setup(
         "nbconvert",
         "nbformat",
         "seaborn",
-        "jupyter_client"
+        "jupyter_client",
+        "ipykernel"
     ],
     include_package_data=True,
     zip_safe=False,
