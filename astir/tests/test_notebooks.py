@@ -13,7 +13,7 @@ def run_notebook(notebook_path):
         nb = nbformat.read(f, as_version=4)
 
     # Configure the notebook execution mode
-    proc = ExecutePreprocessor(timeout=600, kernel_name='astir')
+    proc = ExecutePreprocessor(timeout=600, kernel_name='python3')
     proc.allow_errors = True
 
     # Run the notebook
