@@ -1,6 +1,7 @@
 torch
 pandas
 numpy
+nbformat
 pyyaml
 sklearn
 argparse
@@ -8,3 +9,5 @@ matplotlib
 loompy
 tqdm
 anndata
+rootpath
+nbconvert

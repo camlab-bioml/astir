@@ -24,5 +24,5 @@ See the full `documentation <TODO>`_ and check out the `tutorials <TODO>`_.
 Authors
 ---------------------
 
-| Jinelle Hou, Sunyun Lee, Michael Geuenich, Kieran Campbell
+| Jinyu Hou, Sunyun Lee, Michael Geuenich, Kieran Campbell
 | Lunenfeld-Tanenbaum Research Institute & University of Toronto
