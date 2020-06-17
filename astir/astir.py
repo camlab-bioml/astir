@@ -217,7 +217,6 @@ class Astir:
             # Initializing a model
             model = CellStateModel(
                 dset=self._state_dset,
-                include_beta=True,
                 random_seed=(self.random_seed + i),
                 dtype=self._dtype
             )

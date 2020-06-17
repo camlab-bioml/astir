@@ -31,7 +31,6 @@ class CellStateModel:
     def __init__(
         self,
         dset: SCDataset,
-        include_beta: bool = True,
         random_seed: int = 42,
         dtype: torch.dtype = torch.float64,
     ) -> None:
@@ -55,7 +54,6 @@ class CellStateModel:
         torch.backends.cudnn.deterministic = True
 
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self._include_beta = include_beta
 
         self._dset = dset
 
