@@ -31,47 +31,29 @@ class CellTypeModel:
     """Class to perform statistical inference to assign
         cells to cell types
 
-    :raises NotClassifiableError: raised when the input gene expression 
-        data or the marker is not classifiable
+    :param dset: the input gene expression dataframe
+    :param include_beta: [description], defaults to True
+    :param random_seed: [description], defaults to 42
 
-    :param assignments: cell type assignment probabilities
-    :param losses: losses after optimization
-    :param type_dict: dictionary mapping cell type
-        to the corresponding genes
-    :param N: number of rows of data
-    :param G: number of cell type genes
-    :param C: number of cell types
-    :param initializations: initialization parameters
-    :param data: parameters that is not to be optimized
-    :param variables: parameters that is to be optimized
-    :param include_beta: [summery]
+    :raises NotClassifiableError: raised when randon seed is not an integer
+    :raises NotClassifiableError: raised when the dtype is not torch.float32
+    or torch.float64
     """
-
     def __init__(
-        self, dset: SCDataset, include_beta=False, design=None, random_seed=1234, dtype=torch.float64
+        self,
+        dset: SCDataset,
+        include_beta: bool = False,
+        random_seed: int = 1234,
+        dtype: torch.dtype = torch.float64,
     ) -> None:
-        """Initializes an Astir object
-
-        :param df_gex: the input gene expression dataframe
-        :type df_gex: pd.DataFrame
-        :param marker_dict: the gene marker dictionary
-        :type marker_dict: Dict
-
-        :param design: [description], defaults to None
-        :type design: [type], optional
-        :param random_seed: [description], defaults to 1234
-        :type random_seed: int, optional
-        :param include_beta: [description], defaults to True
-        :type include_beta: bool, optional
-
-        :raises NotClassifiableError: raised when randon seed is not an integer
-        """
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
         torch.manual_seed(random_seed)
 
         if dtype != torch.float32 and dtype != torch.float64:
-            raise NotClassifiableError("Dtype must be one of torch.float32 and torch.float64.")
+            raise NotClassifiableError(
+                "Dtype must be one of torch.float32 and torch.float64."
+            )
         self._dtype = dtype
 
         self.losses = None  # losses after optimization
@@ -89,33 +71,35 @@ class CellTypeModel:
         # Does this model use separate beta?
         self.include_beta = include_beta
 
-        # if design is not None:
-        #     if isinstance(design, pd.DataFrame):
-        #         design = design.to_numpy()
-
         self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(
             self._device, dtype=dtype
         )
         self._param_init()
 
     def _param_init(self) -> None:
-        """Initialize parameters and design matrices.
+        """ Initializes parameters and design matrices.
         """
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
 
         # Establish data
         self._data = {
-            "log_alpha": torch.log(torch.ones(C + 1, dtype = self._dtype) / (C + 1)).to(self._device),
+            "log_alpha": torch.log(torch.ones(C + 1, dtype=self._dtype) / (C + 1)).to(
+                self._device
+            ),
             "rho": self._dset.get_marker_mat().to(self._device),
         }
         # Initialize mu, log_delta
-        delta_init_mean = torch.log(torch.log(torch.tensor(3., dtype=self._dtype))) # the log of the log of this is the multiplier
-        t = torch.distributions.Normal(delta_init_mean.clone().detach().to(self._dtype), torch.tensor(0.1, dtype=self._dtype))
+        delta_init_mean = torch.log(
+            torch.log(torch.tensor(3.0, dtype=self._dtype))
+        )  # the log of the log of this is the multiplier
+        t = torch.distributions.Normal(
+            delta_init_mean.clone().detach().to(self._dtype),
+            torch.tensor(0.1, dtype=self._dtype),
+        )
         log_delta_init = t.sample((G, C + 1))
 
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
-        # mu_init = self._dset.get_mu()
 
         mu_init = mu_init - (
             self._data["rho"] * torch.exp(log_delta_init).to(self._device)
@@ -133,48 +117,36 @@ class CellTypeModel:
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
         initializations["mu"] = torch.cat(
-            [initializations["mu"], torch.zeros((G, P - 1), dtype=self._dtype, device=self._device)], 1
+            [
+                initializations["mu"],
+                torch.zeros((G, P - 1), dtype=self._dtype, device=self._device),
+            ],
+            1,
         )
 
         # Create trainable variables
-        # self._variables = {
-        #     n: Variable(v.clone(), requires_grad=True).to(self._device) for (n, v) in initializations.items()
-        # }
         self._variables = {}
         for (n, v) in initializations.items():
             self._variables[n] = Variable(v.clone()).to(self._device)
             self._variables[n].requires_grad = True
 
         if self.include_beta:
-            # self._variables["beta"] = Variable(
-            #     torch.zeros(G, C + 1).to(self._device), requires_grad=True
-            # )
-            self._variables["beta"] = Variable(torch.zeros(G, C + 1, dtype=self._dtype)).to(self._device)
+            self._variables["beta"] = Variable(
+                torch.zeros(G, C + 1, dtype=self._dtype)
+            ).to(self._device)
             self._variables["beta"].requires_grad = True
-            # print("beta: " + str(self._variables["beta"].dtype))
 
-        # print("mu: " + str(self._variables["mu"].dtype))
-        # print("log_sigma: " + str(self._variables["log_sigma"].dtype))
-        # print("log_delta: " + str(self._variables["log_delta"].dtype))
-        # print("p: " + str(self._variables["p"].dtype))
-        
-
-    # @profile 
-    ## Declare pytorch forward fn
+    # Declare pytorch forward fn
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
     ) -> torch.Tensor:
-        """[summary]
+        """ One forward pass
 
         :param Y: [description]
-        :type Y: torch.Tensor
         :param X: [description]
-        :type X: torch.Tensor
         :param design: [description]
-        :type design: torch.Tensor
 
         :return: [description]
-        :rtype: torch.Tensor
         """
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
@@ -218,33 +190,39 @@ class CellTypeModel:
 
         return -elbo
 
-    # @profile
     def fit(
-        self, max_epochs=50, learning_rate=1e-3, batch_size=128, delta_loss=1e-3,
-        msg= ""
+        self,
+        max_epochs: int = 50,
+        learning_rate: float = 1e-3,
+        batch_size: int = 128,
+        delta_loss: float = 1e-3,
+        msg: str = "",
     ) -> None:
-        """Fit the model.
+        """ Runs train loops until the convergence reaches delta_loss for
+        delta_loss_batch sizes or for max_epochs number of times
 
-        :param epochs: [description], defaults to 100
-        :type epochs: int, optional
-        :param learning_rate: [description], defaults to 1e-2
-        :type learning_rate: [type], optional
-        :param batch_size: [description], defaults to 1024
-        :type batch_size: int, optional
+        :param max_epochs: number of train loop iterations, defaults to 50
+        :param learning_rate: the learning rate, defaults to 0.01
+        :param batch_size: the batch size, defaults to 128
+        :param delta_loss: stops iteration once the loss rate reaches
+        delta_loss, defaults to 0.001
+        :param msg: iterator bar message, defaults to empty string
+
+        :return: np.array of shape (n_iter,) that contains the losses after
+        each iteration where the last element of the numpy array is the loss
+        after n_iter iterations
         """
-        ## Make dataloader
+        # Make dataloader
         dataloader = DataLoader(
             self._dset, batch_size=min(batch_size, len(self._dset)), shuffle=True
         )
 
-        ## Run training loop
+        # Run training loop
         losses = []
         per = 1
 
-        ## Construct optimizer
+        # Construct optimizer
         opt_params = list(self._variables.values()) + list(self._recog.parameters())
-        # for param in opt_params:
-        #     print(str(param.dtype))
 
         if self.include_beta:
             opt_params = opt_params + [self._variables["beta"]]
@@ -252,10 +230,15 @@ class CellTypeModel:
 
         _, exprs_X, _ = self._dset[:]  # calls dset.get_item
 
-        iterator = trange(max_epochs, desc="training restart" + msg, unit="epochs", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]')
+        iterator = trange(
+            max_epochs,
+            desc="training restart" + msg,
+            unit="epochs",
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
+        )
         for ep in iterator:
             L = None
-            loss = torch.tensor(0., dtype=self._dtype)
+            loss = torch.tensor(0.0, dtype=self._dtype)
             for batch in dataloader:
                 Y, X, design = batch
                 optimizer.zero_grad()
@@ -273,24 +256,31 @@ class CellTypeModel:
                 iterator.close()
                 break
 
-        ## Save output
+        # Save output
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
         self._assignment = g
-        self._run_info = {"max_epochs": max_epochs, "learning_rate": learning_rate, "batch_size": batch_size, "delta_loss": delta_loss}
+        self._run_info = {
+            "max_epochs": max_epochs,
+            "learning_rate": learning_rate,
+            "batch_size": batch_size,
+            "delta_loss": delta_loss,
+        }
 
         if self._losses is None:
             self._losses = torch.tensor(losses)
         else:
-            self._losses = torch.cat((self._losses.view(self._losses.shape[0]), torch.tensor(losses)), dim=0)
+            self._losses = torch.cat(
+                (self._losses.view(self._losses.shape[0]), torch.tensor(losses)), dim=0
+            )
         return g
 
-    def predict(self, new_dset):
+    def predict(self, new_dset: pd.DataFrame) -> np.array:
         _, exprs_X, _ = new_dset[:]
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
         # g, _, _ = self._forward(exprs_X.float())
         return g
 
-    def save_model(self, hdf5_name: str, n_init, n_init_epochs):
+    def save_model(self, hdf5_name: str, n_init: int, n_init_epochs: int):
         if self._assignment is None:
             raise Exception("The type model has not been trained yet")
         with h5py.File(hdf5_name, "w") as f:
@@ -317,20 +307,25 @@ class CellTypeModel:
             raise Exception("The type model has not been trained yet")
         return self._losses
 
-    def get_scdataset(self):
+    def get_scdataset(self) -> pd.DataFrame:
         return self._dset
 
-    def get_data(self):
+    def get_data(self) -> Dict[str, torch.Tensor]:
         return self._data
 
-    def get_variables(self):
+    def get_variables(self) -> Dict[str, torch.Tensor]:
         return self._variables
 
     def is_converged(self) -> bool:
         return self._is_converged
 
     def _compare_marker_between_types(
-        self, curr_type, celltype_to_compare, marker, cell_types, alpha=0.05
+        self,
+        curr_type,
+        celltype_to_compare,
+        marker,
+        cell_types,
+        alpha: float = 0.05
     ):
         """For a given cell type and two proteins, ensure marker
         is expressed at higher level using t-test
@@ -369,7 +364,11 @@ class CellTypeModel:
 
         return None
 
-    def diagnostics(self, cell_type_assignments: list, alpha: float) -> pd.DataFrame:
+    def diagnostics(
+            self,
+            cell_type_assignments: list,
+            alpha: float
+    ) -> pd.DataFrame:
         """Run diagnostics on cell type assignments
 
         See :meth:`astir.Astir.diagnostics_celltype` for full documentation
