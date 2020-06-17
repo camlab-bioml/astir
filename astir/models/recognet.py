@@ -12,7 +12,6 @@ class RecognitionNet(nn.Module):
         # print("hidden_1: " + str(self.hidden_1.is_cuda))
         # print("hidden_2: " + str(self.hidden_2.is_cuda))
 
-
     def forward(self, x):
         x = self.hidden_1(x)
         x = F.relu(x)

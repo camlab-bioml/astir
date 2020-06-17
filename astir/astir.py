@@ -42,7 +42,7 @@ class Astir:
         design=None,
         random_seed=1234,
         include_beta=False,
-        dtype=torch.float64
+        dtype=torch.float64,
     ) -> None:
 
         if not isinstance(random_seed, int):
@@ -51,7 +51,9 @@ class Astir:
         self.random_seed = random_seed
 
         if dtype != torch.float32 and dtype != torch.float64:
-            raise NotClassifiableError("Dtype must be one of torch.float32 and torch.float64.")
+            raise NotClassifiableError(
+                "Dtype must be one of torch.float32 and torch.float64."
+            )
         self._dtype = dtype
 
         self._type_ast, self._state_ast = None, None
@@ -71,14 +73,14 @@ class Astir:
                 marker_dict=type_dict,
                 design=design,
                 include_other_column=True,
-                dtype=self._dtype
+                dtype=self._dtype,
             )
             self._state_dset = SCDataset(
                 expr_input=input_expr,
                 marker_dict=state_dict,
                 design=design,
                 include_other_column=False,
-                dtype=self._dtype
+                dtype=self._dtype,
             )
 
         self._design = design
@@ -130,7 +132,7 @@ class Astir:
         delta_loss=1e-3,
         n_init=5,
         n_initial_epochs=5,
-        output_summary=None
+        output_summary=None,
     ) -> None:
         """Run Variational Bayes to infer cell types
 
@@ -144,12 +146,24 @@ class Astir:
         np.random.seed(self.random_seed)
         seeds = np.random.randint(1, 100000000, n_init)
         type_models = [
-            CellTypeModel(self._type_dset, self._include_beta, self._design, int(seed), self._dtype)
+            CellTypeModel(
+                self._type_dset,
+                self._include_beta,
+                self._design,
+                int(seed),
+                self._dtype,
+            )
             for seed in seeds
         ]
         n_init_epochs = min(max_epochs, n_initial_epochs)
         for i in range(n_init):
-            type_models[i].fit(n_init_epochs, learning_rate, batch_size, delta_loss, " " + str(i+1) + "/" + str(n_init))
+            type_models[i].fit(
+                n_init_epochs,
+                learning_rate,
+                batch_size,
+                delta_loss,
+                " " + str(i + 1) + "/" + str(n_init),
+            )
 
         losses = torch.tensor([m.get_losses()[-1] for m in type_models])
 
@@ -219,7 +233,7 @@ class Astir:
                 dset=self._state_dset,
                 include_beta=True,
                 random_seed=(self.random_seed + i),
-                dtype=self._dtype
+                dtype=self._dtype,
             )
             # Fitting the model
             n_init_epochs = min(max_epochs, n_init_epochs)
@@ -229,7 +243,7 @@ class Astir:
                 batch_size=batch_size,
                 delta_loss=delta_loss,
                 delta_loss_batch=delta_loss_batch,
-                msg=" " + str(i+1) + "/" + str(n_init)
+                msg=" " + str(i + 1) + "/" + str(n_init),
             )
 
             cellstate_losses.append(losses)
@@ -251,7 +265,7 @@ class Astir:
             batch_size=batch_size,
             delta_loss=delta_loss,
             delta_loss_batch=delta_loss_batch,
-            msg=" (final)"
+            msg=" (final)",
         )
 
         # Warns the user if the model has not converged
