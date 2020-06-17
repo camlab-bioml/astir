@@ -34,7 +34,12 @@ setuptools.setup(
         "anndata",
         "rootpath",
         "nbconvert",
-        "h5py",
+        "nbformat",
+        "seaborn",
+        "jupyter_client",
+        "ipykernel",
+        "ipython"
+        "h5py"
     ],
     include_package_data=True,
     zip_safe=False,

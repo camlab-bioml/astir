@@ -11,4 +11,9 @@ tqdm
 anndata
 rootpath
 nbconvert
+nbformat
+seaborn
+jupyter_client
+ipykernel
+ipython
 h5py

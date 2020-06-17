@@ -48,6 +48,16 @@ Run one test module at a time
    $ nosetests astir/tests/test_astir.py
    $ nosetests astir/tests/models/test_cellstate.py
 
+Method 2
+********
+Run all test modules at once
+
+..code::
+
+    $ nosetests
+
+in any project module directory. You might need install the nose package.
+
 Adding a unittest
 #################
 
@@ -56,15 +66,15 @@ Best git practices
 ~~~~~~~~~~~~~~~~~~
 
 The best git practice is to start your own local branch, and commit to your local branch's
-remote branch once in awhile. Once your branch ready to merge into origin master repo,
-you want to git merge, pull, and push.
+remote branch once in awhile. Once your branch is ready to merge into the
+origin master repo, you want to git merge, pull, and push.
 
 
 Git clone and start a new branch
 ################################
 
 This is the first step you want to take and won't have to repeat unless you want
-to clone on another machine or create a new branch
+to clone on another machine or create a new branch.
 
 .. code::
 
@@ -139,5 +149,5 @@ or depending on your setup you may even be able to run
 To merge a branch into the current one
 Again resolve any conflicts
 
-Update remote master by following steps outlined in
+Update remote master by following the steps outlined in
 `Update your copy in the repo`
