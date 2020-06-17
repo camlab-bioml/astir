@@ -235,7 +235,8 @@ class Astir:
             cellstate_models.append(model)
 
         last_delta_losses_mean = np.array(
-            [losses[-delta_loss_batch:].mean() for losses in cellstate_losses]
+            [np.mean(losses[-delta_loss_batch:])
+             for losses in cellstate_losses]
         )
 
         best_model_index = int(np.argmin(last_delta_losses_mean))

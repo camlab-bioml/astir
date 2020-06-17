@@ -58,7 +58,7 @@ class CellStateModel:
         self._dset = dset
 
         self._optimizer = None
-        self._losses = np.empty(0)
+        self._losses = torch.empty(0, dtype=self._dtype)
         self._param_init()
 
         # Convergence flag
@@ -175,11 +175,11 @@ class CellStateModel:
         each iteration where the last element of the numpy array is the loss
         after n_iter iterations
         """
-        losses = np.empty(max_epochs)
+        losses = []
 
         # Returns early if the model has already converged
         if self._is_converged:
-            return losses[:0]
+            return losses
 
         if delta_loss_batch >= max_epochs:
             warnings.warn("Delta loss batch size is greater than the number of epochs")
@@ -219,17 +219,18 @@ class CellStateModel:
 
                 self._optimizer.step()
 
-            losses[ep] = loss.cpu().detach().numpy()
+            losses.append(loss.cpu().detach().item())
 
             start_index = ep - delta_loss_batch + 1
             end_index = start_index + delta_loss_batch
             if start_index >= 0:
                 curr_mean = np.mean(losses[start_index:end_index])
             elif self._losses.shape[0] >= -start_index:
-                last_ten_losses = np.append(
-                    self._losses[start_index:], losses[:end_index]
+                last_ten_losses = torch.cat(
+                    (self._losses[start_index:],
+                     torch.tensor(losses[:end_index], dtype=torch.float64))
                 )
-                curr_mean = np.mean(last_ten_losses)
+                curr_mean = torch.mean(last_ten_losses).item()
             else:
                 curr_mean = None
 
@@ -249,7 +250,9 @@ class CellStateModel:
         if self._losses is None:
             self._losses = losses
         else:
-            self._losses = np.append(self._losses, losses)
+            self._losses = \
+                torch.cat((self._losses,
+                           torch.tensor(losses, dtype=torch.float64)))
 
         return losses
 
