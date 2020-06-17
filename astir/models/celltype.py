@@ -1,4 +1,3 @@
-import re
 from typing import Tuple, List, Dict
 import warnings
 from tqdm import trange
@@ -17,17 +16,16 @@ from torch.utils.data import Dataset, DataLoader
 
 import pandas as pd
 import numpy as np
-import h5py
 
 from sklearn.preprocessing import StandardScaler
 from scipy import stats
 
-
+from .abstract import AbstractModel
 from astir.models.scdataset import SCDataset
 from astir.models.recognet import RecognitionNet
 
 
-class CellTypeModel:
+class CellTypeModel(AbstractModel):
     """Class to perform statistical inference to assign
         cells to cell types
 
@@ -71,34 +69,15 @@ class CellTypeModel:
 
         :raises NotClassifiableError: raised when randon seed is not an integer
         """
-        if not isinstance(random_seed, int):
-            raise NotClassifiableError("Random seed is expected to be an integer.")
-        torch.manual_seed(random_seed)
-
-        if dtype != torch.float32 and dtype != torch.float64:
-            raise NotClassifiableError(
-                "Dtype must be one of torch.float32 and torch.float64."
-            )
-        self._dtype = dtype
+        super().__init__(dset, include_beta, random_seed, dtype)
 
         self.losses = None  # losses after optimization
-        self._is_converged = False
         self.cov_mat = None  # temporary -- remove
-        self._data = None
-        self._variables = None
-        self._losses = None
         self._assignment = None
-        self._run_info = None
 
-        self._dset = dset
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        # Does this model use separate beta?
-        self.include_beta = include_beta
-
-        # if design is not None:
-        #     if isinstance(design, pd.DataFrame):
-        #         design = design.to_numpy()
+        if design is not None:
+            if isinstance(design, pd.DataFrame):
+                design = design.cpu().to_numpy()
 
         self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(
             self._device, dtype=dtype
@@ -163,7 +142,7 @@ class CellTypeModel:
             self._variables[n] = Variable(v.clone()).to(self._device)
             self._variables[n].requires_grad = True
 
-        if self.include_beta:
+        if self._include_beta:
             # self._variables["beta"] = Variable(
             #     torch.zeros(G, C + 1).to(self._device), requires_grad=True
             # )
@@ -207,7 +186,7 @@ class CellTypeModel:
         mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, C + 1)
         mean = mean + mean2
 
-        if self.include_beta:
+        if self._include_beta:
             with torch.no_grad():
                 min_delta = torch.min(delta_tilde, 1).values.reshape((G, 1))
             mean = mean + min_delta * torch.tanh(self._variables["beta"]) * (
@@ -264,7 +243,7 @@ class CellTypeModel:
         # for param in opt_params:
         #     print(str(param.dtype))
 
-        if self.include_beta:
+        if self._include_beta:
             opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
@@ -313,55 +292,6 @@ class CellTypeModel:
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
         # g, _, _ = self._forward(exprs_X.float())
         return g
-
-    # def save_model(self, hdf5_name: str, n_init: int, n_init_epochs: int):
-    #     """Save the summary of this model to a hdf5 file.
-
-    #     :param hdf5_name: name of the output hdf5 file
-    #     :type hdf5_name: str
-    #     :param n_init: the number of models initialized before the final training of this model.
-    #     :type n_init: int
-    #     :param n_init_epochs: the number of epochs the models were trained before the training of this model.
-    #     :type n_init_epochs: int
-    #     :raises Exception: raised when this function is called before the model is trained.
-    #     """
-    #     if self._assignment is None:
-    #         raise Exception("The type model has not been trained yet")
-    #     with h5py.File(hdf5_name, "w") as f:
-    #         loss_grp = f.create_group("losses")
-    #         loss_grp["losses"] = self._losses.cpu().numpy()
-    #         param_grp = f.create_group("parameters")
-    #         dic = list(self._variables.items()) + list(self._data.items())
-    #         for key, val in dic:
-    #             param_grp[key] = val.detach().cpu().numpy()
-    #         info_grp = f.create_group("run_info")
-    #         for key, val in self._run_info.items():
-    #             info_grp[key] = val
-    #         info_grp["n_init"] = n_init
-    #         info_grp["n_init_epochs"] = n_init_epochs
-    #         f.create_dataset("celltype_assignment", data=self._assignment)
-
-    def get_losses(self) -> float:
-        """ Getter for losses
-
-        :return: self.losses
-        :rtype: float
-        """
-        if self._losses is None:
-            raise Exception("The type model has not been trained yet")
-        return self._losses
-
-    def get_scdataset(self):
-        return self._dset
-
-    def get_data(self):
-        return self._data
-
-    def get_variables(self):
-        return self._variables
-
-    def is_converged(self) -> bool:
-        return self._is_converged
 
     def _compare_marker_between_types(
         self, curr_type, celltype_to_compare, marker, cell_types, alpha=0.05

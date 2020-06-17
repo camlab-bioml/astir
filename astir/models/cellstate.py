@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import yaml
 
+from .abstract import AbstractModel
 from .scdataset import SCDataset
 from .cellstate_recognet import StateRecognitionNet
 from tqdm import trange
@@ -17,7 +18,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
 
-class CellStateModel:
+class CellStateModel(AbstractModel):
     """Class to perform statistical inference to on the activation
         of states (pathways) across cells
 
@@ -35,36 +36,19 @@ class CellStateModel:
         random_seed: int = 42,
         dtype=torch.float64,
     ) -> None:
-        if not isinstance(random_seed, int):
-            raise NotClassifiableError("Random seed is expected to be an integer.")
-
-        if dtype != torch.float32 and dtype != torch.float64:
-            raise NotClassifiableError(
-                "Dtype must be one of torch.float32 and torch.float64."
-            )
+        super().__init__(dset, include_beta, random_seed, dtype)
         # Setting random seeds
-        self.random_seed = random_seed
-        torch.manual_seed(self.random_seed)
-        torch.cuda.manual_seed_all(self.random_seed)
-        torch.cuda.manual_seed(self.random_seed)
-        np.random.seed(self.random_seed)
 
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
 
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self._include_beta = include_beta
-
-        self._dset = dset
-
         self._optimizer = None
         self._losses = np.empty(0)
-        self._param_init(dtype)
+        self._param_init()
 
         # Convergence flag
-        self._is_converged = False
 
-    def _param_init(self, dtype) -> None:
+    def _param_init(self) -> None:
         """ Initializes sets of parameters
         """
         N = len(self._dset)
@@ -78,7 +62,7 @@ class CellStateModel:
 
         # Include beta or not
         d = torch.distributions.Uniform(
-            torch.tensor(0.0, dtype=dtype), torch.tensor(1.5, dtype=dtype)
+            torch.tensor(0.0, dtype=self._dtype), torch.tensor(1.5, dtype=self._dtype)
         )
         initializations["log_w"] = torch.log(d.sample((C, self._dset.get_n_features())))
 
@@ -91,7 +75,7 @@ class CellStateModel:
             "rho": self._dset.get_marker_mat().T.to(self._device),
         }
 
-        self._models = StateRecognitionNet(C, G).to(device=self._device, dtype=dtype)
+        self._models = StateRecognitionNet(C, G).to(device=self._device, dtype=self._dtype)
 
     def _loss_fn(
         self,
@@ -345,40 +329,6 @@ class CellStateModel:
             df_issues = pd.DataFrame(columns=col_names)
 
         return df_issues
-
-    def get_losses(self) -> np.array:
-        """ Getter for losses
-
-        :return: a numpy array of losses for each training iteration the
-            model runs
-        """
-        if self._losses is None:
-            raise Exception("The state model has not been trained yet")
-        return self._losses
-
-    def get_scdataset(self) -> SCDataset:
-        return self._dset
-
-    def is_converged(self) -> bool:
-        """ Returns True if the model converged
-
-        :return: self._is_converged
-        """
-        return self._is_converged
-
-    def get_data(self) -> Dict[str, torch.Tensor]:
-        """ Returns data parameter
-
-        :return: self._data
-        """
-        return self._data
-
-    def get_variables(self) -> Dict[str, torch.Tensor]:
-        """ Returns all variables
-
-        :return: self._variables
-        """
-        return self._variables
 
 
 class NotClassifiableError(RuntimeError):
