@@ -38,7 +38,12 @@ setuptools.setup(
         "seaborn",
         "jupyter_client",
         "ipykernel",
+<<<<<<< HEAD
         "ipython" "h5py",
+=======
+        "ipython",
+        "h5py"
+>>>>>>> 785704e78d58b0a880f4e0f98922083a2f4915f5
     ],
     include_package_data=True,
     zip_safe=False,
