@@ -328,14 +328,22 @@ class Astir:
         return cell_type_assignments
 
     def get_cellstates(self) -> pd.DataFrame:
-        """ Get cell state activations
+        """ Get cell state activations. It returns the rescaled activations,
+        values between 0 and 1
 
         :return: state assignments
         :rtype: pd.DataFrame
         """
         if self._state_assignments is None:
             raise Exception("The state model has not been trained yet")
-        return self._state_assignments
+
+        assign = self._state_assignments
+        assign_min = assign.min(axis=0)
+        assign_max = assign.max(axis=0)
+
+        assign_rescale = (assign - assign_min) / (assign_max - assign_min)
+
+        return assign_rescale
 
     def predict_celltypes(self, dset=None):
         if self._type_ast is None:
@@ -367,10 +375,16 @@ class Astir:
         g = self._state_ast.get_final_mu_z(dset).detach().cpu().numpy()
 
         state_assignments = pd.DataFrame(g)
-        state_assignments.columns = self._state_dset.get_classes()
-        state_assignments.index = self._state_dset.get_cell_names()
 
-        return state_assignments
+        assign_min = state_assignments.min(axis=0)
+        assign_max = state_assignments.max(axis=0)
+
+        assign_rescale = (state_assignments - assign_min) / (assign_max - assign_min)
+
+        assign_rescale.columns = self._state_dset.get_classes()
+        assign_rescale.index = self._state_dset.get_cell_names()
+
+        return assign_rescale
 
     def get_type_losses(self) -> np.array:
         """[summary]
@@ -409,9 +423,7 @@ class Astir:
         :param output_csv: path to output csv
         :type output_csv: str, required
         """
-        if self._state_assignments is None:
-            raise Exception("The state model has not been trained yet")
-        self._state_assignments.to_csv(output_csv)
+        self.get_cellstates().to_csv(output_csv)
 
     def __str__(self) -> str:
         return (
