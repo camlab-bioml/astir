@@ -238,7 +238,7 @@ class CellStateModel:
                 curr_delta_loss = (prev_mean - curr_mean) / prev_mean
                 delta_cond_met = 0 <= curr_delta_loss < delta_loss
 
-            iterator.set_postfix_str("current loss: " + str(round(losses[ep].sum(), 1)))
+            iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
 
             prev_mean = curr_mean
             if delta_cond_met:
@@ -248,11 +248,11 @@ class CellStateModel:
                 break
 
         if self._losses is None:
-            self._losses = losses
+            self._losses = torch.tensor(losses, dtype=self._dtype)
         else:
             self._losses = \
                 torch.cat((self._losses,
-                           torch.tensor(losses, dtype=torch.float64)))
+                           torch.tensor(losses, dtype=self._dtype)))
 
         return losses
 
