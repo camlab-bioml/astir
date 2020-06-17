@@ -167,14 +167,12 @@ class TestAstir(TestCase):
             marker_dict=self.marker_dict,
             design=None,
             random_seed=42,
-            include_beta=True,
         )
         model2 = Astir(
             input_expr=self.expr,
             marker_dict=self.marker_dict,
             design=None,
             random_seed=42,
-            include_beta=True,
         )
 
         model1.fit_type(max_epochs=10)
@@ -195,14 +193,12 @@ class TestAstir(TestCase):
             marker_dict=self.marker_dict,
             design=None,
             random_seed=42,
-            include_beta=True,
         )
         model2 = Astir(
             input_expr=self.expr,
             marker_dict=self.marker_dict,
             design=None,
             random_seed=1234,
-            include_beta=True,
         )
 
         model1.fit_type(max_epochs=10)
@@ -222,14 +218,12 @@ class TestAstir(TestCase):
             marker_dict=self.marker_dict,
             design=None,
             random_seed=42,
-            include_beta=True,
         )
         model2 = Astir(
             input_expr=self.expr,
             marker_dict=self.marker_dict,
             design=None,
             random_seed=42,
-            include_beta=True,
         )
 
         model1.fit_state(max_epochs=5)
@@ -250,14 +244,12 @@ class TestAstir(TestCase):
             marker_dict=self.marker_dict,
             design=None,
             random_seed=42,
-            include_beta=True,
         )
         model2 = Astir(
             input_expr=self.expr,
             marker_dict=self.marker_dict,
             design=None,
             random_seed=1234,
-            include_beta=True,
         )
 
         model1.fit_state(max_epochs=5)

@@ -46,7 +46,7 @@ class TestCellStateModel(TestCase):
         )
 
         self.model = CellStateModel(
-            dset=self._dset, include_beta=True, random_seed=42, dtype=torch.float32
+            dset=self._dset, random_seed=42, dtype=torch.float32
         )
 
         self.model.fit(max_epochs=1)
@@ -57,11 +57,6 @@ class TestCellStateModel(TestCase):
         """ Testing if the instance is created or not
         """
         self.assertIsInstance(self.model, CellStateModel)
-
-    def test_include_beta(self):
-        """ Test include_beta variable
-        """
-        self.assertTrue(self.model._include_beta)
 
     # def test_optimizer(self):
     #     """ Test initial optimizer
@@ -85,7 +80,6 @@ class TestCellStateModel(TestCase):
     #     warnings.filterwarnings("ignore", category=UserWarning)
     #     model1 = CellStateModel(
     #         dset=self._dset,
-    #         include_beta=True,
     #         alpha_random=True,
     #         random_seed=42
     #     )
@@ -102,7 +96,6 @@ class TestCellStateModel(TestCase):
     #     warnings.filterwarnings("ignore", category=UserWarning)
     #     model2 = CellStateModel(
     #         dset=self._dset,
-    #         include_beta=True,
     #         alpha_random=True,
     #         random_seed=42
     #     )
@@ -117,13 +110,11 @@ class TestCellStateModel(TestCase):
     #     warnings.filterwarnings("ignore", category=UserWarning)
     #     model1 = CellStateModel(
     #         dset=self._dset,
-    #         include_beta=True,
     #         alpha_random=True,
     #         random_seed=42
     #     )
     #     model2 = CellStateModel(
     #         dset=self._dset,
-    #         include_beta=True,
     #         alpha_random=True,
     #         random_seed=1234
     #     )

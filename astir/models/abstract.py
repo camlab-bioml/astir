@@ -12,7 +12,7 @@ class AbstractModel:
     """
 
     def __init__(
-        self, dset: SCDataset, include_beta: bool, random_seed: int, dtype: torch.dtype,
+        self, dset: SCDataset, random_seed: int, dtype: torch.dtype,
     ) -> None:
 
         if not isinstance(random_seed, int):
@@ -33,8 +33,6 @@ class AbstractModel:
 
         self._dset = dset
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        self._include_beta = include_beta
         self._is_converged = False
 
     def get_losses(self) -> float:

@@ -25,14 +25,12 @@ class CellStateModel(AbstractModel):
     :param df_gex: the input gene expression dataframe
     :param marker_dict: the gene marker dictionary
     :param random_seed: seed number to reproduce results, defaults to 1234
-    :param include_beta: model parameter that measures with arbitrary unit,
-        by how much feature g contributes to pathway p
     """
 
     def __init__(
-        self, dset: SCDataset, include_beta=True, random_seed=1234, dtype=torch.float64,
+        self, dset: SCDataset, random_seed=1234, dtype=torch.float64,
     ) -> None:
-        super().__init__(dset, include_beta, random_seed, dtype)
+        super().__init__(dset, random_seed, dtype)
         # Setting random seeds
 
         torch.backends.cudnn.benchmark = False
@@ -217,7 +215,7 @@ class CellStateModel(AbstractModel):
                 curr_delta_loss = (prev_mean - curr_mean) / prev_mean
                 delta_cond_met = 0 <= curr_delta_loss < delta_loss
 
-            iterator.set_postfix_str("current loss: " + str(round(losses[ep].sum(), 1)))
+            iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
 
             prev_mean = curr_mean
             if delta_cond_met:

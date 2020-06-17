@@ -42,13 +42,11 @@ class CellTypeModel(AbstractModel):
     :param initializations: initialization parameters
     :param data: parameters that is not to be optimized
     :param variables: parameters that is to be optimized
-    :param include_beta: [summery]
     """
 
     def __init__(
         self,
         dset: SCDataset,
-        include_beta=False,
         random_seed=1234,
         dtype=torch.float64,
     ) -> None:
@@ -61,12 +59,10 @@ class CellTypeModel(AbstractModel):
 
         :param random_seed: [description], defaults to 1234
         :type random_seed: int, optional
-        :param include_beta: [description], defaults to True
-        :type include_beta: bool, optional
 
         :raises NotClassifiableError: raised when randon seed is not an integer
         """
-        super().__init__(dset, include_beta, random_seed, dtype)
+        super().__init__(dset, random_seed, dtype)
 
         self.losses = None  # losses after optimization
         self.cov_mat = None  # temporary -- remove
@@ -127,29 +123,15 @@ class CellTypeModel(AbstractModel):
         )
 
         # Create trainable variables
-        # self._variables = {
-        #     n: Variable(v.clone(), requires_grad=True).to(self._device) for (n, v) in initializations.items()
-        # }
         self._variables = {}
         for (n, v) in initializations.items():
             self._variables[n] = Variable(v.clone()).to(self._device)
             self._variables[n].requires_grad = True
 
-        if self._include_beta:
-            # self._variables["beta"] = Variable(
-            #     torch.zeros(G, C + 1).to(self._device), requires_grad=True
-            # )
-            self._variables["beta"] = Variable(
-                torch.zeros(G, C + 1, dtype=self._dtype)
-            ).to(self._device)
-            self._variables["beta"].requires_grad = True
-            # print("beta: " + str(self._variables["beta"].dtype))
-
-        # print("mu: " + str(self._variables["mu"].dtype))
-        # print("log_sigma: " + str(self._variables["log_sigma"].dtype))
-        # print("log_delta: " + str(self._variables["log_delta"].dtype))
-        # print("p: " + str(self._variables["p"].dtype))
-
+        self._variables["beta"] = Variable(
+            torch.zeros(G, C + 1, dtype=self._dtype)
+        ).to(self._device)
+        self._variables["beta"].requires_grad = True
     # @profile
     ## Declare pytorch forward fn
     def _forward(
@@ -179,11 +161,10 @@ class CellTypeModel(AbstractModel):
         mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, C + 1)
         mean = mean + mean2
 
-        if self._include_beta:
-            with torch.no_grad():
-                min_delta = torch.min(delta_tilde, 1).values.reshape((G, 1))
-            mean = mean + min_delta * torch.tanh(self._variables["beta"]) * (
-                1 - self._data["rho"]
+        with torch.no_grad():
+            min_delta = torch.min(delta_tilde, 1).values.reshape((G, 1))
+        mean = mean + min_delta * torch.tanh(self._variables["beta"]) * (
+            1 - self._data["rho"]
             )
 
         # now do the variance modelling
@@ -236,8 +217,7 @@ class CellTypeModel(AbstractModel):
         # for param in opt_params:
         #     print(str(param.dtype))
 
-        if self._include_beta:
-            opt_params = opt_params + [self._variables["beta"]]
+        opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
         _, exprs_X, _ = self._dset[:]  # calls dset.get_item

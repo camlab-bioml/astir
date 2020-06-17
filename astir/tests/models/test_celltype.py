@@ -42,7 +42,7 @@ class TestCellTypeModel(TestCase):
             design=None,
         )
 
-        self.model = CellTypeModel(dset=self._dset, include_beta=True, random_seed=42)
+        self.model = CellTypeModel(dset=self._dset, random_seed=42)
         self.model.fit(max_epochs=1)
 
     def test_basic_instance_creation(self):
@@ -59,7 +59,7 @@ class TestCellTypeModel(TestCase):
             dtype=torch.float32,
         )
         m = CellTypeModel(
-            dset=ds, include_beta=True, random_seed=42, dtype=torch.float32
+            dset=ds, random_seed=42, dtype=torch.float32
         )
         m.fit(max_epochs=1)
         data = m.get_data()
@@ -77,7 +77,7 @@ class TestCellTypeModel(TestCase):
             dtype=torch.float64,
         )
         m = CellTypeModel(
-            dset=ds, include_beta=True, random_seed=42, dtype=torch.float64
+            dset=ds, random_seed=42, dtype=torch.float64
         )
         m.fit(max_epochs=1)
         data = m.get_data()

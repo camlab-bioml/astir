@@ -29,7 +29,6 @@ class Astir:
     :param design: An (optional) `pd.DataFrame` that represents a
         design matrix for the samples
     :param random_seed: The random seed to set
-    :param include_beta: Deprecated
 
     :raises NotClassifiableError: raised when the input gene expression
         data or the marker is not classifiable
@@ -42,7 +41,6 @@ class Astir:
         marker_dict: Dict,
         design=None,
         random_seed=1234,
-        include_beta=False,
         dtype=torch.float64,
     ) -> None:
 
@@ -86,7 +84,6 @@ class Astir:
             )
 
         self._design = design
-        self._include_beta = include_beta
 
     def _sanitize_dict(self, marker_dict: Dict[str, dict]) -> Tuple[dict, dict]:
         """ Sanitizes the marker dictionary.
@@ -149,7 +146,6 @@ class Astir:
         type_models = [
             CellTypeModel(
                 self._type_dset,
-                self._include_beta,
                 int(seed),
                 self._dtype,
             )
@@ -237,7 +233,6 @@ class Astir:
             # Initializing a model
             model = CellStateModel(
                 dset=self._state_dset,
-                include_beta=True,
                 random_seed=(self.random_seed + i),
                 dtype=self._dtype,
             )
@@ -592,4 +587,3 @@ class NotClassifiableError(RuntimeError):
 # :param initializations: initialization parameters
 # :param data: parameters that is not to be optimized
 # :param variables: parameters that is to be optimized
-# :param include_beta: [summery]
