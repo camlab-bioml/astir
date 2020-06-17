@@ -30,11 +30,7 @@ class CellStateModel(AbstractModel):
     """
 
     def __init__(
-        self,
-        dset: SCDataset,
-        include_beta: bool = True,
-        random_seed: int = 42,
-        dtype=torch.float64,
+        self, dset: SCDataset, include_beta=True, random_seed=1234, dtype=torch.float64,
     ) -> None:
         super().__init__(dset, include_beta, random_seed, dtype)
         # Setting random seeds
@@ -75,7 +71,9 @@ class CellStateModel(AbstractModel):
             "rho": self._dset.get_marker_mat().T.to(self._device),
         }
 
-        self._models = StateRecognitionNet(C, G).to(device=self._device, dtype=self._dtype)
+        self._models = StateRecognitionNet(C, G).to(
+            device=self._device, dtype=self._dtype
+        )
 
     def _loss_fn(
         self,

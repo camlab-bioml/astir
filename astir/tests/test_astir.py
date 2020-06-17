@@ -10,8 +10,7 @@ import yaml
 import h5py
 
 from astir import Astir
-from astir.data_readers import from_csv_yaml, from_csv_dir_yaml, \
-    from_anndata_yaml
+from astir.data_readers import from_csv_yaml, from_csv_dir_yaml, from_anndata_yaml
 from astir.models.scdataset import SCDataset
 
 
@@ -95,11 +94,11 @@ class TestAstir(TestCase):
         self.assertTrue(assignments.columns[0] == "cell_type")
 
         # Check diagnostics look ok
-        type_diagnostics = self.a.diagnostics_celltype(threshold = 0.2, alpha=0)
+        type_diagnostics = self.a.diagnostics_celltype(threshold=0.2, alpha=0)
         self.assertIsInstance(type_diagnostics, pd.DataFrame)
-        self.assertTrue(type_diagnostics.shape[1] == 7) # make sure we have the standard 6 columns
-
-
+        self.assertTrue(
+            type_diagnostics.shape[1] == 7
+        )  # make sure we have the standard 6 columns
 
     def test_no_overlap(self):
         bad_file = os.path.join(os.path.dirname(__file__), "test-data/bad_data.csv")
@@ -280,17 +279,18 @@ class TestAstir(TestCase):
 
     def test_cellstate_predicted_assignment(self):
         warnings.filterwarnings("ignore", category=UserWarning)
-        dset = SCDataset(expr_input=self.expr,
-                         marker_dict=self.marker_dict["cell_states"],
-                         design=None,
-                         include_other_column=False)
+        dset = SCDataset(
+            expr_input=self.expr,
+            marker_dict=self.marker_dict["cell_states"],
+            design=None,
+            include_other_column=False,
+        )
 
         self.a.fit_state(max_epochs=50, n_init=1)
 
         state_assignments = self.a.predict_cellstates(dset)
 
-        self.assertTrue(state_assignments.shape, (len(dset),
-                                                  dset.get_n_classes()))
+        self.assertTrue(state_assignments.shape, (len(dset), dset.get_n_classes()))
 
     def test_celltype_assignment(self):
         warnings.filterwarnings("ignore", category=UserWarning)
@@ -300,11 +300,11 @@ class TestAstir(TestCase):
 
         n_classes = len(list(self.marker_dict.keys()))
 
-        self.assertTrue(type_assignments.shape, (len(self.expr), n_classes+1))
+        self.assertTrue(type_assignments.shape, (len(self.expr), n_classes + 1))
 
     def test_celltype_predicted_assignment(self):
         warnings.filterwarnings("ignore", category=UserWarning)
-        
+
         self.a.fit_type(max_epochs=50, n_init=1)
 
         type_predict = self.a.predict_celltypes()
@@ -318,7 +318,7 @@ class TestAstir(TestCase):
             self.marker_yaml_file,
             protein_name="protein",
             cell_name="cell_name",
-            batch_name="batch"
+            batch_name="batch",
         )
 
         self.assertTrue(ast.get_type_dataset().get_n_features() == 14)
@@ -335,12 +335,28 @@ class TestAstir(TestCase):
 
     def test_type_hdf5_summary(self):
         hdf5_summary = "celltype_summary.hdf5"
-        info = {"max_epochs": 5, "learning_rate": 0.001, "batch_size": 24, "delta_loss": 0.001, "n_init": 1, "n_init_epochs": 1}
-        self.a.fit_type(max_epochs=info["max_epochs"], learning_rate=info["learning_rate"], batch_size=info["batch_size"], delta_loss=info["delta_loss"], n_init=info["n_init"], n_init_epochs=info["n_init_epochs"])
+        info = {
+            "max_epochs": 5,
+            "learning_rate": 0.001,
+            "batch_size": 24,
+            "delta_loss": 0.001,
+            "n_init": 1,
+            "n_init_epochs": 1,
+        }
+        self.a.fit_type(
+            max_epochs=info["max_epochs"],
+            learning_rate=info["learning_rate"],
+            batch_size=info["batch_size"],
+            delta_loss=info["delta_loss"],
+            n_init=info["n_init"],
+            n_init_epochs=info["n_init_epochs"],
+        )
         self.a.save_models(hdf5_summary)
-        params = list(self.a.get_type_model().get_data().items()) + list(self.a.get_type_model().get_variables().items())
+        params = list(self.a.get_type_model().get_data().items()) + list(
+            self.a.get_type_model().get_variables().items()
+        )
         same = True
-        with h5py.File(hdf5_summary,'r') as f:
+        with h5py.File(hdf5_summary, "r") as f:
             f_params = f["/celltype_model/parameters"]
             for key, val in params:
                 if not (val.detach().cpu().numpy() == f_params[key][()]).all().all():
@@ -349,18 +365,39 @@ class TestAstir(TestCase):
             for key, val in info.items():
                 if val != f_info[key][()]:
                     same = False
-            if not (self.a.get_type_model().get_losses().cpu().numpy() == f["/celltype_model/losses"]["losses"][()]).all():
+            if not (
+                self.a.get_type_model().get_losses().cpu().numpy()
+                == f["/celltype_model/losses"]["losses"][()]
+            ).all():
                 same = False
         self.assertTrue(same)
 
     def test_state_summary(self):
         hdf5_summary = "cellstate_summary.hdf5"
-        info = {"max_epochs": 5, "learning_rate": 0.001, "batch_size": 24, "delta_loss": 0.001, "n_init": 1, "n_init_epochs": 1, "delta_loss_batch": 2}
-        self.a.fit_state(max_epochs=info["max_epochs"], learning_rate=info["learning_rate"], batch_size=info["batch_size"], delta_loss=info["delta_loss"], n_init=info["n_init"], n_init_epochs=info["n_init_epochs"], delta_loss_batch=info["delta_loss_batch"])
+        info = {
+            "max_epochs": 5,
+            "learning_rate": 0.001,
+            "batch_size": 24,
+            "delta_loss": 0.001,
+            "n_init": 1,
+            "n_init_epochs": 1,
+            "delta_loss_batch": 2,
+        }
+        self.a.fit_state(
+            max_epochs=info["max_epochs"],
+            learning_rate=info["learning_rate"],
+            batch_size=info["batch_size"],
+            delta_loss=info["delta_loss"],
+            n_init=info["n_init"],
+            n_init_epochs=info["n_init_epochs"],
+            delta_loss_batch=info["delta_loss_batch"],
+        )
         self.a.save_models(hdf5_summary)
-        params = list(self.a.get_state_model().get_data().items()) + list(self.a.get_state_model().get_variables().items())
+        params = list(self.a.get_state_model().get_data().items()) + list(
+            self.a.get_state_model().get_variables().items()
+        )
         same = True
-        with h5py.File(hdf5_summary,'r') as f:
+        with h5py.File(hdf5_summary, "r") as f:
             f_params = f["/cellstate_model/parameters"]
             for key, val in params:
                 if not (val.detach().cpu().numpy() == f_params[key][()]).all().all():
@@ -369,6 +406,9 @@ class TestAstir(TestCase):
             for key, val in info.items():
                 if val != f_info[key][()]:
                     same = False
-            if not (self.a.get_state_model().get_losses() == f["/cellstate_model/losses"]["losses"][()]).all():
+            if not (
+                self.a.get_state_model().get_losses()
+                == f["/cellstate_model/losses"]["losses"][()]
+            ).all():
                 same = False
         self.assertTrue(same)

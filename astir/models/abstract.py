@@ -12,11 +12,7 @@ class AbstractModel:
     """
 
     def __init__(
-        self,
-        dset: SCDataset,
-        include_beta: bool,
-        random_seed: int,
-        dtype: torch.dtype,
+        self, dset: SCDataset, include_beta: bool, random_seed: int, dtype: torch.dtype,
     ) -> None:
 
         if not isinstance(random_seed, int):
@@ -71,7 +67,9 @@ class AbstractModel:
         """
         return self._is_converged
 
+
 class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
     """
+
     pass

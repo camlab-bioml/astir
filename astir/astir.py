@@ -196,9 +196,8 @@ class Astir:
             "batch_size": batch_size,
             "delta_loss": delta_loss,
             "n_init": n_init,
-            "n_init_epochs": n_init_epochs
+            "n_init_epochs": n_init_epochs,
         }
-
 
     def fit_state(
         self,
@@ -297,7 +296,7 @@ class Astir:
             "delta_loss": delta_loss,
             "n_init": n_init,
             "n_init_epochs": n_init_epochs,
-            "delta_loss_batch": delta_loss_batch
+            "delta_loss_batch": delta_loss_batch,
         }
 
     def save_models(self, hdf5_name: str):
@@ -319,27 +318,35 @@ class Astir:
                 loss_grp = type_grp.create_group("losses")
                 loss_grp["losses"] = self.get_type_losses().cpu().numpy()
                 param_grp = type_grp.create_group("parameters")
-                dic = list(self._type_ast.get_variables().items()) + list(self._type_ast.get_data().items())
+                dic = list(self._type_ast.get_variables().items()) + list(
+                    self._type_ast.get_data().items()
+                )
                 for key, val in dic:
                     param_grp[key] = val.detach().cpu().numpy()
                 info_grp = type_grp.create_group("run_info")
                 for key, val in self._type_run_info.items():
                     info_grp[key] = val
-                type_grp.create_dataset("celltype_assignments", data=self._type_assignments)
+                type_grp.create_dataset(
+                    "celltype_assignments", data=self._type_assignments
+                )
             if self._state_ast is not None:
                 state_grp = f.create_group("cellstate_model")
                 loss_grp = state_grp.create_group("losses")
                 loss_grp["losses"] = self.get_state_losses()
                 param_grp = state_grp.create_group("parameters")
-                dic = list(self._state_ast.get_variables().items()) + list(self._state_ast.get_data().items())
+                dic = list(self._state_ast.get_variables().items()) + list(
+                    self._state_ast.get_data().items()
+                )
                 for key, val in dic:
                     param_grp[key] = val.detach().cpu().numpy()
                 info_grp = state_grp.create_group("run_info")
                 for key, val in self._state_run_info.items():
                     info_grp[key] = val
-                state_grp.create_dataset("cellstate_assignments", data=self._state_assignments)
+                state_grp.create_dataset(
+                    "cellstate_assignments", data=self._state_assignments
+                )
 
-    def get_type_dataset(self): 
+    def get_type_dataset(self):
         return self._type_dset
 
     def get_state_dataset(self):
