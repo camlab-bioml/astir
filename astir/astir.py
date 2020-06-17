@@ -144,7 +144,7 @@ class Astir:
         np.random.seed(self.random_seed)
         seeds = np.random.randint(1, 100000000, n_init)
         type_models = [
-            CellTypeModel(self._type_dset, self._include_beta, self._design, int(seed), self._dtype)
+            CellTypeModel(self._type_dset, self._include_beta, int(seed), self._dtype)
             for seed in seeds
         ]
         n_init_epochs = min(max_epochs, n_init_epochs)

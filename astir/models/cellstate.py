@@ -93,7 +93,8 @@ class CellStateModel:
             "rho": self._dset.get_marker_mat().T.to(self._device),
         }
 
-        self._models = StateRecognitionNet(C, G).to(device=self._device, dtype=dtype)
+        self._models = StateRecognitionNet(C, G).to(device=self._device,
+                                                    dtype=self._dtype)
 
     def _loss_fn(
         self,

@@ -185,7 +185,6 @@ class TestAstir(TestCase):
 
         self.assertTrue(np.abs(model1_loss - model2_loss)[-1] < 1e-6)
 
-    # @pytest.mark.filterwarnings("ignore")
     def test_celltype_diff_seed_diff_result(self):
         """ Test whether the loss after one epoch one two different models
         with the different random seed have different losses after one epoch
@@ -336,7 +335,7 @@ class TestAstir(TestCase):
     def test_celltype_hdf5_summary(self):
         hdf5_summary = "celltype_training_summary.hdf5"
         info = {"max_epochs": 5, "learning_rate": 0.001, "batch_size": 24, "delta_loss": 0.001, "n_init": 1, "n_init_epochs": 1}
-        self.a.fit_type(max_epochs=info["max_epochs"], learning_rate=info["learning_rate"], batch_size=info["batch_size"], delta_loss=info["delta_loss"], n_init=info["n_init"], n_initial_epochs=info["n_init_epochs"], output_summary=hdf5_summary)
+        self.a.fit_type(max_epochs=info["max_epochs"], learning_rate=info["learning_rate"], batch_size=info["batch_size"], delta_loss=info["delta_loss"], n_init=info["n_init"], n_init_epochs=info["n_init_epochs"], output_summary=hdf5_summary)
         params = list(self.a.get_type_model().get_data().items()) + list(self.a.get_type_model().get_variables().items())
         same = True
         with h5py.File(hdf5_summary,'r') as f:
