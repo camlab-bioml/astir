@@ -33,7 +33,7 @@ parser.add_argument("--random_seed",
                     help="Random seed",
                     type=int,
                     default=1234)
-parser.add_argument("--n_initial_epochs",
+parser.add_argument("--n_init_epochs",
                     help="Number of initial epochs",
                     type=int,
                     default=3)
@@ -46,13 +46,13 @@ if args.criteria == "type":
     a.fit_type(max_epochs = args.max_epochs, 
         learning_rate = args.learning_rate, 
         batch_size = args.batch_size,
-        n_initial_epochs = args.n_initial_epochs)
+        n_init_epochs = args.n_init_epochs)
     a.type_to_csv(args.output_csv)
 elif args.criteria == "state":
     a.fit_state(max_epochs = args.max_epochs, 
         learning_rate = args.learning_rate, 
         batch_size = args.batch_size,
-        n_initial_epochs = args.n_initial_epochs)
+        n_init_epochs = args.n_init_epochs)
     a.state_to_csv(args.output_csv)
 else:
     print("Please specify the criteria for classification. (astir type [option] / astir state [option])")
