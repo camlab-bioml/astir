@@ -61,7 +61,7 @@ class CellStateModel:
 
         self._optimizer = None
         self._losses = np.empty(0)
-        self._param_init(dtype)
+        self._param_init()
 
         # Convergence flag
         self._is_converged = False
