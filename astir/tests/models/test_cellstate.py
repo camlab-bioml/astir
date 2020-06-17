@@ -40,7 +40,7 @@ class TestCellStateModel(TestCase):
             expr_input=input_expr,
             marker_dict=state_dict,
             design=None,
-            dtype=torch.float32
+            dtype=torch.float32,
         )
 
         self.model = CellStateModel(

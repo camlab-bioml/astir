@@ -34,7 +34,7 @@ setuptools.setup(
         "anndata",
         "rootpath",
         "nbconvert",
-        "h5py"
+        "h5py",
     ],
     include_package_data=True,
     zip_safe=False,

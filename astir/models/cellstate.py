@@ -33,13 +33,15 @@ class CellStateModel:
         dset: SCDataset,
         include_beta: bool = True,
         random_seed: int = 42,
-        dtype = torch.float64
+        dtype=torch.float64,
     ) -> None:
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
 
         if dtype != torch.float32 and dtype != torch.float64:
-            raise NotClassifiableError("Dtype must be one of torch.float32 and torch.float64.")
+            raise NotClassifiableError(
+                "Dtype must be one of torch.float32 and torch.float64."
+            )
         # Setting random seeds
         self.random_seed = random_seed
         torch.manual_seed(self.random_seed)
@@ -75,7 +77,9 @@ class CellStateModel:
         }
 
         # Include beta or not
-        d = torch.distributions.Uniform(torch.tensor(0.0, dtype=dtype), torch.tensor(1.5, dtype=dtype))
+        d = torch.distributions.Uniform(
+            torch.tensor(0.0, dtype=dtype), torch.tensor(1.5, dtype=dtype)
+        )
         initializations["log_w"] = torch.log(d.sample((C, self._dset.get_n_features())))
 
         self._variables = {
@@ -152,7 +156,7 @@ class CellStateModel:
         batch_size: int = 128,
         delta_loss: float = 1e-3,
         delta_loss_batch: int = 10,
-        msg=""
+        msg="",
     ) -> np.array:
         """ Runs train loops until the convergence reaches delta_loss for
         delta_loss_batch sizes or for max_epochs number of times
@@ -192,7 +196,12 @@ class CellStateModel:
 
         delta_cond_met = False
 
-        iterator = trange(max_epochs, desc="training restart" + msg, unit="epochs", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]')
+        iterator = trange(
+            max_epochs,
+            desc="training restart" + msg,
+            unit="epochs",
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
+        )
         train_iterator = DataLoader(
             self._dset, batch_size=min(batch_size, len(self._dset))
         )

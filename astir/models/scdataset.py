@@ -19,18 +19,20 @@ class SCDataset(Dataset):
     :param design: A design matrix
     :param include_other_column: Should an additional 'other' column be included?
     """
+
     def __init__(
         self,
         expr_input,
         marker_dict: Dict[str, str],
         design: np.array,
         include_other_column: bool,
-        dtype=torch.float64
+        dtype=torch.float64,
     ) -> None:
         self._dtype = dtype
         self._marker_dict = marker_dict
-        self._m_features = sorted(list(set([l for s in marker_dict.values()
-                                           for l in s])))
+        self._m_features = sorted(
+            list(set([l for s in marker_dict.values() for l in s]))
+        )
         self._classes = list(marker_dict.keys())
 
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -124,7 +126,9 @@ class SCDataset(Dataset):
         G = self.get_n_features()
         C = self.get_n_classes()
 
-        marker_mat = torch.zeros((G, C + 1 if include_other_column else C), dtype=self._dtype).to(self._device)
+        marker_mat = torch.zeros(
+            (G, C + 1 if include_other_column else C), dtype=self._dtype
+        ).to(self._device)
         for g, feature in enumerate(self._m_features):
             for c, cell_class in enumerate(self._classes):
                 if feature in self._marker_dict[cell_class]:
@@ -143,7 +147,9 @@ class SCDataset(Dataset):
     def _fix_design(self, design: np.array) -> torch.tensor:
         d = None
         if design is None:
-            d = torch.ones((self._exprs.shape[0], 1), dtype=self._dtype).to(self._device)
+            d = torch.ones((self._exprs.shape[0], 1), dtype=self._dtype).to(
+                self._device
+            )
         else:
             d = torch.from_numpy(design).to(device=self._device, dtype=self._dtype)
 
@@ -162,7 +168,7 @@ class SCDataset(Dataset):
 
         """
         return self._exprs
-    
+
     def get_exprs_df(self):
         """Return the expression data as a :class:`pandas.DataFrame`
 
@@ -215,8 +221,8 @@ class SCDataset(Dataset):
 
     def get_design(self):
         return self._design
-    
-    def normalize(self, percentile_lower:int = 1, percentile_upper:int = 99) -> None:
+
+    def normalize(self, percentile_lower: int = 1, percentile_upper: int = 99) -> None:
         """Normalize the expression data
 
         This performs a two-step normalization:
@@ -231,10 +237,11 @@ class SCDataset(Dataset):
             q_high = np.percentile(exprs, (percentile_upper), axis=0)
 
             for g in range(exprs.shape[1]):
-                exprs[:,g][exprs[:,g] < q_low[g]] = q_low[g]
-                exprs[:,g][exprs[:,g] > q_high[g]] = q_high[g]
+                exprs[:, g][exprs[:, g] < q_low[g]] = q_low[g]
+                exprs[:, g][exprs[:, g] > q_high[g]] = q_high[g]
 
             self._exprs = torch.tensor(exprs)
+
 
 class NotClassifiableError(RuntimeError):
     pass

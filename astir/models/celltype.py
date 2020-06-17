@@ -48,7 +48,12 @@ class CellTypeModel:
     """
 
     def __init__(
-        self, dset: SCDataset, include_beta=False, design=None, random_seed=1234, dtype=torch.float64
+        self,
+        dset: SCDataset,
+        include_beta=False,
+        design=None,
+        random_seed=1234,
+        dtype=torch.float64,
     ) -> None:
         """Initializes an Astir object
 
@@ -71,7 +76,9 @@ class CellTypeModel:
         torch.manual_seed(random_seed)
 
         if dtype != torch.float32 and dtype != torch.float64:
-            raise NotClassifiableError("Dtype must be one of torch.float32 and torch.float64.")
+            raise NotClassifiableError(
+                "Dtype must be one of torch.float32 and torch.float64."
+            )
         self._dtype = dtype
 
         self.losses = None  # losses after optimization
@@ -106,12 +113,19 @@ class CellTypeModel:
 
         # Establish data
         self._data = {
-            "log_alpha": torch.log(torch.ones(C + 1, dtype = self._dtype) / (C + 1)).to(self._device),
+            "log_alpha": torch.log(torch.ones(C + 1, dtype=self._dtype) / (C + 1)).to(
+                self._device
+            ),
             "rho": self._dset.get_marker_mat().to(self._device),
         }
         # Initialize mu, log_delta
-        delta_init_mean = torch.log(torch.log(torch.tensor(3., dtype=self._dtype))) # the log of the log of this is the multiplier
-        t = torch.distributions.Normal(delta_init_mean.clone().detach().to(self._dtype), torch.tensor(0.1, dtype=self._dtype))
+        delta_init_mean = torch.log(
+            torch.log(torch.tensor(3.0, dtype=self._dtype))
+        )  # the log of the log of this is the multiplier
+        t = torch.distributions.Normal(
+            delta_init_mean.clone().detach().to(self._dtype),
+            torch.tensor(0.1, dtype=self._dtype),
+        )
         log_delta_init = t.sample((G, C + 1))
 
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
@@ -133,7 +147,11 @@ class CellTypeModel:
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
         initializations["mu"] = torch.cat(
-            [initializations["mu"], torch.zeros((G, P - 1), dtype=self._dtype, device=self._device)], 1
+            [
+                initializations["mu"],
+                torch.zeros((G, P - 1), dtype=self._dtype, device=self._device),
+            ],
+            1,
         )
 
         # Create trainable variables
@@ -149,7 +167,9 @@ class CellTypeModel:
             # self._variables["beta"] = Variable(
             #     torch.zeros(G, C + 1).to(self._device), requires_grad=True
             # )
-            self._variables["beta"] = Variable(torch.zeros(G, C + 1, dtype=self._dtype)).to(self._device)
+            self._variables["beta"] = Variable(
+                torch.zeros(G, C + 1, dtype=self._dtype)
+            ).to(self._device)
             self._variables["beta"].requires_grad = True
             # print("beta: " + str(self._variables["beta"].dtype))
 
@@ -157,9 +177,8 @@ class CellTypeModel:
         # print("log_sigma: " + str(self._variables["log_sigma"].dtype))
         # print("log_delta: " + str(self._variables["log_delta"].dtype))
         # print("p: " + str(self._variables["p"].dtype))
-        
 
-    # @profile 
+    # @profile
     ## Declare pytorch forward fn
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
@@ -220,8 +239,7 @@ class CellTypeModel:
 
     # @profile
     def fit(
-        self, max_epochs=50, learning_rate=1e-3, batch_size=128, delta_loss=1e-3,
-        msg= ""
+        self, max_epochs=50, learning_rate=1e-3, batch_size=128, delta_loss=1e-3, msg=""
     ) -> None:
         """Fit the model.
 
@@ -252,10 +270,15 @@ class CellTypeModel:
 
         _, exprs_X, _ = self._dset[:]  # calls dset.get_item
 
-        iterator = trange(max_epochs, desc="training restart" + msg, unit="epochs", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]')
+        iterator = trange(
+            max_epochs,
+            desc="training restart" + msg,
+            unit="epochs",
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
+        )
         for ep in iterator:
             L = None
-            loss = torch.tensor(0., dtype=self._dtype)
+            loss = torch.tensor(0.0, dtype=self._dtype)
             for batch in dataloader:
                 Y, X, design = batch
                 optimizer.zero_grad()
@@ -276,12 +299,19 @@ class CellTypeModel:
         ## Save output
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
         self._assignment = g
-        self._run_info = {"max_epochs": max_epochs, "learning_rate": learning_rate, "batch_size": batch_size, "delta_loss": delta_loss}
+        self._run_info = {
+            "max_epochs": max_epochs,
+            "learning_rate": learning_rate,
+            "batch_size": batch_size,
+            "delta_loss": delta_loss,
+        }
 
         if self._losses is None:
             self._losses = torch.tensor(losses)
         else:
-            self._losses = torch.cat((self._losses.view(self._losses.shape[0]), torch.tensor(losses)), dim=0)
+            self._losses = torch.cat(
+                (self._losses.view(self._losses.shape[0]), torch.tensor(losses)), dim=0
+            )
         return g
 
     def predict(self, new_dset):
@@ -290,7 +320,17 @@ class CellTypeModel:
         # g, _, _ = self._forward(exprs_X.float())
         return g
 
-    def save_model(self, hdf5_name: str, n_init, n_init_epochs):
+    def save_model(self, hdf5_name: str, n_init: int, n_init_epochs: int):
+        """Save the summary of this model to a hdf5 file.
+
+        :param hdf5_name: name of the output hdf5 file
+        :type hdf5_name: str
+        :param n_init: the number of models initialized before the final training of this model.
+        :type n_init: int
+        :param n_init_epochs: the number of epochs the models were trained before the training of this model.
+        :type n_init_epochs: int
+        :raises Exception: raised when this function is called before the model is trained.
+        """
         if self._assignment is None:
             raise Exception("The type model has not been trained yet")
         with h5py.File(hdf5_name, "w") as f:
@@ -305,7 +345,7 @@ class CellTypeModel:
                 info_grp[key] = val
             info_grp["n_init"] = n_init
             info_grp["n_init_epochs"] = n_init_epochs
-            f.create_dataset("celltype_assignment", data=self._assignment)
+            # f.create_dataset("celltype_assignment", data=self._assignment)
 
     def get_losses(self) -> float:
         """ Getter for losses
