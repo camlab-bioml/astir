@@ -299,12 +299,6 @@ class CellTypeModel:
         ## Save output
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
         self._assignment = g
-        self._run_info = {
-            "max_epochs": max_epochs,
-            "learning_rate": learning_rate,
-            "batch_size": batch_size,
-            "delta_loss": delta_loss,
-        }
 
         if self._losses is None:
             self._losses = torch.tensor(losses)
@@ -320,32 +314,32 @@ class CellTypeModel:
         # g, _, _ = self._forward(exprs_X.float())
         return g
 
-    def save_model(self, hdf5_name: str, n_init: int, n_init_epochs: int):
-        """Save the summary of this model to a hdf5 file.
+    # def save_model(self, hdf5_name: str, n_init: int, n_init_epochs: int):
+    #     """Save the summary of this model to a hdf5 file.
 
-        :param hdf5_name: name of the output hdf5 file
-        :type hdf5_name: str
-        :param n_init: the number of models initialized before the final training of this model.
-        :type n_init: int
-        :param n_init_epochs: the number of epochs the models were trained before the training of this model.
-        :type n_init_epochs: int
-        :raises Exception: raised when this function is called before the model is trained.
-        """
-        if self._assignment is None:
-            raise Exception("The type model has not been trained yet")
-        with h5py.File(hdf5_name, "w") as f:
-            loss_grp = f.create_group("losses")
-            loss_grp["losses"] = self._losses.cpu().numpy()
-            param_grp = f.create_group("parameters")
-            dic = list(self._variables.items()) + list(self._data.items())
-            for key, val in dic:
-                param_grp[key] = val.detach().cpu().numpy()
-            info_grp = f.create_group("run_info")
-            for key, val in self._run_info.items():
-                info_grp[key] = val
-            info_grp["n_init"] = n_init
-            info_grp["n_init_epochs"] = n_init_epochs
-            # f.create_dataset("celltype_assignment", data=self._assignment)
+    #     :param hdf5_name: name of the output hdf5 file
+    #     :type hdf5_name: str
+    #     :param n_init: the number of models initialized before the final training of this model.
+    #     :type n_init: int
+    #     :param n_init_epochs: the number of epochs the models were trained before the training of this model.
+    #     :type n_init_epochs: int
+    #     :raises Exception: raised when this function is called before the model is trained.
+    #     """
+    #     if self._assignment is None:
+    #         raise Exception("The type model has not been trained yet")
+    #     with h5py.File(hdf5_name, "w") as f:
+    #         loss_grp = f.create_group("losses")
+    #         loss_grp["losses"] = self._losses.cpu().numpy()
+    #         param_grp = f.create_group("parameters")
+    #         dic = list(self._variables.items()) + list(self._data.items())
+    #         for key, val in dic:
+    #             param_grp[key] = val.detach().cpu().numpy()
+    #         info_grp = f.create_group("run_info")
+    #         for key, val in self._run_info.items():
+    #             info_grp[key] = val
+    #         info_grp["n_init"] = n_init
+    #         info_grp["n_init_epochs"] = n_init_epochs
+    #         f.create_dataset("celltype_assignment", data=self._assignment)
 
     def get_losses(self) -> float:
         """ Getter for losses

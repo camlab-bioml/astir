@@ -333,21 +333,42 @@ class TestAstir(TestCase):
         state_diagnostics = self.a.diagnostics_cellstate()
         self.assertIsInstance(state_diagnostics, pd.DataFrame)
 
-    def test_celltype_hdf5_summary(self):
-        hdf5_summary = "celltype_training_summary.hdf5"
+    def test_type_hdf5_summary(self):
+        hdf5_summary = "celltype_summary.hdf5"
         info = {"max_epochs": 5, "learning_rate": 0.001, "batch_size": 24, "delta_loss": 0.001, "n_init": 1, "n_init_epochs": 1}
-        self.a.fit_type(max_epochs=info["max_epochs"], learning_rate=info["learning_rate"], batch_size=info["batch_size"], delta_loss=info["delta_loss"], n_init=info["n_init"], n_initial_epochs=info["n_init_epochs"], output_summary=hdf5_summary)
+        self.a.fit_type(max_epochs=info["max_epochs"], learning_rate=info["learning_rate"], batch_size=info["batch_size"], delta_loss=info["delta_loss"], n_init=info["n_init"], n_init_epochs=info["n_init_epochs"])
+        self.a.save_models(hdf5_summary)
         params = list(self.a.get_type_model().get_data().items()) + list(self.a.get_type_model().get_variables().items())
         same = True
         with h5py.File(hdf5_summary,'r') as f:
-            f_params = f["/parameters"]
+            f_params = f["/celltype_model/parameters"]
             for key, val in params:
                 if not (val.detach().cpu().numpy() == f_params[key][()]).all().all():
                     same = False
-            f_info = f["/run_info"]
+            f_info = f["/celltype_model/run_info"]
             for key, val in info.items():
                 if val != f_info[key][()]:
                     same = False
-            if not (self.a.get_type_model().get_losses().cpu().numpy() == f["/losses"]["losses"][()]).all():
+            if not (self.a.get_type_model().get_losses().cpu().numpy() == f["/celltype_model/losses"]["losses"][()]).all():
+                same = False
+        self.assertTrue(same)
+
+    def test_state_summary(self):
+        hdf5_summary = "cellstate_summary.hdf5"
+        info = {"max_epochs": 5, "learning_rate": 0.001, "batch_size": 24, "delta_loss": 0.001, "n_init": 1, "n_init_epochs": 1, "delta_loss_batch": 2}
+        self.a.fit_state(max_epochs=info["max_epochs"], learning_rate=info["learning_rate"], batch_size=info["batch_size"], delta_loss=info["delta_loss"], n_init=info["n_init"], n_init_epochs=info["n_init_epochs"], delta_loss_batch=info["delta_loss_batch"])
+        self.a.save_models(hdf5_summary)
+        params = list(self.a.get_state_model().get_data().items()) + list(self.a.get_state_model().get_variables().items())
+        same = True
+        with h5py.File(hdf5_summary,'r') as f:
+            f_params = f["/cellstate_model/parameters"]
+            for key, val in params:
+                if not (val.detach().cpu().numpy() == f_params[key][()]).all().all():
+                    same = False
+            f_info = f["/cellstate_model/run_info"]
+            for key, val in info.items():
+                if val != f_info[key][()]:
+                    same = False
+            if not (self.a.get_state_model().get_losses() == f["/cellstate_model/losses"]["losses"][()]).all():
                 same = False
         self.assertTrue(same)

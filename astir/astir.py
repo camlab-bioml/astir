@@ -12,6 +12,7 @@ import torch
 
 import pandas as pd
 import numpy as np
+import h5py
 
 from .models.celltype import CellTypeModel
 from .models.cellstate import CellStateModel
@@ -58,6 +59,7 @@ class Astir:
 
         self._type_ast, self._state_ast = None, None
         self._type_assignments, self._state_assignments = None, None
+        self._type_run_info, self._state_run_info = None, None
 
         type_dict, state_dict = self._sanitize_dict(marker_dict)
 
@@ -131,8 +133,7 @@ class Astir:
         batch_size=24,
         delta_loss=1e-3,
         n_init=5,
-        n_initial_epochs=5,
-        output_summary=None,
+        n_init_epochs=5,
     ) -> None:
         """Run Variational Bayes to infer cell types
 
@@ -155,7 +156,7 @@ class Astir:
             )
             for seed in seeds
         ]
-        n_init_epochs = min(max_epochs, n_initial_epochs)
+        n_init_epochs = min(max_epochs, n_init_epochs)
         for i in range(n_init):
             type_models[i].fit(
                 n_init_epochs,
@@ -189,8 +190,15 @@ class Astir:
         self._type_assignments.columns = self._type_dset.get_classes() + ["Other"]
         self._type_assignments.index = self._type_dset.get_cell_names()
 
-        if output_summary != None:
-            self._type_ast.save_model(output_summary, n_init, n_init_epochs)
+        self._type_run_info = {
+            "max_epochs": max_epochs,
+            "learning_rate": learning_rate,
+            "batch_size": batch_size,
+            "delta_loss": delta_loss,
+            "n_init": n_init,
+            "n_init_epochs": n_init_epochs
+        }
+
 
     def fit_state(
         self,
@@ -282,17 +290,80 @@ class Astir:
         self._state_assignments.columns = self._state_dset.get_classes()
         self._state_assignments.index = self._state_dset.get_cell_names()
 
-    def get_type_dataset(self):
+        self._state_run_info = {
+            "max_epochs": max_epochs,
+            "learning_rate": learning_rate,
+            "batch_size": batch_size,
+            "delta_loss": delta_loss,
+            "n_init": n_init,
+            "n_init_epochs": n_init_epochs,
+            "delta_loss_batch": delta_loss_batch
+        }
+
+    def save_models(self, hdf5_name: str):
+        """Save the summary of this model to a hdf5 file.
+
+        :param hdf5_name: name of the output hdf5 file
+        :type hdf5_name: str
+        :param n_init: the number of models initialized before the final training of this model.
+        :type n_init: int
+        :param n_init_epochs: the number of epochs the models were trained before the training of this model.
+        :type n_init_epochs: int
+        :raises Exception: raised when this function is called before the model is trained.
+        """
+        if self._type_ast is None and self._state_ast is None:
+            raise Exception("No model has been trained")
+        with h5py.File(hdf5_name, "w") as f:
+            if self._type_ast is not None:
+                type_grp = f.create_group("celltype_model")
+                loss_grp = type_grp.create_group("losses")
+                loss_grp["losses"] = self.get_type_losses().cpu().numpy()
+                param_grp = type_grp.create_group("parameters")
+                dic = list(self._type_ast.get_variables().items()) + list(self._type_ast.get_data().items())
+                for key, val in dic:
+                    param_grp[key] = val.detach().cpu().numpy()
+                info_grp = type_grp.create_group("run_info")
+                for key, val in self._type_run_info.items():
+                    info_grp[key] = val
+                type_grp.create_dataset("celltype_assignments", data=self._type_assignments)
+            if self._state_ast is not None:
+                state_grp = f.create_group("cellstate_model")
+                loss_grp = state_grp.create_group("losses")
+                loss_grp["losses"] = self.get_state_losses()
+                param_grp = state_grp.create_group("parameters")
+                dic = list(self._state_ast.get_variables().items()) + list(self._state_ast.get_data().items())
+                for key, val in dic:
+                    param_grp[key] = val.detach().cpu().numpy()
+                info_grp = state_grp.create_group("run_info")
+                for key, val in self._state_run_info.items():
+                    info_grp[key] = val
+                state_grp.create_dataset("cellstate_assignments", data=self._state_assignments)
+
+    def get_type_dataset(self): 
         return self._type_dset
 
     def get_state_dataset(self):
         return self._state_dset
 
     def get_type_model(self):
+        if self._type_ast is None:
+            raise Exception("The type model has not been trained yet")
         return self._type_ast
 
     def get_state_model(self):
+        if self._state_ast is None:
+            raise Exception("The state model has not been trained yet")
         return self._state_ast
+
+    def get_type_run_info(self):
+        if self._type_run_info is None:
+            raise Exception("The type model has not been trained yet")
+        return self._type_run_info
+
+    def get_state_run_info(self):
+        if self._state_run_info is None:
+            raise Exception("The state model has not been trained yet")
+        return self._state_run_info
 
     def get_celltype_probabilities(self) -> pd.DataFrame:
         """[summary]
