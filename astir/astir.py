@@ -150,7 +150,6 @@ class Astir:
             CellTypeModel(
                 self._type_dset,
                 self._include_beta,
-                self._design,
                 int(seed),
                 self._dtype,
             )

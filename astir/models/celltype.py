@@ -49,7 +49,6 @@ class CellTypeModel(AbstractModel):
         self,
         dset: SCDataset,
         include_beta=False,
-        design=None,
         random_seed=1234,
         dtype=torch.float64,
     ) -> None:
@@ -60,8 +59,6 @@ class CellTypeModel(AbstractModel):
         :param marker_dict: the gene marker dictionary
         :type marker_dict: Dict
 
-        :param design: [description], defaults to None
-        :type design: [type], optional
         :param random_seed: [description], defaults to 1234
         :type random_seed: int, optional
         :param include_beta: [description], defaults to True
@@ -74,10 +71,6 @@ class CellTypeModel(AbstractModel):
         self.losses = None  # losses after optimization
         self.cov_mat = None  # temporary -- remove
         self._assignment = None
-
-        if design is not None:
-            if isinstance(design, pd.DataFrame):
-                design = design.cpu().to_numpy()
 
         self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(
             self._device, dtype=dtype
