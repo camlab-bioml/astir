@@ -126,10 +126,10 @@ class Astir:
         self,
         max_epochs=50,
         learning_rate=1e-3,
-        batch_size=24,
+        batch_size=128,
         delta_loss=1e-3,
         n_init=5,
-        n_initial_epochs=5,
+        n_init_epochs=5,
         output_summary=None
     ) -> None:
         """Run Variational Bayes to infer cell types
@@ -147,7 +147,7 @@ class Astir:
             CellTypeModel(self._type_dset, self._include_beta, self._design, int(seed), self._dtype)
             for seed in seeds
         ]
-        n_init_epochs = min(max_epochs, n_initial_epochs)
+        n_init_epochs = min(max_epochs, n_init_epochs)
         for i in range(n_init):
             type_models[i].fit(n_init_epochs, learning_rate, batch_size, delta_loss, " " + str(i+1) + "/" + str(n_init))
 
@@ -182,7 +182,7 @@ class Astir:
         self,
         max_epochs=50,
         learning_rate=1e-3,
-        batch_size=24,
+        batch_size=128,
         delta_loss=1e-3,
         n_init=5,
         n_init_epochs=5,
