@@ -36,6 +36,7 @@ class CellStateModel(AbstractModel):
         dtype: torch.dtype = torch.float64,
     ) -> None:
         super().__init__(dset, random_seed, dtype)
+
         # Setting random seeds
         self.random_seed = random_seed
         torch.manual_seed(self.random_seed)
@@ -151,7 +152,7 @@ class CellStateModel(AbstractModel):
         delta_loss: float = 1e-3,
         delta_loss_batch: int = 10,
         msg: str = "",
-    ) -> np.array:
+    ) -> List[float]:
         """ Runs train loops until the convergence reaches delta_loss for
         delta_loss_batch sizes or for max_epochs number of times
 
@@ -163,10 +164,6 @@ class CellStateModel(AbstractModel):
         :param delta_loss_batch: the batch size to consider delta loss,
         defaults to 10
         :param msg: iterator bar message, defaults to empty string
-
-        :return: np.array of shape (n_iter,) that contains the losses after
-        each iteration where the last element of the numpy array is the loss
-        after n_iter iterations
         """
         losses = []
 
@@ -248,6 +245,13 @@ class CellStateModel(AbstractModel):
                            torch.tensor(losses, dtype=self._dtype)))
 
         return losses
+
+    def get_recognet(self) -> StateRecognitionNet:
+        """ Getter for the recognition net
+
+        :return: the trained recognition net
+        """
+        return self._models
 
     def get_final_mu_z(self, new_dset: SCDataset = None) -> torch.Tensor:
         """ Returns the mean of the predicted z values for each core

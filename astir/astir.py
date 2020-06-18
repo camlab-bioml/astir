@@ -122,7 +122,6 @@ class Astir:
             )
         return type_dict, state_dict
 
-    # @profile
     def fit_type(
         self,
         max_epochs=50,
@@ -176,10 +175,6 @@ class Astir:
                 + " complete the training."
             )
             warnings.warn(msg)
-
-        # plt.plot(self._type_ast.get_losses())
-        # plt.ylabel('losses')
-        # plt.show()
 
         self._type_assignments = pd.DataFrame(assignment)
         self._type_assignments.columns = self._type_dset.get_classes() + ["Other"]
@@ -258,8 +253,6 @@ class Astir:
         best_model_index = int(np.argmin(last_delta_losses_mean))
 
         self._state_ast = cellstate_models[best_model_index]
-        # n_epochs_done = cellstate_losses[best_model_index].size
-        # n_epoch_remaining = max(max_epochs - n_epochs_done, 0)
 
         self._state_ast.fit(
             max_epochs=max_epochs,
@@ -294,15 +287,10 @@ class Astir:
             "delta_loss_batch": delta_loss_batch,
         }
 
-    def save_models(self, hdf5_name: str):
-        """Save the summary of this model to a hdf5 file.
+    def save_models(self, hdf5_name: str) -> None:
+        """ Save the summary of this model to a hdf5 file.
 
         :param hdf5_name: name of the output hdf5 file
-        :type hdf5_name: str
-        :param n_init: the number of models initialized before the final training of this model.
-        :type n_init: int
-        :param n_init_epochs: the number of epochs the models were trained before the training of this model.
-        :type n_init_epochs: int
         :raises Exception: raised when this function is called before the model is trained.
         """
         if self._type_ast is None and self._state_ast is None:
@@ -310,36 +298,68 @@ class Astir:
         with h5py.File(hdf5_name, "w") as f:
             if self._type_ast is not None:
                 type_grp = f.create_group("celltype_model")
+
+                # Storing losses
                 loss_grp = type_grp.create_group("losses")
                 loss_grp["losses"] = self.get_type_losses().cpu().numpy()
+
+                # Storing parameters
                 param_grp = type_grp.create_group("parameters")
                 dic = list(self._type_ast.get_variables().items()) + list(
                     self._type_ast.get_data().items()
                 )
                 for key, val in dic:
                     param_grp[key] = val.detach().cpu().numpy()
+
+                # Storing Recognition Network
+                recog_grp = type_grp.create_group("recog_net")
+                for name, param in self._type_ast.get_recognet().named_parameters():
+                    if param.requires_grad:
+                        recog_grp[name] = param.detach().cpu().numpy()
+
+                # Storing fit_type argument information
                 info_grp = type_grp.create_group("run_info")
                 for key, val in self._type_run_info.items():
                     info_grp[key] = val
+
+                # Storing type assignments
                 type_grp.create_dataset(
                     "celltype_assignments", data=self._type_assignments
                 )
+
             if self._state_ast is not None:
                 state_grp = f.create_group("cellstate_model")
+
+                # Storing losses
                 loss_grp = state_grp.create_group("losses")
                 loss_grp["losses"] = self.get_state_losses()
+
+                # Storing parameters
                 param_grp = state_grp.create_group("parameters")
                 dic = list(self._state_ast.get_variables().items()) + list(
                     self._state_ast.get_data().items()
                 )
+
+                # Storing Recognition Network
+                recog_grp = state_grp.create_group("recog_net")
+                for name, param in self._state_ast.get_recognet().named_parameters():
+                    if param.requires_grad:
+                        recog_grp[name] = param.detach().cpu().numpy()
+
                 for key, val in dic:
                     param_grp[key] = val.detach().cpu().numpy()
+
+                # Storing fit_state method arguments
                 info_grp = state_grp.create_group("run_info")
                 for key, val in self._state_run_info.items():
                     info_grp[key] = val
+
+                # Storing state assignments
                 state_grp.create_dataset(
                     "cellstate_assignments", data=self._state_assignments
                 )
+
+
 
     def get_type_dataset(self):
         return self._type_dset

@@ -1,6 +1,8 @@
 import re
 from typing import Tuple, List, Dict
 import warnings
+
+import h5py
 from tqdm import trange
 
 import torch
@@ -31,38 +33,10 @@ class CellTypeModel(AbstractModel):
         cells to cell types
 
     :param dset: the input gene expression dataframe
-    :param include_beta: [description], defaults to True
     :param random_seed: [description], defaults to 42
+
     :raises NotClassifiableError: raised when the input gene expression
         data or the marker is not classifiable
-
-    :param assignments: cell type assignment probabilities
-    :param losses: losses after optimization
-    :param type_dict: dictionary mapping cell type
-        to the corresponding genes
-    :param N: number of rows of data
-    :param G: number of cell type genes
-    :param C: number of cell types
-    :param initializations: initialization parameters
-    :param data: parameters that is not to be optimized
-    :param variables: parameters that is to be optimized
-    """
-
-    def __init__(
-        self,
-        dset: SCDataset,
-        random_seed=1234,
-        dtype=torch.float64,
-    ) -> None:
-    """ Initializes an Astir object
-
-    :param dset: the input gene expression dataframe
-    :param include_beta: [description], defaults to True
-    :param random_seed: [description], defaults to 42
-
-    :raises NotClassifiableError: raised when randon seed is not an integer
-    :raises NotClassifiableError: raised when the dtype is not torch.float32
-    or torch.float64
     """
     def __init__(
         self,
@@ -135,11 +109,10 @@ class CellTypeModel(AbstractModel):
             self._variables[n] = Variable(v.clone()).to(self._device)
             self._variables[n].requires_grad = True
 
-        if self.include_beta:
-            self._variables["beta"] = Variable(
-                torch.zeros(G, C + 1, dtype=self._dtype)
-            ).to(self._device)
-            self._variables["beta"].requires_grad = True
+        self._variables["beta"] = Variable(
+            torch.zeros(G, C + 1, dtype=self._dtype)
+        ).to(self._device)
+        self._variables["beta"].requires_grad = True
 
     # Declare pytorch forward fn
     def _forward(
@@ -211,10 +184,6 @@ class CellTypeModel(AbstractModel):
         :param delta_loss: stops iteration once the loss rate reaches
         delta_loss, defaults to 0.001
         :param msg: iterator bar message, defaults to empty string
-
-        :return: np.array of shape (n_iter,) that contains the losses after
-        each iteration where the last element of the numpy array is the loss
-        after n_iter iterations
         """
         # Make dataloader
         dataloader = DataLoader(
@@ -274,27 +243,9 @@ class CellTypeModel(AbstractModel):
     def predict(self, new_dset: pd.DataFrame) -> np.array:
         _, exprs_X, _ = new_dset[:]
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
-        # g, _, _ = self._forward(exprs_X.float())
         return g
 
-    def save_model(self, hdf5_name: str, n_init: int, n_init_epochs: int):
-        if self._assignment is None:
-            raise Exception("The type model has not been trained yet")
-        with h5py.File(hdf5_name, "w") as f:
-            loss_grp = f.create_group("losses")
-            loss_grp["losses"] = self._losses.cpu().numpy()
-            param_grp = f.create_group("parameters")
-            dic = list(self._variables.items()) + list(self._data.items())
-            for key, val in dic:
-                param_grp[key] = val.detach().cpu().numpy()
-            info_grp = f.create_group("run_info")
-            for key, val in self._run_info.items():
-                info_grp[key] = val
-            info_grp["n_init"] = n_init
-            info_grp["n_init_epochs"] = n_init_epochs
-            f.create_dataset("celltype_assignment", data=self._assignment)
-
-    def get_losses(self) -> float:
+    def get_losses(self) -> torch.Tensor:
         """ Getter for losses
 
         :return: self.losses
@@ -303,6 +254,9 @@ class CellTypeModel(AbstractModel):
         if self._losses is None:
             raise Exception("The type model has not been trained yet")
         return self._losses
+
+    def get_recognet(self) -> RecognitionNet:
+        return self._recog
 
     def get_scdataset(self) -> pd.DataFrame:
         return self._dset
