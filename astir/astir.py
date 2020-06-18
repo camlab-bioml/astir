@@ -12,6 +12,7 @@ import torch
 
 import pandas as pd
 import numpy as np
+import h5py
 
 from .models.celltype import CellTypeModel
 from .models.cellstate import CellStateModel
@@ -28,7 +29,6 @@ class Astir:
     :param design: An (optional) `pd.DataFrame` that represents a
         design matrix for the samples
     :param random_seed: The random seed to set
-    :param include_beta: Deprecated
 
     :raises NotClassifiableError: raised when the input gene expression
         data or the marker is not classifiable
@@ -41,8 +41,7 @@ class Astir:
         marker_dict: Dict,
         design=None,
         random_seed=1234,
-        include_beta=False,
-        dtype=torch.float64
+        dtype=torch.float64,
     ) -> None:
 
         if not isinstance(random_seed, int):
@@ -51,11 +50,14 @@ class Astir:
         self.random_seed = random_seed
 
         if dtype != torch.float32 and dtype != torch.float64:
-            raise NotClassifiableError("Dtype must be one of torch.float32 and torch.float64.")
+            raise NotClassifiableError(
+                "Dtype must be one of torch.float32 and torch.float64."
+            )
         self._dtype = dtype
 
         self._type_ast, self._state_ast = None, None
         self._type_assignments, self._state_assignments = None, None
+        self._type_run_info, self._state_run_info = None, None
 
         type_dict, state_dict = self._sanitize_dict(marker_dict)
 
@@ -71,18 +73,17 @@ class Astir:
                 marker_dict=type_dict,
                 design=design,
                 include_other_column=True,
-                dtype=self._dtype
+                dtype=self._dtype,
             )
             self._state_dset = SCDataset(
                 expr_input=input_expr,
                 marker_dict=state_dict,
                 design=design,
                 include_other_column=False,
-                dtype=self._dtype
+                dtype=self._dtype,
             )
 
         self._design = design
-        self._include_beta = include_beta
 
     def _sanitize_dict(self, marker_dict: Dict[str, dict]) -> Tuple[dict, dict]:
         """ Sanitizes the marker dictionary.
@@ -130,7 +131,6 @@ class Astir:
         delta_loss=1e-3,
         n_init=5,
         n_init_epochs=5,
-        output_summary=None
     ) -> None:
         """Run Variational Bayes to infer cell types
 
@@ -144,12 +144,22 @@ class Astir:
         np.random.seed(self.random_seed)
         seeds = np.random.randint(1, 100000000, n_init)
         type_models = [
-            CellTypeModel(self._type_dset, self._include_beta, int(seed), self._dtype)
+            CellTypeModel(
+                self._type_dset,
+                int(seed),
+                self._dtype,
+            )
             for seed in seeds
         ]
         n_init_epochs = min(max_epochs, n_init_epochs)
         for i in range(n_init):
-            type_models[i].fit(n_init_epochs, learning_rate, batch_size, delta_loss, " " + str(i+1) + "/" + str(n_init))
+            type_models[i].fit(
+                n_init_epochs,
+                learning_rate,
+                batch_size,
+                delta_loss,
+                " " + str(i + 1) + "/" + str(n_init),
+            )
 
         losses = torch.tensor([m.get_losses()[-1] for m in type_models])
 
@@ -175,8 +185,14 @@ class Astir:
         self._type_assignments.columns = self._type_dset.get_classes() + ["Other"]
         self._type_assignments.index = self._type_dset.get_cell_names()
 
-        if output_summary != None:
-            self._type_ast.save_model(output_summary, n_init, n_init_epochs)
+        self._type_run_info = {
+            "max_epochs": max_epochs,
+            "learning_rate": learning_rate,
+            "batch_size": batch_size,
+            "delta_loss": delta_loss,
+            "n_init": n_init,
+            "n_init_epochs": n_init_epochs,
+        }
 
     def fit_state(
         self,
@@ -218,7 +234,7 @@ class Astir:
             model = CellStateModel(
                 dset=self._state_dset,
                 random_seed=(self.random_seed + i),
-                dtype=self._dtype
+                dtype=self._dtype,
             )
             # Fitting the model
             n_init_epochs = min(max_epochs, n_init_epochs)
@@ -228,7 +244,7 @@ class Astir:
                 batch_size=batch_size,
                 delta_loss=delta_loss,
                 delta_loss_batch=delta_loss_batch,
-                msg=" " + str(i+1) + "/" + str(n_init)
+                msg=" " + str(i + 1) + "/" + str(n_init),
             )
 
             cellstate_losses.append(losses)
@@ -251,7 +267,7 @@ class Astir:
             batch_size=batch_size,
             delta_loss=delta_loss,
             delta_loss_batch=delta_loss_batch,
-            msg=" (final)"
+            msg=" (final)",
         )
 
         # Warns the user if the model has not converged
@@ -268,6 +284,63 @@ class Astir:
         self._state_assignments.columns = self._state_dset.get_classes()
         self._state_assignments.index = self._state_dset.get_cell_names()
 
+        self._state_run_info = {
+            "max_epochs": max_epochs,
+            "learning_rate": learning_rate,
+            "batch_size": batch_size,
+            "delta_loss": delta_loss,
+            "n_init": n_init,
+            "n_init_epochs": n_init_epochs,
+            "delta_loss_batch": delta_loss_batch,
+        }
+
+    def save_models(self, hdf5_name: str):
+        """Save the summary of this model to a hdf5 file.
+
+        :param hdf5_name: name of the output hdf5 file
+        :type hdf5_name: str
+        :param n_init: the number of models initialized before the final training of this model.
+        :type n_init: int
+        :param n_init_epochs: the number of epochs the models were trained before the training of this model.
+        :type n_init_epochs: int
+        :raises Exception: raised when this function is called before the model is trained.
+        """
+        if self._type_ast is None and self._state_ast is None:
+            raise Exception("No model has been trained")
+        with h5py.File(hdf5_name, "w") as f:
+            if self._type_ast is not None:
+                type_grp = f.create_group("celltype_model")
+                loss_grp = type_grp.create_group("losses")
+                loss_grp["losses"] = self.get_type_losses().cpu().numpy()
+                param_grp = type_grp.create_group("parameters")
+                dic = list(self._type_ast.get_variables().items()) + list(
+                    self._type_ast.get_data().items()
+                )
+                for key, val in dic:
+                    param_grp[key] = val.detach().cpu().numpy()
+                info_grp = type_grp.create_group("run_info")
+                for key, val in self._type_run_info.items():
+                    info_grp[key] = val
+                type_grp.create_dataset(
+                    "celltype_assignments", data=self._type_assignments
+                )
+            if self._state_ast is not None:
+                state_grp = f.create_group("cellstate_model")
+                loss_grp = state_grp.create_group("losses")
+                loss_grp["losses"] = self.get_state_losses()
+                param_grp = state_grp.create_group("parameters")
+                dic = list(self._state_ast.get_variables().items()) + list(
+                    self._state_ast.get_data().items()
+                )
+                for key, val in dic:
+                    param_grp[key] = val.detach().cpu().numpy()
+                info_grp = state_grp.create_group("run_info")
+                for key, val in self._state_run_info.items():
+                    info_grp[key] = val
+                state_grp.create_dataset(
+                    "cellstate_assignments", data=self._state_assignments
+                )
+
     def get_type_dataset(self):
         return self._type_dset
 
@@ -275,10 +348,24 @@ class Astir:
         return self._state_dset
 
     def get_type_model(self):
+        if self._type_ast is None:
+            raise Exception("The type model has not been trained yet")
         return self._type_ast
 
     def get_state_model(self):
+        if self._state_ast is None:
+            raise Exception("The state model has not been trained yet")
         return self._state_ast
+
+    def get_type_run_info(self):
+        if self._type_run_info is None:
+            raise Exception("The type model has not been trained yet")
+        return self._type_run_info
+
+    def get_state_run_info(self):
+        if self._state_run_info is None:
+            raise Exception("The state model has not been trained yet")
+        return self._state_run_info
 
     def get_celltype_probabilities(self) -> pd.DataFrame:
         """[summary]
@@ -513,4 +600,3 @@ class NotClassifiableError(RuntimeError):
 # :param initializations: initialization parameters
 # :param data: parameters that is not to be optimized
 # :param variables: parameters that is to be optimized
-# :param include_beta: [summery]

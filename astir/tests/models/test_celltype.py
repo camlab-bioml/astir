@@ -3,7 +3,7 @@ from unittest import TestCase
 import pandas as pd
 import os
 import yaml
-import torch 
+import torch
 
 import torch
 
@@ -39,12 +39,10 @@ class TestCellTypeModel(TestCase):
             include_other_column=True,
             expr_input=self.input_expr,
             marker_dict=self.type_dict,
-            design=None
+            design=None,
         )
 
-        self.model = CellTypeModel(
-            dset=self._dset, include_beta=True, random_seed=42
-        )
+        self.model = CellTypeModel(dset=self._dset, random_seed=42)
         self.model.fit(max_epochs=1)
 
     def test_basic_instance_creation(self):
@@ -58,10 +56,10 @@ class TestCellTypeModel(TestCase):
             expr_input=self.input_expr,
             marker_dict=self.type_dict,
             design=None,
-            dtype=torch.float32
+            dtype=torch.float32,
         )
         m = CellTypeModel(
-            dset=ds, include_beta=True, random_seed=42, dtype=torch.float32
+            dset=ds, random_seed=42, dtype=torch.float32
         )
         m.fit(max_epochs=1)
         data = m.get_data()
@@ -76,10 +74,10 @@ class TestCellTypeModel(TestCase):
             expr_input=self.input_expr,
             marker_dict=self.type_dict,
             design=None,
-            dtype=torch.float64
+            dtype=torch.float64,
         )
         m = CellTypeModel(
-            dset=ds, include_beta=True, random_seed=42, dtype=torch.float64
+            dset=ds, random_seed=42, dtype=torch.float64
         )
         m.fit(max_epochs=1)
         data = m.get_data()

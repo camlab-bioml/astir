@@ -1,3 +1,11 @@
+# Output files of the models
+*.loom
+*.png
+*.hdf5
+*.csv
+
+
+
 # Compiled python modules.
 *.pyc
 

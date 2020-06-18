@@ -17,19 +17,44 @@ from torch.utils.data import Dataset, DataLoader
 
 import pandas as pd
 import numpy as np
-import h5py
 
 from sklearn.preprocessing import StandardScaler
 from scipy import stats
 
-
+from .abstract import AbstractModel
 from astir.models.scdataset import SCDataset
 from astir.models.recognet import RecognitionNet
 
 
-class CellTypeModel:
+class CellTypeModel(AbstractModel):
     """Class to perform statistical inference to assign
         cells to cell types
+
+    :param dset: the input gene expression dataframe
+    :param include_beta: [description], defaults to True
+    :param random_seed: [description], defaults to 42
+    :raises NotClassifiableError: raised when the input gene expression
+        data or the marker is not classifiable
+
+    :param assignments: cell type assignment probabilities
+    :param losses: losses after optimization
+    :param type_dict: dictionary mapping cell type
+        to the corresponding genes
+    :param N: number of rows of data
+    :param G: number of cell type genes
+    :param C: number of cell types
+    :param initializations: initialization parameters
+    :param data: parameters that is not to be optimized
+    :param variables: parameters that is to be optimized
+    """
+
+    def __init__(
+        self,
+        dset: SCDataset,
+        random_seed=1234,
+        dtype=torch.float64,
+    ) -> None:
+    """ Initializes an Astir object
 
     :param dset: the input gene expression dataframe
     :param include_beta: [description], defaults to True
@@ -42,34 +67,14 @@ class CellTypeModel:
     def __init__(
         self,
         dset: SCDataset,
-        include_beta: bool = False,
-        random_seed: int = 1234,
+        random_seed: int = 42,
         dtype: torch.dtype = torch.float64,
     ) -> None:
-        if not isinstance(random_seed, int):
-            raise NotClassifiableError("Random seed is expected to be an integer.")
-        torch.manual_seed(random_seed)
-
-        if dtype != torch.float32 and dtype != torch.float64:
-            raise NotClassifiableError(
-                "Dtype must be one of torch.float32 and torch.float64."
-            )
-        self._dtype = dtype
+        super().__init__(dset, random_seed, dtype)
 
         self.losses = None  # losses after optimization
-        self._is_converged = False
         self.cov_mat = None  # temporary -- remove
-        self._data = None
-        self._variables = None
-        self._losses = None
         self._assignment = None
-        self._run_info = None
-
-        self._dset = dset
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        # Does this model use separate beta?
-        self.include_beta = include_beta
 
         self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(
             self._device, dtype=dtype
@@ -160,11 +165,10 @@ class CellTypeModel:
         mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, C + 1)
         mean = mean + mean2
 
-        if self.include_beta:
-            with torch.no_grad():
-                min_delta = torch.min(delta_tilde, 1).values.reshape((G, 1))
-            mean = mean + min_delta * torch.tanh(self._variables["beta"]) * (
-                1 - self._data["rho"]
+        with torch.no_grad():
+            min_delta = torch.min(delta_tilde, 1).values.reshape((G, 1))
+        mean = mean + min_delta * torch.tanh(self._variables["beta"]) * (
+            1 - self._data["rho"]
             )
 
         # now do the variance modelling
@@ -224,8 +228,7 @@ class CellTypeModel:
         # Construct optimizer
         opt_params = list(self._variables.values()) + list(self._recog.parameters())
 
-        if self.include_beta:
-            opt_params = opt_params + [self._variables["beta"]]
+        opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
         _, exprs_X, _ = self._dset[:]  # calls dset.get_item
@@ -259,12 +262,6 @@ class CellTypeModel:
         # Save output
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
         self._assignment = g
-        self._run_info = {
-            "max_epochs": max_epochs,
-            "learning_rate": learning_rate,
-            "batch_size": batch_size,
-            "delta_loss": delta_loss,
-        }
 
         if self._losses is None:
             self._losses = torch.tensor(losses)

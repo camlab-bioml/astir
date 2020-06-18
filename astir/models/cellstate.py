@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import yaml
 
+from .abstract import AbstractModel
 from .scdataset import SCDataset
 from .cellstate_recognet import StateRecognitionNet
 from tqdm import trange
@@ -17,7 +18,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
 
-class CellStateModel:
+class CellStateModel(AbstractModel):
     """Class to perform statistical inference to on the activation
         of states (pathways) across cells
 
@@ -34,15 +35,7 @@ class CellStateModel:
         random_seed: int = 42,
         dtype: torch.dtype = torch.float64,
     ) -> None:
-        if not isinstance(random_seed, int):
-            raise NotClassifiableError("Random seed is expected to be an integer.")
-
-        if dtype != torch.float32 and dtype != torch.float64:
-            raise NotClassifiableError(
-                "Dtype must be one of torch.float32 and torch.float64."
-            )
-        self._dtype = dtype
-
+        super().__init__(dset, random_seed, dtype)
         # Setting random seeds
         self.random_seed = random_seed
         torch.manual_seed(self.random_seed)
@@ -354,7 +347,7 @@ class CellStateModel:
     def get_losses(self) -> np.array:
         """ Getter for losses
 
-        :return: a numpy array of losses for each training iteration the
+        :return: a torch tensor of losses for each training iteration the
             model runs
         """
         if self._losses is None:
