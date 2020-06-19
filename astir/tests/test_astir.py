@@ -427,7 +427,7 @@ class TestAstir(TestCase):
         self.a.fit_state(max_epochs=2)
         self.a.state_to_csv("state_assignment.csv")
 
-        read_output_csv = pd.read_csv(output_csv, index_col=0)
+        read_output_csv = pd.read_csv("state_assignment.csv", index_col=0)
         print(read_output_csv)
 
 
