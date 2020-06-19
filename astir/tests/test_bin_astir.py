@@ -34,14 +34,13 @@ class TestBinAstir(unittest.TestCase):
         warnings.filterwarnings("ignore", category=UserWarning)
         bash_command = "python -W ignore {} {} {} {} {}".format(
             self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
-            "test-data/output.csv"
+            self.output_file
         )
         process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
         output, error = process.communicate()
         self.assertIsNone(error)
 
-        with open("test-data/output.csv", "r") as f:
-            read_output = pd.read_csv("test-data/output.csv", index_col=0)
+        read_output = pd.read_csv(r"{}".format(self.output_file), index_col=0)
         self.assertEqual(len(read_output), len(self.expr))
 
         states = self.marker_dict["cell_states"].keys()
@@ -55,7 +54,7 @@ class TestBinAstir(unittest.TestCase):
                                        torch.float64, 1e-3, 10
         bash_command = "python -W ignore {} {} {} {} {}".format(
             self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
-            "test-data/output.csv"
+            self.output_file
         )
         bash_command += " --design {}".format(design)
         bash_command += " --max_epochs {}".format(max_epochs)
@@ -91,9 +90,7 @@ class TestBinAstir(unittest.TestCase):
         )
 
         expected_assign = ast.get_cellstates()
-        with open("test-data/output.csv", "r") as f:
-            actual_assign = pd.read_csv("test-data/output.csv", index_col=0)
-        # actual_assign = pd.read_csv("test-data/output.csv", index_col=0)
+        actual_assign = pd.read_csv(r"{}".format(self.output_file), index_col=0)
         self.assertEqual(len(expected_assign), len(actual_assign))
         self.assertTrue((expected_assign.columns ==
                          actual_assign.columns).all())
