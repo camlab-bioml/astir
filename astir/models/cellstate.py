@@ -22,9 +22,8 @@ class CellStateModel(AbstractModel):
     """Class to perform statistical inference to on the activation
         of states (pathways) across cells
 
-    :param dset: the input gene expression dataframe
-    :param include_beta: model parameter that measures with arbitrary unit,
-        by how much feature g contributes to pathway p
+    :param df_gex: the input gene expression dataframe
+    :param marker_dict: the gene marker dictionary
     :param random_seed: seed number to reproduce results, defaults to 1234
     :param dtype: torch datatype to use in the model
     """
@@ -85,8 +84,9 @@ class CellStateModel(AbstractModel):
             "rho": self._dset.get_marker_mat().T.to(self._device),
         }
 
-        self._models = StateRecognitionNet(C, G).to(device=self._device,
-                                                    dtype=self._dtype)
+        self._models = StateRecognitionNet(C, G).to(
+            device=self._device, dtype=self._dtype
+        )
 
     def _loss_fn(
         self,
