@@ -37,39 +37,41 @@ class TestBinAstir(unittest.TestCase):
         with open(self.marker_yaml_file, "r") as stream:
             self.marker_dict = yaml.safe_load(stream)
 
-    def test_basic(self):
-        write_content = "This is a file for testing!!!!!!!!!!!!!"
-        filename = "test_argparse.txt"
-
-        bash_command = "python content.py {}".format(filename)
-        process = subprocess.Popen(bash_command.split())
-        output, error = process.communicate()
-        self.assertIsNone(error)
-
-        with open(filename, "r") as fr:
-            contents = fr.read()
-            print(fr.read())
-
-        self.assertEqual(contents, write_content)
-
-
-    # def test_basic_command(self):
-    #     # warnings.filterwarnings("ignore", category=UserWarning)
-    #     bash_command = "python -W ignore {} {} {} {} {}".format(
-    #         self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
-    #         self.output_file
-    #     )
-    #     # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
-    #     process = subprocess.Popen(bash_command.split())
-    #     output, error = process.communicate()
-    #     print(error)
-    #     self.assertIsNone(error)
+    # def test_basic(self):
+    #     write_content = "This is a file for testing!!!!!!!!!!!!!"
+    #     filename = "test_argparse.txt"
     #
-    #     read_output = pd.read_csv(self.output_file, index_col=0)
-    #     self.assertEqual(len(read_output), len(self.expr))
+    #     bash_command = "python content.py {}".format(filename)
+    #     process = subprocess.check_output(bash_command.split())
+    #     print(str(process))
+    #     # output, error = process.communicate()
+    #     # self.assertIsNone(error)
+    #     #
+    #     with open(filename, "r") as fr:
+    #         contents = fr.read()
+    #         print(fr.read())
     #
-    #     states = self.marker_dict["cell_states"].keys()
-    #     self.assertEqual(len(read_output.columns), len(states))
+    #     self.assertEqual(contents, write_content)
+
+
+    def test_basic_command(self):
+        # warnings.filterwarnings("ignore", category=UserWarning)
+        bash_command = "python -W ignore {} {} {} {} {}".format(
+            self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
+            self.output_file
+        )
+        # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
+        # process = subprocess.Popen(bash_command.split())
+        # output, error = process.communicate()
+        # print(error)
+        # self.assertIsNone(error)
+        os.system(bash_command)
+
+        read_output = pd.read_csv(self.output_file, index_col=0)
+        self.assertEqual(len(read_output), len(self.expr))
+
+        states = self.marker_dict["cell_states"].keys()
+        self.assertEqual(len(read_output.columns), len(states))
 
     # def test_command_all_flags(self):
     #     warnings.filterwarnings("ignore", category=UserWarning)
