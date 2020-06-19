@@ -3,7 +3,7 @@
 # VSCode tips for python:
 # ctrl+` to open terminal
 # cmd+P to go to file
-
+import os
 import re
 from typing import Tuple, List, Dict, Union
 import warnings
@@ -528,7 +528,7 @@ class Astir:
         :param output_csv: path to output csv
         :type output_csv: str, required
         """
-        self.get_cellstates().to_csv(r"{}".format(output_csv))
+        self.get_cellstates().to_csv(output_csv)
 
     def __str__(self) -> str:
         return (

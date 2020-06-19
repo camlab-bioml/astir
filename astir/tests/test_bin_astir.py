@@ -1,6 +1,4 @@
 import unittest
-from pathlib import Path
-
 import rootpath
 import pandas as pd
 import yaml
@@ -9,7 +7,7 @@ import subprocess
 import torch
 import warnings
 
-from ..astir import Astir
+from astir.astir import Astir
 
 
 class TestBinAstir(unittest.TestCase):
@@ -24,14 +22,13 @@ class TestBinAstir(unittest.TestCase):
         self.marker_yaml_file = os.path.join(
             os.path.dirname(__file__), "test-data/jackson-2020-markers.yml"
         )
-
-        filepath = Path(__file__).parent
-        filepath.mkdir(parents=True, exist_ok=True)
-        print(filepath)
-
-        filepath = Path(__file__).parent / "test-data" / "output.csv"
-        filepath.mkdir(parents=True, exist_ok=True)
-        self.output_file = filepath
+        self.output_file = os.path.join(
+            os.path.dirname(__file__), "test-data/output"
+        )
+        print(self.output_file)
+        print(os.path.isdir(self.expr_csv_file))
+        print(os.path.isdir(self.output_file))
+        print(os.path.isdir(self.marker_yaml_file))
 
         self.expr = pd.read_csv(self.expr_csv_file, index_col=0)
         with open(self.marker_yaml_file, "r") as stream:
@@ -47,7 +44,7 @@ class TestBinAstir(unittest.TestCase):
         output, error = process.communicate()
         self.assertIsNone(error)
 
-        read_output = pd.read_csv(r"{}".format(self.output_file), index_col=0)
+        read_output = pd.read_csv(self.output_file, index_col=0)
         self.assertEqual(len(read_output), len(self.expr))
 
         states = self.marker_dict["cell_states"].keys()
@@ -97,7 +94,7 @@ class TestBinAstir(unittest.TestCase):
         )
 
         expected_assign = ast.get_cellstates()
-        actual_assign = pd.read_csv(r"{}".format(self.output_file), index_col=0)
+        actual_assign = pd.read_csv(self.output_file, index_col=0)
         self.assertEqual(len(expected_assign), len(actual_assign))
         self.assertTrue((expected_assign.columns ==
                          actual_assign.columns).all())
