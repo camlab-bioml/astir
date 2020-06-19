@@ -3,6 +3,7 @@
 import argparse
 
 import torch
+import pandas as pd
 
 from astir.data_readers import from_csv_yaml
 
@@ -87,6 +88,7 @@ elif args.criteria == "state":
                 n_init_epochs=args.n_init_epochs,
                 delta_loss_batch=args.delta_loss_batch)
     a.state_to_csv(args.output_csv)
+    read_output = pd.read_csv(args.output_file, index_col=0)
     print("###############################4")
 else:
     print("Please specify the criteria for classification. (astir type [option] / astir state [option])")

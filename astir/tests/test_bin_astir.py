@@ -3,6 +3,7 @@ import rootpath
 import pandas as pd
 import yaml
 import os
+import sys
 import subprocess
 import torch
 import warnings
@@ -42,6 +43,7 @@ class TestBinAstir(unittest.TestCase):
             self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
             self.output_file
         )
+        # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
         process = subprocess.Popen(bash_command.split())
         output, error = process.communicate()
         print(error)
