@@ -4,7 +4,6 @@ import argparse
 
 import torch
 
-from astir import Astir
 from astir.data_readers import from_csv_yaml
 
 
