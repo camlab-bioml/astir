@@ -40,7 +40,8 @@ class TestBinAstir(unittest.TestCase):
         output, error = process.communicate()
         self.assertIsNone(error)
 
-        read_output = pd.read_csv("test-data/output.csv", index_col=0)
+        with open("test-data/output.csv", "r") as f:
+            read_output = pd.read_csv("test-data/output.csv", index_col=0)
         self.assertEqual(len(read_output), len(self.expr))
 
         states = self.marker_dict["cell_states"].keys()
@@ -90,7 +91,9 @@ class TestBinAstir(unittest.TestCase):
         )
 
         expected_assign = ast.get_cellstates()
-        actual_assign = pd.read_csv("test-data/output.csv", index_col=0)
+        with open("test-data/output.csv", "r") as f:
+            actual_assign = pd.read_csv("test-data/output.csv", index_col=0)
+        # actual_assign = pd.read_csv("test-data/output.csv", index_col=0)
         self.assertEqual(len(expected_assign), len(actual_assign))
         self.assertTrue((expected_assign.columns ==
                          actual_assign.columns).all())
