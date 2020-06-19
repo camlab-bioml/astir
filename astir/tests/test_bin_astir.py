@@ -1,4 +1,6 @@
 import unittest
+from pathlib import Path
+
 import rootpath
 import pandas as pd
 import yaml
@@ -23,11 +25,13 @@ class TestBinAstir(unittest.TestCase):
             os.path.dirname(__file__), "test-data/jackson-2020-markers.yml"
         )
 
-        filepath = os.path.dirname(__file__)
+        filepath = Path(__file__).parent
         filepath.mkdir(parents=True, exist_ok=True)
-        self.output_file = os.path.join(
-            os.path.dirname(__file__), "test-data/output.csv"
-        )
+        print(filepath)
+
+        filepath = Path(__file__).parent / "test-data" / "output.csv"
+        filepath.mkdir(parents=True, exist_ok=True)
+        self.output_file = filepath
 
         self.expr = pd.read_csv(self.expr_csv_file, index_col=0)
         with open(self.marker_yaml_file, "r") as stream:
