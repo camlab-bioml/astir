@@ -35,7 +35,7 @@ jobs:
       run: |
         pip install pytest
         pip install pytest-cov
-        pytest --cov=astir
+        pytest --cov=astir > result.txt
     - name: Upload coverage
       shell: pwsh
       run: coverage report -m
