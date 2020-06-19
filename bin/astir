@@ -6,6 +6,7 @@ import torch
 
 from astir.data_readers import from_csv_yaml
 
+print("###############################1")
 
 parser = argparse.ArgumentParser(description='Run astir')
 
@@ -67,6 +68,7 @@ elif args.dtype == "torch.float32":
     args.dtype = torch.float32
 
 a = from_csv_yaml(args.expr_csv, args.marker_yaml, design_csv=args.design, random_seed=args.random_seed)
+print("###############################2")
 if args.criteria == "type":
     a.fit_type(max_epochs = args.max_epochs,
         learning_rate = args.learning_rate,
@@ -76,6 +78,7 @@ if args.criteria == "type":
         n_init_epochs = args.n_init_epochs)
     a.type_to_csv(args.output_csv)
 elif args.criteria == "state":
+    print("###############################3")
     a.fit_state(max_epochs=args.max_epochs,
                 learning_rate=args.learning_rate,
                 batch_size=args.batch_size,
@@ -84,5 +87,6 @@ elif args.criteria == "state":
                 n_init_epochs=args.n_init_epochs,
                 delta_loss_batch=args.delta_loss_batch)
     a.state_to_csv(args.output_csv)
+    print("###############################4")
 else:
     print("Please specify the criteria for classification. (astir type [option] / astir state [option])")

@@ -26,6 +26,7 @@ class TestBinAstir(unittest.TestCase):
             os.path.dirname(__file__), "output"
         )
         print(self.output_file)
+        print(rootpath.detect())
 
         print(os.path.isdir(self.expr_csv_file))
         print(os.path.isdir(self.output_file))
@@ -36,12 +37,12 @@ class TestBinAstir(unittest.TestCase):
             self.marker_dict = yaml.safe_load(stream)
 
     def test_basic_command(self):
-        warnings.filterwarnings("ignore", category=UserWarning)
+        # warnings.filterwarnings("ignore", category=UserWarning)
         bash_command = "python -W ignore {} {} {} {} {}".format(
             self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
             self.output_file
         )
-        process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
+        process = subprocess.Popen(bash_command.split())
         output, error = process.communicate()
         print(error)
         self.assertIsNone(error)
