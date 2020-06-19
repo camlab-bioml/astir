@@ -528,7 +528,8 @@ class Astir:
         :param output_csv: path to output csv
         :type output_csv: str, required
         """
-        self.get_cellstates().to_csv(output_csv)
+        with open(output_csv, "w") as output_csv:
+            self.get_cellstates().to_csv(output_csv)
 
     def __str__(self) -> str:
         return (
