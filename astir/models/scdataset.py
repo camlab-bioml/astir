@@ -219,7 +219,8 @@ class SCDataset(Dataset):
     def get_design(self) -> torch.Tensor:
         return self._design
 
-    def normalize(self, percentile_lower: int = 1, percentile_upper: int = 99) -> None:
+    def normalize(self, percentile_lower: float = 0, percentile_upper: float = 99.9,
+     cofactor=5.) -> None:
         """Normalize the expression data
 
         This performs a two-step normalization:
@@ -228,7 +229,7 @@ class SCDataset(Dataset):
         """
         with torch.no_grad():
             exprs = self.get_exprs().numpy()
-            exprs = np.log1p(exprs)
+            exprs = np.arcsinh(exprs / cofactor)
             q_low = np.percentile(exprs, (percentile_lower), axis=0)
             q_high = np.percentile(exprs, (percentile_upper), axis=0)
 

@@ -109,12 +109,8 @@ class CellTypeModel(AbstractModel):
             self._variables[n] = Variable(v.clone()).to(self._device)
             self._variables[n].requires_grad = True
 
-        self._variables["beta"] = Variable(
-            torch.zeros(G, C + 1, dtype=self._dtype)
-        ).to(self._device)
-        self._variables["beta"].requires_grad = True
-
-    # Declare pytorch forward fn
+    # @profile
+    ## Declare pytorch forward fn
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
     ) -> torch.Tensor:
@@ -138,11 +134,6 @@ class CellTypeModel(AbstractModel):
         mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, C + 1)
         mean = mean + mean2
 
-        with torch.no_grad():
-            min_delta = torch.min(delta_tilde, 1).values.reshape((G, 1))
-        mean = mean + min_delta * torch.tanh(self._variables["beta"]) * (
-            1 - self._data["rho"]
-            )
 
         # now do the variance modelling
         p = torch.sigmoid(self._variables["p"])
@@ -197,7 +188,6 @@ class CellTypeModel(AbstractModel):
         # Construct optimizer
         opt_params = list(self._variables.values()) + list(self._recog.parameters())
 
-        opt_params = opt_params + [self._variables["beta"]]
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
         _, exprs_X, _ = self._dset[:]  # calls dset.get_item
