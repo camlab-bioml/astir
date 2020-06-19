@@ -18,7 +18,7 @@ parser.add_argument("output_csv", help="Output CSV of cell assignment probabilit
 parser.add_argument("--design", 
                     help="Path to design matrix CSV",
                     type=str,
-                    default=None)
+                    default="None")
 parser.add_argument("--max_epochs",
                     help="Number of training epochs",
                     type=int,
@@ -35,27 +35,39 @@ parser.add_argument("--random_seed",
                     help="Random seed",
                     type=int,
                     default=1234)
+parser.add_argument("--n_init",
+                    help="number of inits",
+                    type=int,
+                    default=5)
 parser.add_argument("--n_init_epochs",
                     help="number of epochs per inits",
                     type=int,
                     default=5)
-parser.add_argument("--include_beta",
-                    help="to include beta or not",
-                    type=bool,
-                    default=False)
 parser.add_argument("--dtype",
                     help="data type",
-                    type=torch.dtype,
-                    default=torch.float64)
-parser.add_argument("--delta_loss_batch",
-                    help="number of losses to calculate delta",
+                    type=str,
+                    choices=["torch.float64", "torch.float32"],
+                    default="torch.float64")
+parser.add_argument("--delta_loss",
+                    help="loss to convergence",
                     type=float,
                     default=1e-3)
+parser.add_argument("--delta_loss_batch",
+                    help="number of losses to calculate delta_loss",
+                    type=int,
+                    default=10)
 
 args = parser.parse_args()
 
-a = from_csv_yaml(args.expr_csv, args.marker_yaml, design_csv=args.design, random_seed=args.random_seed)
+if args.design == "None":
+    args.design = None
 
+if args.dtype == "torch.float64":
+    args.dtype = torch.float64
+elif args.dtype == "torch.float32":
+    args.dtype = torch.float32
+
+a = from_csv_yaml(args.expr_csv, args.marker_yaml, design_csv=args.design, random_seed=args.random_seed)
 if args.criteria == "type":
     a.fit_type(max_epochs = args.max_epochs,
         learning_rate = args.learning_rate,

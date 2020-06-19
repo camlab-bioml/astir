@@ -40,8 +40,8 @@ class Astir:
         input_expr: pd.DataFrame,
         marker_dict: Dict,
         design=None,
-        random_seed=1234,
-        dtype=torch.float64,
+        random_seed: int=1234,
+        dtype: torch.dtype =torch.float64,
     ) -> None:
 
         if not isinstance(random_seed, int):
@@ -358,8 +358,6 @@ class Astir:
                 state_grp.create_dataset(
                     "cellstate_assignments", data=self._state_assignments
                 )
-
-
 
     def get_type_dataset(self):
         return self._type_dset
