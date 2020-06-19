@@ -422,3 +422,9 @@ class TestAstir(TestCase):
             ).all():
                 same = False
         self.assertTrue(same)
+
+    def test_state_to_csv(self):
+        self.a.fit_state(max_epochs=2)
+        self.a.state_to_csv("state_assignment.csv")
+
+
