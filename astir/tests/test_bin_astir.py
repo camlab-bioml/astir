@@ -7,7 +7,7 @@ import subprocess
 import torch
 import warnings
 
-from astir import Astir
+from ..astir import Astir
 
 
 class TestBinAstir(unittest.TestCase):

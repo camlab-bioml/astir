@@ -160,4 +160,3 @@ dmypy.json
 /docs/tutorials/notebooks/cell-states.csv
 /docs/tutorials/notebooks/cell-types.csv
 /astir/tests/celltype_training_summary.hdf5
-/astir/tests/test-data/output
