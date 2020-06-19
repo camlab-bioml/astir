@@ -22,6 +22,9 @@ class TestBinAstir(unittest.TestCase):
         self.marker_yaml_file = os.path.join(
             os.path.dirname(__file__), "test-data/jackson-2020-markers.yml"
         )
+
+        filepath = os.path.dirname(__file__)
+        filepath.mkdir(parents=True, exist_ok=True)
         self.output_file = os.path.join(
             os.path.dirname(__file__), "test-data/output.csv"
         )
