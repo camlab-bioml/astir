@@ -39,35 +39,37 @@ class TestBinAstir(unittest.TestCase):
 
     def test_basic(self):
         write_content = "This is a file for testing!!!!!!!!!!!!!"
-        with open("test.txt", "w") as f:
-            f.write(write_content)
+        filename = "test_argparse.txt"
 
-        f.close()
+        bash_command = "python content.py {}".format(filename)
+        process = subprocess.Popen(bash_command.split())
+        output, error = process.communicate()
+        self.assertIsNone(error)
 
-        with open("test.txt", "r") as f:
-            contents = f.read()
-            print(f.read())
+        with open(filename, "r") as fr:
+            contents = fr.read()
+            print(fr.read())
 
         self.assertEqual(contents, write_content)
 
 
-    def test_basic_command(self):
-        # warnings.filterwarnings("ignore", category=UserWarning)
-        bash_command = "python -W ignore {} {} {} {} {}".format(
-            self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
-            self.output_file
-        )
-        # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
-        process = subprocess.Popen(bash_command.split())
-        output, error = process.communicate()
-        print(error)
-        self.assertIsNone(error)
-
-        read_output = pd.read_csv(self.output_file, index_col=0)
-        self.assertEqual(len(read_output), len(self.expr))
-
-        states = self.marker_dict["cell_states"].keys()
-        self.assertEqual(len(read_output.columns), len(states))
+    # def test_basic_command(self):
+    #     # warnings.filterwarnings("ignore", category=UserWarning)
+    #     bash_command = "python -W ignore {} {} {} {} {}".format(
+    #         self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
+    #         self.output_file
+    #     )
+    #     # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
+    #     process = subprocess.Popen(bash_command.split())
+    #     output, error = process.communicate()
+    #     print(error)
+    #     self.assertIsNone(error)
+    #
+    #     read_output = pd.read_csv(self.output_file, index_col=0)
+    #     self.assertEqual(len(read_output), len(self.expr))
+    #
+    #     states = self.marker_dict["cell_states"].keys()
+    #     self.assertEqual(len(read_output.columns), len(states))
 
     # def test_command_all_flags(self):
     #     warnings.filterwarnings("ignore", category=UserWarning)
