@@ -4,7 +4,7 @@ import warnings
 import torch
 import numpy as np
 
-from .scdataset import SCDataset
+from astir.data import SCDataset
 
 
 class AbstractModel:

@@ -21,8 +21,8 @@ from sklearn.preprocessing import StandardScaler
 from scipy import stats
 
 from .abstract import AbstractModel
-from astir.models.scdataset import SCDataset
-from astir.models.recognet import RecognitionNet
+from astir.data import SCDataset
+from .recognet import RecognitionNet
 
 
 class CellTypeModel(AbstractModel):

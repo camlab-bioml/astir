@@ -3,7 +3,7 @@ import pandas as pd
 import yaml
 import torch
 
-from astir.astir import SCDataset
+from astir.data import SCDataset
 
 import os
 

@@ -16,7 +16,7 @@ import h5py
 
 from .models.celltype import CellTypeModel
 from .models.cellstate import CellStateModel
-from .models.scdataset import SCDataset
+from .data.scdataset import SCDataset
 
 
 class Astir:

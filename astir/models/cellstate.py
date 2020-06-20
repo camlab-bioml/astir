@@ -11,8 +11,9 @@ import pandas as pd
 import yaml
 
 from .abstract import AbstractModel
-from .scdataset import SCDataset
+from astir.data import SCDataset
 from .cellstate_recognet import StateRecognitionNet
+
 from tqdm import trange
 from torch.autograd import Variable
 from torch.utils.data import DataLoader

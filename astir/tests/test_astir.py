@@ -10,8 +10,8 @@ import yaml
 import h5py
 
 from astir import Astir
-from astir.data_readers import from_csv_yaml, from_csv_dir_yaml, from_anndata_yaml
-from astir.models.scdataset import SCDataset
+from astir.data import from_csv_yaml, from_csv_dir_yaml, from_anndata_yaml
+from astir.data import SCDataset
 
 
 class TestAstir(TestCase):
