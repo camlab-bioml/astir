@@ -92,7 +92,7 @@ class TestBinAstir(unittest.TestCase):
         output, error = process.communicate()
         self.assertIsNone(error)
 
-        path = rootpath.detect() + "file_to_read.txt"
+        path = rootpath.detect() + "/file_to_read.txt"
         with open(path, "r") as f:
             contents = f.read()
 
