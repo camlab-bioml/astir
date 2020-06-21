@@ -26,7 +26,7 @@ class TestBinAstir(unittest.TestCase):
             os.path.dirname(__file__), "test-data/jackson-2020-markers.yml"
         )
         self.output_file = os.path.join(
-            os.path.dirname(__file__), "output"
+            rootpath.detect(), "output"
         )
         # print(self.output_file)
         # print(rootpath.detect())
