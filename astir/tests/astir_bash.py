@@ -4,6 +4,13 @@ import torch
 import pandas as pd
 import yaml
 
+import os
+import sys
+module_path = os.path.abspath(os.path.join('..'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
+os.system("export PYTHONPATH=.")
+
 from astir.data_readers import from_csv_yaml
 
 
