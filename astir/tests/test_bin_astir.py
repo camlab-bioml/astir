@@ -17,7 +17,7 @@ class TestBinAstir(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestBinAstir, self).__init__(*args, **kwargs)
         self.exec_path = os.path.join(
-            rootpath.detect(), "bin/astir"
+            os.path.dirname(__file__), "astir_bash.py"
         )
         self.expr_csv_file = os.path.join(
             os.path.dirname(__file__), "test-data/test_data.csv"
@@ -26,7 +26,7 @@ class TestBinAstir(unittest.TestCase):
             os.path.dirname(__file__), "test-data/jackson-2020-markers.yml"
         )
         self.output_file = os.path.join(
-            rootpath.detect(), "output"
+            os.path.dirname(__file__), "output"
         )
         # print(self.output_file)
         # print(rootpath.detect())
@@ -55,50 +55,30 @@ class TestBinAstir(unittest.TestCase):
     #
     #     self.assertEqual(contents, write_content)
 
-
     def test_basic_command(self):
-        # warnings.filterwarnings("ignore", category=UserWarning)
-        # bash_command = "python -W ignore {} {} {} {} {}".format(
-        #     self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
-        #     self.output_file
-        # )
-        # print(bash_command)
-        # # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
-        # process = subprocess.Popen(bash_command.split())
-        # output, error = process.communicate()
-        # self.assertIsNone(error)
-        # bash_command = "chmod 777 {}".format(self.output_file)
-        #
-        # process = subprocess.Popen(bash_command.split())
-        # output, error = process.communicate()
-        # self.assertIsNone(error)
-        # # os.system(bash_command)
-        #
-        # # a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file,
-        # #                   design_csv=None, random_seed=42)
-        # #
-        # # a.fit_state()
-        # # a.state_to_csv(self.output_file)
-        #
-        # read_output = pd.read_csv(self.output_file, index_col=0)
-        # self.assertEqual(len(read_output), len(self.expr))
-        #
-        # states = self.marker_dict["cell_states"].keys()
-        # self.assertEqual(len(read_output.columns), len(states))
-
-        bash_command = "python {}".format(self.exec_path)
-
+        warnings.filterwarnings("ignore", category=UserWarning)
+        bash_command = "python -W ignore {} {} {} {} {}".format(
+            self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
+            self.output_file
+        )
+        # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
         process = subprocess.Popen(bash_command.split())
         output, error = process.communicate()
         self.assertIsNone(error)
 
-        path = rootpath.detect() + "/file_to_read.txt"
-        with open(path, "r") as f:
-            contents = f.read()
+        # os.system(bash_command)
 
-        print(contents)
+        # a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file,
+        #                   design_csv=None, random_seed=42)
+        #
+        # a.fit_state()
+        # a.state_to_csv(self.output_file)
 
-        self.assertEqual(contents, "This is a file!!!!!!!!!!")
+        read_output = pd.read_csv(self.output_file, index_col=0)
+        self.assertEqual(len(read_output), len(self.expr))
+
+        states = self.marker_dict["cell_states"].keys()
+        self.assertEqual(len(read_output.columns), len(states))
 
     # def test_command_all_flags(self):
     #     warnings.filterwarnings("ignore", category=UserWarning)
