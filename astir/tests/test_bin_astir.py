@@ -66,7 +66,7 @@ class TestBinAstir(unittest.TestCase):
         output, error = process.communicate()
         self.assertIsNone(error)
 
-        # os.system(bash_command)
+        os.system("export PYTHONPATH=.")
 
         # a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file,
         #                   design_csv=None, random_seed=42)
