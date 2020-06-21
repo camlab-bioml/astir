@@ -57,6 +57,12 @@ class TestBinAstir(unittest.TestCase):
 
     def test_basic_command(self):
         warnings.filterwarnings("ignore", category=UserWarning)
+        import os
+        import sys
+        module_path = os.path.abspath(os.path.join('..'))
+        if module_path not in sys.path:
+            sys.path.append(module_path)
+        os.system("export PYTHONPATH=.")
         bash_command = "python -W ignore {} {} {} {} {}".format(
             self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
             self.output_file
@@ -66,7 +72,8 @@ class TestBinAstir(unittest.TestCase):
         output, error = process.communicate()
         self.assertIsNone(error)
 
-        os.system("export PYTHONPATH=.")
+
+
 
         # a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file,
         #                   design_csv=None, random_seed=42)
