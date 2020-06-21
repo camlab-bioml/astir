@@ -4,7 +4,7 @@ import torch
 import pandas as pd
 import yaml
 
-from astir.data_readers.data_readers import from_csv_yaml
+from .data_readers import from_csv_yaml
 
 
 print("###############################1")

@@ -17,8 +17,10 @@ class TestBinAstir(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestBinAstir, self).__init__(*args, **kwargs)
         self.exec_path = os.path.join(
-            os.path.dirname(__file__), "astir_bash.py"
+            os.path.dirname(os.path.dirname(__file__)),
+            "data_readers/astir_bash.py"
         )
+        print(self.exec_path)
         self.expr_csv_file = os.path.join(
             os.path.dirname(__file__), "test-data/test_data.csv"
         )
@@ -64,16 +66,13 @@ class TestBinAstir(unittest.TestCase):
             sys.path.append(module_path)
         os.system("export PYTHONPATH=.")
         bash_command = "python -W ignore {} {} {} {} {}".format(
-            self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
-            self.output_file
+            self.exec_path, "state", self.expr_csv_file,
+            self.marker_yaml_file, self.output_file
         )
         # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
         process = subprocess.Popen(bash_command.split())
         output, error = process.communicate()
         self.assertIsNone(error)
-
-
-
 
         # a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file,
         #                   design_csv=None, random_seed=42)
