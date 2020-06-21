@@ -531,7 +531,7 @@ class Astir:
         self.get_cellstates().to_csv(output_csv)
 
         read_output_csv = pd.read_csv(output_csv, index_col=0)
-        print(read_output_csv)
+        # print(read_output_csv)
 
     def __str__(self) -> str:
         return (

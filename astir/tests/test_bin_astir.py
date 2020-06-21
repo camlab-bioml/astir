@@ -10,6 +10,8 @@ import warnings
 
 from astir.astir import Astir
 
+from astir.data_readers import from_csv_yaml
+
 
 class TestBinAstir(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -26,12 +28,12 @@ class TestBinAstir(unittest.TestCase):
         self.output_file = os.path.join(
             os.path.dirname(__file__), "output"
         )
-        print(self.output_file)
-        print(rootpath.detect())
-
-        print(os.path.isdir(self.expr_csv_file))
-        print(os.path.isdir(self.output_file))
-        print(os.path.isdir(self.marker_yaml_file))
+        # print(self.output_file)
+        # print(rootpath.detect())
+        #
+        # print(os.path.isdir(self.expr_csv_file))
+        # print(os.path.isdir(self.output_file))
+        # print(os.path.isdir(self.marker_yaml_file))
 
         self.expr = pd.read_csv(self.expr_csv_file, index_col=0)
         with open(self.marker_yaml_file, "r") as stream:
@@ -56,16 +58,22 @@ class TestBinAstir(unittest.TestCase):
 
     def test_basic_command(self):
         # warnings.filterwarnings("ignore", category=UserWarning)
-        bash_command = "python -W ignore {} {} {} {} {}".format(
-            self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
-            self.output_file
-        )
+        # bash_command = "python -W ignore {} {} {} {} {}".format(
+        #     self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
+        #     self.output_file
+        # )
         # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
         # process = subprocess.Popen(bash_command.split())
         # output, error = process.communicate()
         # print(error)
         # self.assertIsNone(error)
-        os.system(bash_command)
+        # os.system(bash_command)
+
+        a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file,
+                          design_csv=None, random_seed=42)
+
+        a.fit_state()
+        a.state_to_csv(self.output_file)
 
         read_output = pd.read_csv(self.output_file, index_col=0)
         self.assertEqual(len(read_output), len(self.expr))
@@ -83,19 +91,20 @@ class TestBinAstir(unittest.TestCase):
     #         self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
     #         self.output_file
     #     )
-    #     bash_command += " --design {}".format(design)
-    #     bash_command += " --max_epochs {}".format(max_epochs)
-    #     bash_command += " --learning_rate {}".format(lr)
-    #     bash_command += " --batch_size {}".format(batch_size)
-    #     bash_command += " --random_seed {}".format(random_seed)
-    #     bash_command += " --n_init {}".format(n_init)
-    #     bash_command += " --n_init_epochs {}".format(n_init_epochs)
-    #     bash_command += " --dtype {}".format(dtype)
-    #     bash_command += " --delta_loss {}".format(delta_loss)
-    #     bash_command += " --delta_loss_batch {}".format(delta_loss_batch)
-    #     process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
-    #     output, error = process.communicate()
-    #     self.assertIsNone(error)
+    #     # bash_command += " --design {}".format(design)
+    #     # bash_command += " --max_epochs {}".format(max_epochs)
+    #     # bash_command += " --learning_rate {}".format(lr)
+    #     # bash_command += " --batch_size {}".format(batch_size)
+    #     # bash_command += " --random_seed {}".format(random_seed)
+    #     # bash_command += " --n_init {}".format(n_init)
+    #     # bash_command += " --n_init_epochs {}".format(n_init_epochs)
+    #     # bash_command += " --dtype {}".format(dtype)
+    #     # bash_command += " --delta_loss {}".format(delta_loss)
+    #     # bash_command += " --delta_loss_batch {}".format(delta_loss_batch)
+    #     # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
+    #     # output, error = process.communicate()
+    #     os.system(bash_command)
+    #     # self.assertIsNone(error)
     #
     #     # Create Astir object to compare
     #     ast = Astir(
