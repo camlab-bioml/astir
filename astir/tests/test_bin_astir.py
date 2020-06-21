@@ -21,6 +21,7 @@ class TestBinAstir(unittest.TestCase):
             "astir_bash.py"
         )
         print(self.exec_path)
+        print(sys.path)
         self.expr_csv_file = os.path.join(
             os.path.dirname(__file__), "test-data/test_data.csv"
         )
