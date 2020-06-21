@@ -57,33 +57,48 @@ class TestBinAstir(unittest.TestCase):
 
 
     def test_basic_command(self):
-        warnings.filterwarnings("ignore", category=UserWarning)
-        bash_command = "python -W ignore {} {} {} {} {}".format(
-            self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
-            self.output_file
-        )
-        # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
-        process = subprocess.Popen(bash_command.split())
-        output, error = process.communicate()
-        self.assertIsNone(error)
-        bash_command = "chmod 777 {}".format(self.output_file)
-
-        process = subprocess.Popen(bash_command.split())
-        output, error = process.communicate()
-        self.assertIsNone(error)
-        # os.system(bash_command)
-
-        # a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file,
-        #                   design_csv=None, random_seed=42)
+        # warnings.filterwarnings("ignore", category=UserWarning)
+        # bash_command = "python -W ignore {} {} {} {} {}".format(
+        #     self.exec_path, "state", self.expr_csv_file, self.marker_yaml_file,
+        #     self.output_file
+        # )
+        # print(bash_command)
+        # # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
+        # process = subprocess.Popen(bash_command.split())
+        # output, error = process.communicate()
+        # self.assertIsNone(error)
+        # bash_command = "chmod 777 {}".format(self.output_file)
         #
-        # a.fit_state()
-        # a.state_to_csv(self.output_file)
+        # process = subprocess.Popen(bash_command.split())
+        # output, error = process.communicate()
+        # self.assertIsNone(error)
+        # # os.system(bash_command)
+        #
+        # # a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file,
+        # #                   design_csv=None, random_seed=42)
+        # #
+        # # a.fit_state()
+        # # a.state_to_csv(self.output_file)
+        #
+        # read_output = pd.read_csv(self.output_file, index_col=0)
+        # self.assertEqual(len(read_output), len(self.expr))
+        #
+        # states = self.marker_dict["cell_states"].keys()
+        # self.assertEqual(len(read_output.columns), len(states))
 
-        read_output = pd.read_csv(self.output_file, index_col=0)
-        self.assertEqual(len(read_output), len(self.expr))
+        bash_command = "python {}".format(self.exec_path)
 
-        states = self.marker_dict["cell_states"].keys()
-        self.assertEqual(len(read_output.columns), len(states))
+        process = subprocess.Popen(bash_command.split())
+        output, error = process.communicate()
+        self.assertIsNone(error)
+
+        path = rootpath.detect() + "file_to_read.txt"
+        with open(path, "r") as f:
+            contents = f.read()
+
+        print(contents)
+
+        self.assertEqual(contents, "This is a file!!!!!!!!!!")
 
     # def test_command_all_flags(self):
     #     warnings.filterwarnings("ignore", category=UserWarning)
