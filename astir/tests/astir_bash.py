@@ -9,7 +9,15 @@ import sys
 module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
+print(sys.path)
+
+module_path = os.path.abspath(os.path.join('../..'))
+print(module_path)
+if module_path not in sys.path:
+    sys.path.append(module_path)
 os.system("export PYTHONPATH=.")
+
+print(sys.path)
 
 from astir.data_readers import from_csv_yaml
 
