@@ -33,6 +33,7 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Root directory
       run: |
+        python -c "import rootpath; print(rootpath.detect())"
         python -c "import sys; import rootpath; print(sys.path); sys.path.append
         (rootpath.detect()); print(sys.path)"
     - name: Test with pytest
