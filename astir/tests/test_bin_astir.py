@@ -39,7 +39,6 @@ class TestBinAstir(unittest.TestCase):
             self.marker_yaml_file, self.output_file
         )
         process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
-        # process = subprocess.Popen(bash_command.split())
         output, error = process.communicate()
         self.assertIsNone(error)
 
