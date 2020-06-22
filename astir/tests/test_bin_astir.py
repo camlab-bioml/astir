@@ -50,6 +50,10 @@ class TestBinAstir(unittest.TestCase):
     def test_basic_command(self):
         warnings.filterwarnings("ignore", category=UserWarning)
 
+        print("################3")
+        print(sys.path)
+        print("################3")
+
         bash_command = "python -W ignore {} {} {} {} {}".format(
             self.exec_path, "state", self.expr_csv_file,
             self.marker_yaml_file, self.output_file
