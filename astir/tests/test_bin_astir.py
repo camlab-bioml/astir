@@ -20,8 +20,6 @@ class TestBinAstir(unittest.TestCase):
             os.path.dirname(__file__),
             "astir_bash.py"
         )
-        print(self.exec_path)
-        print(sys.path)
         self.expr_csv_file = os.path.join(
             os.path.dirname(__file__), "test-data/test_data.csv"
         )
@@ -42,6 +40,27 @@ class TestBinAstir(unittest.TestCase):
         with open(self.marker_yaml_file, "r") as stream:
             self.marker_dict = yaml.safe_load(stream)
 
+        module_path = os.path.abspath(os.path.join('.'))
+        print("####1", module_path)
+        if module_path not in sys.path:
+            sys.path.append(module_path)
+        print(sys.path)
+
+        module_path = os.path.abspath(os.path.join('..'))
+        print("####2", module_path)
+        if module_path not in sys.path:
+            sys.path.append(module_path)
+        print(sys.path)
+
+        module_path = os.path.abspath(os.path.join('../..'))
+        print("####3", module_path)
+        print(module_path)
+        if module_path not in sys.path:
+            sys.path.append(module_path)
+        os.system("export PYTHONPATH=.")
+
+        print(sys.path)
+
     # def test_basic(self):
     #     write_content = "This is a file for testing!!!!!!!!!!!!!"
     #     filename = "test_argparse.txt"
@@ -61,8 +80,8 @@ class TestBinAstir(unittest.TestCase):
     def test_basic_command(self):
         warnings.filterwarnings("ignore", category=UserWarning)
 
-        bash_command = "python -W ignore -m astir.test.test_bin_astir.py {} {} {} {}".format(
-            "state", self.expr_csv_file,
+        bash_command = "python -W ignore {} {} {} {} {}".format(
+            self.exec_path, "state", self.expr_csv_file,
             self.marker_yaml_file, self.output_file
         )
         # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
