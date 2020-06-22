@@ -37,21 +37,21 @@ class TestNotebook(unittest.TestCase):
         super(TestNotebook, self).__init__(*args, **kwargs)
         self.maxDiff = None
 
-    def test_for_errors(self):
-        root_path = rootpath.detect()
-        dirname = os.path.join(root_path, "docs/tutorials/notebooks")
+    # def test_for_errors(self):
+    #     root_path = rootpath.detect()
+    #     dirname = os.path.join(root_path, "docs/tutorials/notebooks")
 
-        nb_names = [
-            os.path.join(dirname, fn)
-            for fn in os.listdir(dirname)
-            if os.path.splitext(fn)[1] == ".ipynb"
-        ]
+    #     nb_names = [
+    #         os.path.join(dirname, fn)
+    #         for fn in os.listdir(dirname)
+    #         if os.path.splitext(fn)[1] == ".ipynb"
+    #     ]
 
-        for fn in nb_names:
-            # if "getting_started.ipynb" in fn:
-            #     continue
-            _, errors = run_notebook(fn)
-            self.assertEqual(errors, [], "Unexpected error in {}".format(fn))
+    #     for fn in nb_names:
+    #         # if "getting_started.ipynb" in fn:
+    #         #     continue
+    #         _, errors = run_notebook(fn)
+    #         self.assertEqual(errors, [], "Unexpected error in {}".format(fn))
 
 
 if __name__ == "__main__":

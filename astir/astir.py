@@ -37,9 +37,9 @@ class Astir:
 
     def __init__(
         self,
-        input_expr: pd.DataFrame,
-        marker_dict: Dict,
-        design=None,
+        input_expr: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]], Tuple[SCDataset, SCDataset]],
+        marker_dict=None,
+        design: Union[pd.DataFrame, np.array]=None,
         random_seed=1234,
         dtype=torch.float64,
     ) -> None:
@@ -59,31 +59,33 @@ class Astir:
         self._type_assignments, self._state_assignments = None, None
         self._type_run_info, self._state_run_info = None, None
 
-        type_dict, state_dict = self._sanitize_dict(marker_dict)
-
         if design is not None:
             if isinstance(design, pd.DataFrame):
                 design = design.to_numpy()
+        self._design = design
 
-        if isinstance(input_expr, tuple):
+        if isinstance(input_expr, tuple) and len(input_expr) == 2:
             self._type_dset, self._state_dset = input_expr[0], input_expr[1]
         else:
-            self._type_dset = SCDataset(
-                expr_input=input_expr,
-                marker_dict=type_dict,
-                design=design,
-                include_other_column=True,
-                dtype=self._dtype,
-            )
-            self._state_dset = SCDataset(
-                expr_input=input_expr,
-                marker_dict=state_dict,
-                design=design,
-                include_other_column=False,
-                dtype=self._dtype,
-            )
-
-        self._design = design
+            type_dict, state_dict = self._sanitize_dict(marker_dict)
+            self._type_dset = None
+            self._state_dset = None
+            if type_dict is not None:
+                self._type_dset = SCDataset(
+                    expr_input=input_expr,
+                    marker_dict=type_dict,
+                    design=design,
+                    include_other_column=True,
+                    dtype=self._dtype,
+                )
+            if state_dict is not None:
+                self._state_dset = SCDataset(
+                    expr_input=input_expr,
+                    marker_dict=state_dict,
+                    design=design,
+                    include_other_column=False,
+                    dtype=self._dtype,
+                )
 
     def _sanitize_dict(self, marker_dict: Dict[str, dict]) -> Tuple[dict, dict]:
         """ Sanitizes the marker dictionary.
@@ -97,29 +99,26 @@ class Astir:
         :return: dictionaries for cell type and state.
         :rtype: Tuple[dict, dict]
         """
-        keys = list(marker_dict.keys())
-        if not len(keys) == 2:
-            raise NotClassifiableError(
-                "Marker file does not follow the required format."
-            )
-        ct = re.compile("cell[^a-zA-Z0-9]*type", re.IGNORECASE)
-        cs = re.compile("cell[^a-zA-Z0-9]*state", re.IGNORECASE)
-        if ct.match(keys[0]):
-            type_dict = marker_dict[keys[0]]
-        elif ct.match(keys[1]):
-            type_dict = marker_dict[keys[1]]
-        else:
-            raise NotClassifiableError(
-                "Can't find cell type dictionary" + " in the marker file."
-            )
-        if cs.match(keys[0]):
-            state_dict = marker_dict[keys[0]]
-        elif cs.match(keys[1]):
-            state_dict = marker_dict[keys[1]]
-        else:
-            raise NotClassifiableError(
-                "Can't find cell state dictionary" + " in the marker file."
-            )
+        type_dict = None
+        state_dict = None
+        if marker_dict is not None:
+            keys = list(marker_dict.keys())
+            ct = re.compile("cell[^a-zA-Z0-9]*type", re.IGNORECASE)
+            cs = re.compile("cell[^a-zA-Z0-9]*state", re.IGNORECASE)
+            if len(keys) == 1:
+                if ct.match(keys[0]):
+                    type_dict = marker_dict[keys[0]]
+                elif cs.match(keys[0]):
+                    state_dict = marker_dict[keys[0]]
+            else:
+                if ct.match(keys[0]):
+                    type_dict = marker_dict[keys[0]]
+                elif ct.match(keys[1]):
+                    type_dict = marker_dict[keys[1]]
+                if cs.match(keys[0]):
+                    state_dict = marker_dict[keys[0]]
+                elif cs.match(keys[1]):
+                    state_dict = marker_dict[keys[1]]
         return type_dict, state_dict
 
     # @profile
@@ -141,6 +140,8 @@ class Astir:
             delta_loss, defaults to 0.001
         :param n_inits: Number of random initializations
         """
+        if self._type_dset is None:
+            raise NotClassifiableError("Marker for cell type classification is not provided")
         np.random.seed(self.random_seed)
         seeds = np.random.randint(1, 100000000, n_init)
         type_models = [
@@ -215,6 +216,8 @@ class Astir:
         :param delta_loss_batch: the batch size  to consider delta loss,
             defaults to 10
         """
+        if self._state_dset is None:
+            raise NotClassifiableError("Marker for cell state classification is not provided")
         cellstate_models = []
         cellstate_losses = []
 

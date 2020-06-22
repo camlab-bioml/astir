@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import yaml
 
-from .abstract import AbstractModel
+from .abstract import AstirModel
 from astir.data import SCDataset
 from .cellstate_recognet import StateRecognitionNet
 
@@ -19,7 +19,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
 
-class CellStateModel(AbstractModel):
+class CellStateModel(AstirModel):
     """Class to perform statistical inference to on the activation
         of states (pathways) across cells
 
@@ -73,7 +73,6 @@ class CellStateModel(AbstractModel):
         self._models = StateRecognitionNet(C, G).to(
             device=self._device, dtype=self._dtype
         )
-
     def _loss_fn(
         self,
         mu_z: torch.Tensor,
@@ -231,6 +230,9 @@ class CellStateModel(AbstractModel):
             self._losses = np.append(self._losses, losses)
 
         return losses
+
+    def get_recognet(self):
+        return self._models
 
     def get_final_mu_z(self, new_dset: SCDataset = None) -> torch.Tensor:
         """ Returns the mean of the predicted z values for each core

@@ -1,6 +1,6 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 
 import numpy as np
 import pandas as pd
@@ -22,7 +22,7 @@ class SCDataset(Dataset):
 
     def __init__(
         self,
-        expr_input,
+        expr_input: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]]],
         marker_dict: Dict[str, str],
         design: np.array,
         include_other_column: bool,

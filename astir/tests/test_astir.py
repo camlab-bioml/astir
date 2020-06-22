@@ -117,6 +117,7 @@ class TestAstir(TestCase):
         raised = False
         try:
             test = Astir(self.expr, bad_dict)
+            test.fit_type()
         except (RuntimeError):
             raised = True
         self.assertTrue(raised == True)

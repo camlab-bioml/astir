@@ -7,7 +7,7 @@ import numpy as np
 from astir.data import SCDataset
 
 
-class AbstractModel:
+class AstirModel:
     """Abstract class to perform statistical inference to assign
     """
 

@@ -20,12 +20,12 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from scipy import stats
 
-from .abstract import AbstractModel
+from .abstract import AstirModel
 from astir.data import SCDataset
 from .recognet import RecognitionNet
 
 
-class CellTypeModel(AbstractModel):
+class CellTypeModel(AstirModel):
     """Class to perform statistical inference to assign
         cells to cell types
 
@@ -253,6 +253,9 @@ class CellTypeModel(AbstractModel):
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
         # g, _, _ = self._forward(exprs_X.float())
         return g
+
+    def get_recognet(self):
+        return self._recog
 
     def _compare_marker_between_types(
         self, curr_type, celltype_to_compare, marker, cell_types, alpha=0.05
