@@ -39,6 +39,8 @@ class TestBinAstir(unittest.TestCase):
         self.expr = pd.read_csv(self.expr_csv_file, index_col=0)
         with open(self.marker_yaml_file, "r") as stream:
             self.marker_dict = yaml.safe_load(stream)
+
+        print("####rootpath", rootpath.detect())
         module_path = os.path.abspath(__file__)
         print("####0", module_path)
         module_path = os.path.abspath(os.path.join('.'))
@@ -52,14 +54,6 @@ class TestBinAstir(unittest.TestCase):
         if module_path not in sys.path:
             sys.path.append(module_path)
         print(sys.path)
-
-        module_path = os.path.abspath(os.path.join('...'))
-        print(module_path)
-        # print("####3", module_path)
-        # print(module_path)
-        # if module_path not in sys.path:
-        #     sys.path.append(module_path)
-        # os.system("export PYTHONPATH=.")
 
 
     # def test_basic(self):
