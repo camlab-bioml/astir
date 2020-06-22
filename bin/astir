@@ -17,51 +17,7 @@ subparsers = parser.add_subparsers(title="Criterion", help="specify if the cells
 type_parser = subparsers.add_parser("type")
 state_parser = subparsers.add_parser("state")
 
-parser.add_argument("criteria", help="Enter type to classify cells by type or enter state to classify cells by state")
-parser.add_argument("expr_csv", help="Path to CSV expression matrix with cells as rows and proteins as columns. First column is cell ID")
-parser.add_argument("marker_yaml", help="Path to YAML file of cell markers")
-parser.add_argument("output_csv", help="Output CSV of cell assignment probabilities")
-parser.add_argument("--design", "-d",
-                    help="Path to design matrix CSV",
-                    type=str,
-                    default="None")
-parser.add_argument("--max_epochs",
-                    help="Number of training epochs",
-                    type=int,
-                    default=50)
-parser.add_argument("--learning_rate",
-                    help="Learning rate",
-                    type=float,
-                    default=1e-3)
-parser.add_argument("--batch_size",
-                    help="Batch size",
-                    type=int,
-                    default=128)
-parser.add_argument("--random_seed",
-                    help="Random seed",
-                    type=int,
-                    default=1234)
-parser.add_argument("--n_init",
-                    help="number of inits",
-                    type=int,
-                    default=5)
-parser.add_argument("--n_init_epochs",
-                    help="number of epochs per inits",
-                    type=int,
-                    default=5)
-parser.add_argument("--dtype",
-                    help="data type",
-                    type=str,
-                    choices=["torch.float64", "torch.float32"],
-                    default="torch.float64")
-parser.add_argument("--delta_loss",
-                    help="loss to convergence",
-                    type=float,
-                    default=1e-3)
-parser.add_argument("--delta_loss_batch",
-                    help="number of losses to calculate delta_loss",
-                    type=int,
-                    default=10)
+
 def parser_setup(parser):
     parser.add_argument("expr_csv", help="Path to CSV expression matrix with cells as rows and proteins as columns. First column is cell ID")
     parser.add_argument("marker_yaml", help="Path to YAML file of cell markers")
@@ -69,15 +25,15 @@ def parser_setup(parser):
     parser.add_argument("--design", "-d",
                         help="Path to design matrix CSV, default to None",
                         type=str,
-                        default=None)
+                        default="None")
     parser.add_argument("--random_seed", "-s",
                         help="random seed for variable initialization, default to 1234",
                         type=int,
                         default=1234)
     parser.add_argument("--dtype", "-t",
                         help="dtype of torch tensors, valid input include torch.float32 or torch.float64, default to torch.float32",
-                        type=torch.dtype,
-                        default=torch.float32)
+                        type=str,
+                        default="torch.float64")
     parser.add_argument("--max_epochs", "-m",
                         help="Number of training epochs, default to 50",
                         type=int,
@@ -107,18 +63,7 @@ parser_setup(state_parser)
 state_parser.add_argument("--delta_loss_batch",
                         help="the batch size  to consider delta loss, default to 10")
 
-if args.design == "None":
-    args.design = None
 
-if args.dtype == "torch.float64":
-    args.dtype = torch.float64
-elif args.dtype == "torch.float32":
-    args.dtype = torch.float32
-
-a = from_csv_yaml(args.expr_csv, args.marker_yaml, design_csv=args.design, random_seed=args.random_seed)
-if args.criteria == "type":
-    a.fit_type(max_epochs = args.max_epochs,
-        learning_rate = args.learning_rate,
 def run_type(args):
     a = from_csv_yaml(args.expr_csv, args.marker_yaml, design_csv=args.design, random_seed=args.random_seed, dtype=args.dtype)
     a.fit_type(max_epochs = args.max_epochs,
@@ -143,6 +88,15 @@ def run_state(args):
 type_parser.set_defaults(func=run_type)
 state_parser.set_defaults(func=run_state)
 args = parser.parse_args()
+
+if args.design == "None":
+    args.design = None
+
+if args.dtype == "torch.float64":
+    args.dtype = torch.float64
+elif args.dtype == "torch.float32":
+    args.dtype = torch.float32
+
 if hasattr(args, 'func'):
     args.func(args)
 else:
