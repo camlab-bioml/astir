@@ -6,6 +6,19 @@ import pandas as pd
 import yaml
 import torch
 
+import os
+import sys
+import rootpath
+
+module_path = rootpath.detect()
+if module_path not in sys.path:
+    sys.path.append(module_path)
+
+module_path = os.path.join(rootpath.detect(), "astir")
+if module_path not in sys.path:
+    sys.path.append(module_path)
+
+
 from astir import Astir
 from astir.data import from_csv_yaml
 
