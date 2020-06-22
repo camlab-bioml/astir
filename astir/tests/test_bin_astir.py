@@ -17,8 +17,7 @@ class TestBinAstir(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestBinAstir, self).__init__(*args, **kwargs)
         self.exec_path = os.path.join(
-            os.path.dirname(__file__),
-            "astir_bash.py"
+            os.path.dirname(__file__), "astir_bash.py"
         )
         print(self.exec_path)
         self.expr_csv_file = os.path.join(
