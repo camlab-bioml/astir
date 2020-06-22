@@ -34,6 +34,7 @@ jobs:
     - name: Root directory
       run: |
         pwd
+        ls
     - name: Test with pytest
       run: |
         pip install pytest
