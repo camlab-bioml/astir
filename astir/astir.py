@@ -59,11 +59,6 @@ class Astir:
         self._type_assignments, self._state_assignments = None, None
         self._type_run_info, self._state_run_info = None, None
 
-        if design is not None:
-            if isinstance(design, pd.DataFrame):
-                design = design.to_numpy()
-        self._design = design
-
         if isinstance(input_expr, tuple) and len(input_expr) == 2:
             self._type_dset, self._state_dset = input_expr[0], input_expr[1]
         else:

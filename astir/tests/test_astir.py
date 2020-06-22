@@ -61,10 +61,10 @@ class TestAstir(TestCase):
         self.assertIsInstance(a, Astir)
 
         ## Make sure the design matrix has been constructed correctly
-        self.assertTrue(a._design.shape[0] == len(a._type_dset))
+        self.assertTrue(a._type_dset._design.shape[0] == len(a._type_dset))
         files = os.listdir(self.test_dir)
         files = [f for f in files if f.endswith(".csv")]
-        self.assertTrue(a._design.shape[1] == len(files))
+        self.assertTrue(a._type_dset._design.shape[1] == len(files))
 
     def test_csv_reading_with_design(self):
 

@@ -24,9 +24,9 @@ class SCDataset(Dataset):
         self,
         expr_input: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]]],
         marker_dict: Dict[str, str],
-        design: np.array,
         include_other_column: bool,
         dtype=torch.float64,
+        design: Union[np.array, pd.DataFrame]=None
     ) -> None:
         self._dtype = dtype
         self._marker_dict = marker_dict
@@ -108,11 +108,11 @@ class SCDataset(Dataset):
             )
         if len(ind) < len(self._m_features):
             warnings.warn("Classified features are less than marked features.")
-        Y_np = []
-        for cell in np_input[0]:
-            temp = [cell[i] for i in ind]
-            Y_np.append(np.array(temp))
-        Y_np = np.concatenate([Y_np], axis=0)
+        # Y_np = []
+        # for cell in np_input[0]:
+        #     temp = [cell[i] for i in ind]
+        #     Y_np.append(np.array(temp))
+        Y_np = np_input[:, ind]
         return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
 
     def _construct_marker_mat(self, include_other_column: bool) -> torch.Tensor:
@@ -151,6 +151,8 @@ class SCDataset(Dataset):
                 self._device
             )
         else:
+            if isinstance(design, pd.DataFrame):
+                design = design.to_numpy()
             d = torch.from_numpy(design).to(device=self._device, dtype=self._dtype)
 
         if d.shape[0] != self._exprs.shape[0]:
