@@ -1,6 +1,6 @@
 torch
 pandas
-numpy
+numpy==1.18.5
 nbformat
 pyyaml
 sklearn
