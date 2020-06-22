@@ -10,9 +10,8 @@ import yaml
 import h5py
 
 from astir import Astir
-from astir.data_readers import from_csv_yaml, from_csv_dir_yaml, \
-    from_anndata_yaml
-from astir.models.scdataset import SCDataset
+from astir.data import from_csv_yaml, from_csv_dir_yaml, from_anndata_yaml
+from astir.data import SCDataset
 
 
 class TestAstir(TestCase):
@@ -75,9 +74,6 @@ class TestAstir(TestCase):
 
         self.assertIsInstance(a, Astir)
 
-    def test_type(self):
-        self.a.fit_type(max_epochs=2, n_init=1)
-
     def test_fitting_type(self):
 
         epochs = 2
@@ -98,7 +94,7 @@ class TestAstir(TestCase):
         self.assertTrue(assignments.columns[0] == "cell_type")
 
         # Check diagnostics look ok
-        type_diagnostics = self.a.diagnostics_celltype(threshold = 0.2, alpha=0)
+        type_diagnostics = self.a.diagnostics_celltype(threshold=0.2, alpha=0)
         self.assertIsInstance(type_diagnostics, pd.DataFrame)
         self.assertTrue(
             type_diagnostics.shape[1] == 7
@@ -422,12 +418,3 @@ class TestAstir(TestCase):
             ).all():
                 same = False
         self.assertTrue(same)
-
-    def test_state_to_csv(self):
-        self.a.fit_state(max_epochs=2)
-        self.a.state_to_csv("state_assignment.csv")
-
-        read_output_csv = pd.read_csv("state_assignment.csv", index_col=0)
-        print(read_output_csv)
-
-

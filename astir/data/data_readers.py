@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 
 from sklearn.preprocessing import OneHotEncoder
-from astir.astir import Astir
 import torch
 
 
@@ -38,6 +37,7 @@ def from_csv_yaml(
         design = pd.read_csv(design_csv, index_col=0)
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
+    from astir.astir import Astir
     return Astir(df_gex, marker_dict, design, random_seed, dtype=dtype)
 
 
@@ -81,7 +81,7 @@ def from_csv_dir_yaml(
 
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
-
+    from astir.astir import Astir
     return Astir(df_gex, marker_dict, design, random_seed, dtype)
 
 
@@ -130,7 +130,7 @@ def from_loompy_yaml(
 
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
-
+    from astir.astir import Astir
     return Astir(df_gex, marker_dict, design, random_seed, dtype)
 
 
@@ -190,5 +190,5 @@ def from_anndata_yaml(
 
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
-
+    from astir.astir import Astir
     return Astir(df_gex, marker_dict, design, random_seed, dtype)
