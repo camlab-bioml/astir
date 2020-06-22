@@ -40,7 +40,7 @@ jobs:
       run: |
         pip install pytest
         pip install pytest-cov
-        pytest --cov=astir -s
+        python -m pytest --cov=astir -s
     - name: Upload coverage
       shell: pwsh
       run: coverage report -m
