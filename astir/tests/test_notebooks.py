@@ -48,8 +48,6 @@ class TestNotebook(unittest.TestCase):
     #     ]
 
     #     for fn in nb_names:
-    #         # if "getting_started.ipynb" in fn:
-    #         #     continue
     #         _, errors = run_notebook(fn)
     #         self.assertEqual(errors, [], "Unexpected error in {}".format(fn))
 

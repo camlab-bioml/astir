@@ -1,5 +1,8 @@
+import re
 from typing import Tuple, List, Dict
 import warnings
+
+import h5py
 from tqdm import trange
 
 import torch
@@ -29,39 +32,18 @@ class CellTypeModel(AstirModel):
     """Class to perform statistical inference to assign
         cells to cell types
 
-    :raises NotClassifiableError: raised when the input gene expression 
+    :param dset: the input gene expression dataframe
+    :param random_seed: [description], defaults to 42
+
+    :raises NotClassifiableError: raised when the input gene expression
         data or the marker is not classifiable
-
-    :param assignments: cell type assignment probabilities
-    :param losses: losses after optimization
-    :param type_dict: dictionary mapping cell type
-        to the corresponding genes
-    :param N: number of rows of data
-    :param G: number of cell type genes
-    :param C: number of cell types
-    :param initializations: initialization parameters
-    :param data: parameters that is not to be optimized
-    :param variables: parameters that is to be optimized
     """
-
     def __init__(
         self,
         dset: SCDataset,
-        random_seed=1234,
-        dtype=torch.float64,
+        random_seed: int = 42,
+        dtype: torch.dtype = torch.float64,
     ) -> None:
-        """Initializes an Astir object
-
-        :param df_gex: the input gene expression dataframe
-        :type df_gex: pd.DataFrame
-        :param marker_dict: the gene marker dictionary
-        :type marker_dict: Dict
-
-        :param random_seed: [description], defaults to 1234
-        :type random_seed: int, optional
-
-        :raises NotClassifiableError: raised when randon seed is not an integer
-        """
         super().__init__(dset, random_seed, dtype)
 
         self.losses = None  # losses after optimization
@@ -74,7 +56,7 @@ class CellTypeModel(AstirModel):
         self._param_init()
 
     def _param_init(self) -> None:
-        """Initialize parameters and design matrices.
+        """ Initializes parameters and design matrices.
         """
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
@@ -97,7 +79,6 @@ class CellTypeModel(AstirModel):
         log_delta_init = t.sample((G, C + 1))
 
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
-        # mu_init = self._dset.get_mu()
 
         mu_init = mu_init - (
             self._data["rho"] * torch.exp(log_delta_init).to(self._device)
@@ -133,17 +114,13 @@ class CellTypeModel(AstirModel):
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
     ) -> torch.Tensor:
-        """[summary]
+        """ One forward pass
 
         :param Y: [description]
-        :type Y: torch.Tensor
         :param X: [description]
-        :type X: torch.Tensor
         :param design: [description]
-        :type design: torch.Tensor
 
         :return: [description]
-        :rtype: torch.Tensor
         """
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
@@ -181,29 +158,34 @@ class CellTypeModel(AstirModel):
 
         return -elbo
 
-    # @profile
     def fit(
-        self, max_epochs=50, learning_rate=1e-3, batch_size=128, delta_loss=1e-3, msg=""
+        self,
+        max_epochs: int = 50,
+        learning_rate: float = 1e-3,
+        batch_size: int = 128,
+        delta_loss: float = 1e-3,
+        msg: str = "",
     ) -> None:
-        """Fit the model.
+        """ Runs train loops until the convergence reaches delta_loss for
+        delta_loss_batch sizes or for max_epochs number of times
 
-        :param epochs: [description], defaults to 100
-        :type epochs: int, optional
-        :param learning_rate: [description], defaults to 1e-2
-        :type learning_rate: [type], optional
-        :param batch_size: [description], defaults to 1024
-        :type batch_size: int, optional
+        :param max_epochs: number of train loop iterations, defaults to 50
+        :param learning_rate: the learning rate, defaults to 0.01
+        :param batch_size: the batch size, defaults to 128
+        :param delta_loss: stops iteration once the loss rate reaches
+        delta_loss, defaults to 0.001
+        :param msg: iterator bar message, defaults to empty string
         """
-        ## Make dataloader
+        # Make dataloader
         dataloader = DataLoader(
             self._dset, batch_size=min(batch_size, len(self._dset)), shuffle=True
         )
 
-        ## Run training loop
+        # Run training loop
         losses = []
         per = 1
 
-        ## Construct optimizer
+        # Construct optimizer
         opt_params = list(self._variables.values()) + list(self._recog.parameters())
 
         optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
@@ -236,7 +218,7 @@ class CellTypeModel(AstirModel):
                 iterator.close()
                 break
 
-        ## Save output
+        # Save output
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
         self._assignment = g
 
@@ -248,17 +230,25 @@ class CellTypeModel(AstirModel):
             )
         return g
 
-    def predict(self, new_dset):
+    def predict(self, new_dset: pd.DataFrame) -> np.array:
         _, exprs_X, _ = new_dset[:]
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
-        # g, _, _ = self._forward(exprs_X.float())
         return g
 
-    def get_recognet(self):
+    def get_recognet(self) -> RecognitionNet:
+        """ Getter for the recognition net
+
+        :return: the trained recognition net
+        """
         return self._recog
 
     def _compare_marker_between_types(
-        self, curr_type, celltype_to_compare, marker, cell_types, alpha=0.05
+        self,
+        curr_type,
+        celltype_to_compare,
+        marker,
+        cell_types,
+        alpha: float = 0.05
     ):
         """For a given cell type and two proteins, ensure marker
         is expressed at higher level using t-test
@@ -297,7 +287,11 @@ class CellTypeModel(AstirModel):
 
         return None
 
-    def diagnostics(self, cell_type_assignments: list, alpha: float) -> pd.DataFrame:
+    def diagnostics(
+            self,
+            cell_type_assignments: list,
+            alpha: float
+    ) -> pd.DataFrame:
         """Run diagnostics on cell type assignments
 
         See :meth:`astir.Astir.diagnostics_celltype` for full documentation

@@ -3,7 +3,7 @@
 # VSCode tips for python:
 # ctrl+` to open terminal
 # cmd+P to go to file
-
+import os
 import re
 from typing import Tuple, List, Dict, Union
 import warnings
@@ -40,8 +40,8 @@ class Astir:
         input_expr: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]], Tuple[SCDataset, SCDataset]],
         marker_dict=None,
         design: Union[pd.DataFrame, np.array]=None,
-        random_seed=1234,
-        dtype=torch.float64,
+        random_seed: int=1234,
+        dtype: torch.dtype=torch.float64,
     ) -> None:
 
         if not isinstance(random_seed, int):
@@ -116,12 +116,11 @@ class Astir:
                     state_dict = marker_dict[keys[1]]
         return type_dict, state_dict
 
-    # @profile
     def fit_type(
         self,
         max_epochs=50,
         learning_rate=1e-3,
-        batch_size=24,
+        batch_size=128,
         delta_loss=1e-3,
         n_init=5,
         n_init_epochs=5,
@@ -173,10 +172,6 @@ class Astir:
             )
             warnings.warn(msg)
 
-        # plt.plot(self._type_ast.get_losses())
-        # plt.ylabel('losses')
-        # plt.show()
-
         self._type_assignments = pd.DataFrame(assignment)
         self._type_assignments.columns = self._type_dset.get_classes() + ["Other"]
         self._type_assignments.index = self._type_dset.get_cell_names()
@@ -194,7 +189,7 @@ class Astir:
         self,
         max_epochs=50,
         learning_rate=1e-3,
-        batch_size=24,
+        batch_size=128,
         delta_loss=1e-3,
         n_init=5,
         n_init_epochs=5,
@@ -249,14 +244,13 @@ class Astir:
             cellstate_models.append(model)
 
         last_delta_losses_mean = np.array(
-            [losses[-delta_loss_batch:].mean() for losses in cellstate_losses]
+            [np.mean(losses[-delta_loss_batch:])
+             for losses in cellstate_losses]
         )
 
         best_model_index = int(np.argmin(last_delta_losses_mean))
 
         self._state_ast = cellstate_models[best_model_index]
-        # n_epochs_done = cellstate_losses[best_model_index].size
-        # n_epoch_remaining = max(max_epochs - n_epochs_done, 0)
 
         self._state_ast.fit(
             max_epochs=max_epochs,
@@ -291,15 +285,10 @@ class Astir:
             "delta_loss_batch": delta_loss_batch,
         }
 
-    def save_models(self, hdf5_name: str):
-        """Save the summary of this model to a hdf5 file.
+    def save_models(self, hdf5_name: str) -> None:
+        """ Save the summary of this model to a hdf5 file.
 
         :param hdf5_name: name of the output hdf5 file
-        :type hdf5_name: str
-        :param n_init: the number of models initialized before the final training of this model.
-        :type n_init: int
-        :param n_init_epochs: the number of epochs the models were trained before the training of this model.
-        :type n_init_epochs: int
         :raises Exception: raised when this function is called before the model is trained.
         """
         if self._type_ast is None and self._state_ast is None:
@@ -307,33 +296,63 @@ class Astir:
         with h5py.File(hdf5_name, "w") as f:
             if self._type_ast is not None:
                 type_grp = f.create_group("celltype_model")
+
+                # Storing losses
                 loss_grp = type_grp.create_group("losses")
                 loss_grp["losses"] = self.get_type_losses().cpu().numpy()
+
+                # Storing parameters
                 param_grp = type_grp.create_group("parameters")
                 dic = list(self._type_ast.get_variables().items()) + list(
                     self._type_ast.get_data().items()
                 )
                 for key, val in dic:
                     param_grp[key] = val.detach().cpu().numpy()
+
+                # Storing Recognition Network
+                recog_grp = type_grp.create_group("recog_net")
+                for name, param in self._type_ast.get_recognet().named_parameters():
+                    if param.requires_grad:
+                        recog_grp[name] = param.detach().cpu().numpy()
+
+                # Storing fit_type argument information
                 info_grp = type_grp.create_group("run_info")
                 for key, val in self._type_run_info.items():
                     info_grp[key] = val
+
+                # Storing type assignments
                 type_grp.create_dataset(
                     "celltype_assignments", data=self._type_assignments
                 )
+
             if self._state_ast is not None:
                 state_grp = f.create_group("cellstate_model")
+
+                # Storing losses
                 loss_grp = state_grp.create_group("losses")
                 loss_grp["losses"] = self.get_state_losses()
+
+                # Storing parameters
                 param_grp = state_grp.create_group("parameters")
                 dic = list(self._state_ast.get_variables().items()) + list(
                     self._state_ast.get_data().items()
                 )
+
+                # Storing Recognition Network
+                recog_grp = state_grp.create_group("recog_net")
+                for name, param in self._state_ast.get_recognet().named_parameters():
+                    if param.requires_grad:
+                        recog_grp[name] = param.detach().cpu().numpy()
+
                 for key, val in dic:
                     param_grp[key] = val.detach().cpu().numpy()
+
+                # Storing fit_state method arguments
                 info_grp = state_grp.create_group("run_info")
                 for key, val in self._state_run_info.items():
                     info_grp[key] = val
+
+                # Storing state assignments
                 state_grp.create_dataset(
                     "cellstate_assignments", data=self._state_assignments
                 )
@@ -412,14 +431,22 @@ class Astir:
         return cell_type_assignments
 
     def get_cellstates(self) -> pd.DataFrame:
-        """ Get cell state activations
+        """ Get cell state activations. It returns the rescaled activations,
+        values between 0 and 1
 
         :return: state assignments
         :rtype: pd.DataFrame
         """
         if self._state_assignments is None:
             raise Exception("The state model has not been trained yet")
-        return self._state_assignments
+
+        assign = self._state_assignments
+        assign_min = assign.min(axis=0)
+        assign_max = assign.max(axis=0)
+
+        assign_rescale = (assign - assign_min) / (assign_max - assign_min)
+
+        return assign_rescale
 
     def predict_celltypes(self, dset=None):
         if self._type_ast is None:
@@ -451,10 +478,16 @@ class Astir:
         g = self._state_ast.get_final_mu_z(dset).detach().cpu().numpy()
 
         state_assignments = pd.DataFrame(g)
-        state_assignments.columns = self._state_dset.get_classes()
-        state_assignments.index = self._state_dset.get_cell_names()
 
-        return state_assignments
+        assign_min = state_assignments.min(axis=0)
+        assign_max = state_assignments.max(axis=0)
+
+        assign_rescale = (state_assignments - assign_min) / (assign_max - assign_min)
+
+        assign_rescale.columns = self._state_dset.get_classes()
+        assign_rescale.index = self._state_dset.get_cell_names()
+
+        return assign_rescale
 
     def get_type_losses(self) -> np.array:
         """[summary]
@@ -493,9 +526,10 @@ class Astir:
         :param output_csv: path to output csv
         :type output_csv: str, required
         """
-        if self._state_assignments is None:
-            raise Exception("The state model has not been trained yet")
-        self._state_assignments.to_csv(output_csv)
+        self.get_cellstates().to_csv(output_csv)
+
+        read_output_csv = pd.read_csv(output_csv, index_col=0)
+        # print(read_output_csv)
 
     def __str__(self) -> str:
         return (

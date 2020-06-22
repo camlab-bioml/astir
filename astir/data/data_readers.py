@@ -106,7 +106,7 @@ def from_loompy_yaml(
         will be built using this (if present) using a one-hot encoding to control for batch.
     :param random_seed: The random seed to be used to initialize variables
 
-    :returns: An object of class `astir.Astir` using data imported from the loom files
+    :returns: An object of class `astir_bash.py.Astir` using data imported from the loom files
 
     .. todo:: This function is memory inefficient and goes against the philosophy of loom files. Should be improved
     """
@@ -154,7 +154,7 @@ def from_anndata_yaml(
         will be built using this (if present) using a one-hot encoding to control for batch.
     :param random_seed: The random seed to be used to initialize variables
 
-    :returns: An object of class `astir.Astir` using data imported from the loom files
+    :returns: An object of class `astir_bash.py.Astir` using data imported from the loom files
 
     .. todo:: This function is memory inefficient and goes against the philosophy of loom files. Should be improved
     """

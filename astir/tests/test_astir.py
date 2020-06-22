@@ -183,7 +183,6 @@ class TestAstir(TestCase):
 
         self.assertTrue(np.abs(model1_loss - model2_loss)[-1] < 1e-6)
 
-    # @pytest.mark.filterwarnings("ignore")
     def test_celltype_diff_seed_diff_result(self):
         """ Test whether the loss after one epoch one two different models
         with the different random seed have different losses after one epoch
@@ -348,11 +347,19 @@ class TestAstir(TestCase):
         params = list(self.a.get_type_model().get_data().items()) + list(
             self.a.get_type_model().get_variables().items()
         )
+
+        recog_params = []
+        for key, val in self.a.get_type_model().get_recognet().named_parameters():
+            recog_params.append((key, val.detach().cpu().numpy()))
         same = True
         with h5py.File(hdf5_summary, "r") as f:
             f_params = f["/celltype_model/parameters"]
             for key, val in params:
                 if not (val.detach().cpu().numpy() == f_params[key][()]).all().all():
+                    same = False
+            f_recog = f["/celltype_model/recog_net"]
+            for key, val in recog_params:
+                if not (f_recog[key][()] == val).all():
                     same = False
             f_info = f["/celltype_model/run_info"]
             for key, val in info.items():
@@ -389,18 +396,25 @@ class TestAstir(TestCase):
         params = list(self.a.get_state_model().get_data().items()) + list(
             self.a.get_state_model().get_variables().items()
         )
+        recog_params = []
+        for key, val in self.a.get_state_model().get_recognet().named_parameters():
+            recog_params.append((key, val.detach().cpu().numpy()))
         same = True
         with h5py.File(hdf5_summary, "r") as f:
             f_params = f["/cellstate_model/parameters"]
             for key, val in params:
                 if not (val.detach().cpu().numpy() == f_params[key][()]).all().all():
                     same = False
+            f_recog = f["/cellstate_model/recog_net"]
+            for key, val in recog_params:
+                if not (f_recog[key][()] == val).all():
+                    same = False
             f_info = f["/cellstate_model/run_info"]
             for key, val in info.items():
                 if val != f_info[key][()]:
                     same = False
             if not (
-                self.a.get_state_model().get_losses()
+                self.a.get_state_model().get_losses().cpu().numpy()
                 == f["/cellstate_model/losses"]["losses"][()]
             ).all():
                 same = False

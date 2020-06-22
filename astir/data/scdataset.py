@@ -18,6 +18,7 @@ class SCDataset(Dataset):
         information. See details :TODO:
     :param design: A design matrix
     :param include_other_column: Should an additional 'other' column be included?
+    :param dtype: torch datatype of the model
     """
 
     def __init__(
@@ -25,7 +26,7 @@ class SCDataset(Dataset):
         expr_input: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]]],
         marker_dict: Dict[str, str],
         include_other_column: bool,
-        dtype=torch.float64,
+        dtype: torch.dtype=torch.float64,
         design: Union[np.array, pd.DataFrame]=None
     ) -> None:
         self._dtype = dtype
@@ -64,15 +65,13 @@ class SCDataset(Dataset):
         self._exprs_mean = self._exprs.mean(0)
         self._exprs_std = self._exprs.std(0)
 
-    def _process_df_input(self, df_input):
+    def _process_df_input(self, df_input: pd.DataFrame) -> torch.Tensor:
         """Processes input as pd.DataFrame and convert it into torch.Tensor
 
         :param df_input: the input
-        :type df_input: pd.DataFrame
-        :raises NotClassifiableError: raised when there is no overlap between the 
+        :raises NotClassifiableError: raised when there is no overlap between the
             data and the marker
         :return: the processed input as a torch.Tensor
-        :rtype: torch.Tensor
         """
         try:
             Y_np = df_input[self._m_features].to_numpy()
@@ -84,16 +83,17 @@ class SCDataset(Dataset):
             )
         return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
 
-    def _process_np_input(self, np_input):
+    def _process_np_input(
+        self, np_input: Tuple[np.array, np.array, np.array]
+    ) -> torch.Tensor:
         """Process the input as Tuple[np.array, np.array, np.array] and convert it 
             to torch.Tensor.
+
         :param np_input: input as a tuple. np_input[0] is the input data. np.input[1]
             is the 
-        :type np_input: Tuple[np.array, np.array, np.array]
         :raises NotClassifiableError: raised when there is no overlap between marked
             features and expression feature.
         :return: the processed input as a torch.Tensor
-        :rtype: torch.Tensor
         """
         ind = [
             self._expr_features.index(name)
@@ -117,11 +117,10 @@ class SCDataset(Dataset):
 
     def _construct_marker_mat(self, include_other_column: bool) -> torch.Tensor:
         """ Construct a marker matrix.
+
         :param include_other_column: indicates whether or not include other columns.
-        :type include_other_column: bool
-        :return: A marker matrix. The rows are features and the coloumns are 
+        :return: A marker matrix. The rows are features and the coloumns are
             the corresponding classes (type/state).
-        :rtype: torch.Tensor
         """
         G = self.get_n_features()
         C = self.get_n_classes()
@@ -139,7 +138,7 @@ class SCDataset(Dataset):
         # N
         return self._exprs.shape[0]
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         y = self._exprs[idx, :]
         x = (y - self._exprs_mean) / self._exprs_std
         return y, x, self._design[idx, :]
@@ -165,33 +164,31 @@ class SCDataset(Dataset):
     def rescale(self):
         self._exprs = self._exprs / (self.get_sigma())
 
-    def get_exprs(self):
-        """Return the expression data as a :class:`torch.Tensor`
-
+    def get_exprs(self) -> torch.Tensor:
+        """ Return the expression data as a :class:`torch.Tensor`
         """
         return self._exprs
 
-    def get_exprs_df(self):
-        """Return the expression data as a :class:`pandas.DataFrame`
-
+    def get_exprs_df(self) -> pd.DataFrame:
+        """ Return the expression data as a :class:`pandas.DataFrame`
         """
         df = pd.DataFrame(self.get_exprs().detach().numpy())
         df.index = self.get_cell_names()
         df.columns = self.get_features()
         return df
 
-    def get_marker_mat(self):
+    def get_marker_mat(self) -> torch.Tensor:
         """Return the marker matrix as a :class:`torch.Tensor`
 
         """
         return self._marker_mat
 
-    def get_mu(self):
+    def get_mu(self) -> torch.Tensor:
         """Get the mean expression of each protein as a :class:`torch.Tensor`
         """
         return self._exprs_mean
 
-    def get_sigma(self):
+    def get_sigma(self) -> torch.Tensor:
         return self._exprs_std
 
     def get_n_classes(self) -> int:
@@ -212,16 +209,16 @@ class SCDataset(Dataset):
         """
         return len(self._m_features)
 
-    def get_features(self):
+    def get_features(self) -> List[str]:
         return self._m_features
 
-    def get_cell_names(self):
+    def get_cell_names(self) -> List[str]:
         return self._cell_names
 
-    def get_classes(self):
+    def get_classes(self) -> List[str]:
         return self._classes
 
-    def get_design(self):
+    def get_design(self) -> torch.Tensor:
         return self._design
 
     def normalize(self, percentile_lower: float = 0, percentile_upper: float = 99.9,
@@ -232,7 +229,6 @@ class SCDataset(Dataset):
         1. A `log(1+x)` transformation to the data
         2. Winsorizes to (:param:`percentile_lower`, :param:`percentile_upper`)
         """
-
         with torch.no_grad():
             exprs = self.get_exprs().numpy()
             exprs = np.arcsinh(exprs / cofactor)

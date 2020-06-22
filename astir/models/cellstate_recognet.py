@@ -2,9 +2,17 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 
+from typing import Tuple
+
 
 # The recognition net
 class StateRecognitionNet(nn.Module):
+    """ State Recognition Neural Network to get mean of z and standard
+    deviation of z
+
+    :param C: number of classes
+    :param G: number of proteins
+    """
     def __init__(self, C: int, G: int) -> None:
         super(StateRecognitionNet, self).__init__()
         self.input = nn.Linear(G, 2 * C).float()
@@ -12,7 +20,9 @@ class StateRecognitionNet(nn.Module):
         self.output_mu = nn.Linear(2 * C, C).float()
         self.output_std = nn.Linear(2 * C, C).float()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """ One forward pass of the StateRecognitionNet
+        """
         x = self.input(x)
         x = F.relu(x)
         x = self.hidden(x)

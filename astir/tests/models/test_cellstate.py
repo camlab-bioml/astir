@@ -58,68 +58,7 @@ class TestCellStateModel(TestCase):
         """
         self.assertIsInstance(self.model, CellStateModel)
 
-    # def test_optimizer(self):
-    #     """ Test initial optimizer
-    #     """
-    #     self.assertIsNone(self.model._optimizer)
-
     def test_dtype(self):
         params = list(self.data.values()) + list(self.variables.values())
         comp = [ss.dtype == torch.float32 for ss in params]
         self.assertTrue(all(comp))
-
-    # def test_trainability(self):
-    #     params = list(self.data.values()) + list(self.variables.values())
-    #     s = [param.requires_grad for param in params]
-    #     self.assertTrue(all(s))
-
-    # def test_same_seed_same_result(self):
-    #     """ Test whether the loss after one epoch one two different models
-    #     with the same random seed have the
-    #     """
-    #     warnings.filterwarnings("ignore", category=UserWarning)
-    #     model1 = CellStateModel(
-    #         dset=self._dset,
-    #         alpha_random=True,
-    #         random_seed=42
-    #     )
-    #
-    #
-    #     model1_loss = model1.fit(max_epochs=1)
-    #     # model2_loss = model2.fit(max_epochs=1)
-    #     print("\nmodel1_loss: ", model1_loss)
-    #     # print("\nmodel2_loss: ", model2_loss)
-    #
-    #     # self.assertTrue(np.abs(model1_loss - model2_loss)[0] < 1e-6)
-    #
-    # def test_same_seed_same_result2(self):
-    #     warnings.filterwarnings("ignore", category=UserWarning)
-    #     model2 = CellStateModel(
-    #         dset=self._dset,
-    #         alpha_random=True,
-    #         random_seed=42
-    #     )
-    #     model2_loss = model2.fit(max_epochs=1)
-    #
-    #     print("\nmodel2_loss: ", model2_loss)
-    #
-    # def test_diff_seed_diff_result(self):
-    #     """ Test whether the loss after one epoch one two different models
-    #     with the same random seed have the
-    #     """
-    #     warnings.filterwarnings("ignore", category=UserWarning)
-    #     model1 = CellStateModel(
-    #         dset=self._dset,
-    #         alpha_random=True,
-    #         random_seed=42
-    #     )
-    #     model2 = CellStateModel(
-    #         dset=self._dset,
-    #         alpha_random=True,
-    #         random_seed=1234
-    #     )
-    #
-    #     model1_loss = model1.fit(max_epochs=1)
-    #     model2_loss = model2.fit(max_epochs=1)
-    #
-    #     self.assertFalse(np.abs(model1_loss - model2_loss)[0] < 1e-6)

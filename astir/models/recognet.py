@@ -9,8 +9,6 @@ class RecognitionNet(nn.Module):
         super(RecognitionNet, self).__init__()
         self.hidden_1 = nn.Linear(G, hidden_size)
         self.hidden_2 = nn.Linear(hidden_size, C + 1)
-        # print("hidden_1: " + str(self.hidden_1.is_cuda))
-        # print("hidden_2: " + str(self.hidden_2.is_cuda))
 
     def forward(self, x):
         x = self.hidden_1(x)

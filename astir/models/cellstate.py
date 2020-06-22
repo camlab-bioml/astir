@@ -26,22 +26,37 @@ class CellStateModel(AstirModel):
     :param df_gex: the input gene expression dataframe
     :param marker_dict: the gene marker dictionary
     :param random_seed: seed number to reproduce results, defaults to 1234
+    :param dtype: torch datatype to use in the model
     """
 
     def __init__(
-        self, dset: SCDataset, random_seed=1234, dtype=torch.float64,
+        self,
+        dset: SCDataset,
+        random_seed: int = 42,
+        dtype: torch.dtype = torch.float64,
     ) -> None:
         super().__init__(dset, random_seed, dtype)
+
         # Setting random seeds
+        self.random_seed = random_seed
+        torch.manual_seed(self.random_seed)
+        torch.cuda.manual_seed_all(self.random_seed)
+        torch.cuda.manual_seed(self.random_seed)
+        np.random.seed(self.random_seed)
 
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
 
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self._dset = dset
+
         self._optimizer = None
-        self._losses = np.empty(0)
+        self._losses = torch.empty(0, dtype=self._dtype)
         self._param_init()
 
         # Convergence flag
+        self._is_converged = False
 
     def _param_init(self) -> None:
         """ Initializes sets of parameters
@@ -136,28 +151,25 @@ class CellStateModel(AstirModel):
         batch_size: int = 128,
         delta_loss: float = 1e-3,
         delta_loss_batch: int = 10,
-        msg="",
-    ) -> np.array:
+        msg: str = "",
+    ) -> List[float]:
         """ Runs train loops until the convergence reaches delta_loss for
         delta_loss_batch sizes or for max_epochs number of times
 
-        :param max_epochs: number of train loop iterations
+        :param max_epochs: number of train loop iterations, defaults to 50
         :param learning_rate: the learning rate, defaults to 0.01
-        :param batch_size: the batch size
+        :param batch_size: the batch size, defaults to 128
         :param delta_loss: stops iteration once the loss rate reaches
         delta_loss, defaults to 0.001
         :param delta_loss_batch: the batch size to consider delta loss,
         defaults to 10
-
-        :return: np.array of shape (n_iter,) that contains the losses after
-        each iteration where the last element of the numpy array is the loss
-        after n_iter iterations
+        :param msg: iterator bar message, defaults to empty string
         """
-        losses = np.empty(max_epochs)
+        losses = []
 
         # Returns early if the model has already converged
         if self._is_converged:
-            return losses[:0]
+            return losses
 
         if delta_loss_batch >= max_epochs:
             warnings.warn("Delta loss batch size is greater than the number of epochs")
@@ -197,17 +209,18 @@ class CellStateModel(AstirModel):
 
                 self._optimizer.step()
 
-            losses[ep] = loss.cpu().detach().numpy()
+            losses.append(loss.cpu().detach().item())
 
             start_index = ep - delta_loss_batch + 1
             end_index = start_index + delta_loss_batch
             if start_index >= 0:
                 curr_mean = np.mean(losses[start_index:end_index])
             elif self._losses.shape[0] >= -start_index:
-                last_ten_losses = np.append(
-                    self._losses[start_index:], losses[:end_index]
+                last_ten_losses = torch.cat(
+                    (self._losses[start_index:],
+                     torch.tensor(losses[:end_index], dtype=torch.float64))
                 )
-                curr_mean = np.mean(last_ten_losses)
+                curr_mean = torch.mean(last_ten_losses).item()
             else:
                 curr_mean = None
 
@@ -225,13 +238,19 @@ class CellStateModel(AstirModel):
                 break
 
         if self._losses is None:
-            self._losses = losses
+            self._losses = torch.tensor(losses, dtype=self._dtype)
         else:
-            self._losses = np.append(self._losses, losses)
+            self._losses = \
+                torch.cat((self._losses,
+                           torch.tensor(losses, dtype=self._dtype)))
 
         return losses
 
-    def get_recognet(self):
+    def get_recognet(self) -> StateRecognitionNet:
+        """ Getter for the recognition net
+
+        :return: the trained recognition net
+        """
         return self._models
 
     def get_final_mu_z(self, new_dset: SCDataset = None) -> torch.Tensor:
@@ -328,6 +347,44 @@ class CellStateModel(AstirModel):
             df_issues = pd.DataFrame(columns=col_names)
 
         return df_issues
+
+    def get_losses(self) -> np.array:
+        """ Getter for losses
+
+        :return: a torch tensor of losses for each training iteration the
+            model runs
+        """
+        if self._losses is None:
+            raise Exception("The state model has not been trained yet")
+        return self._losses
+
+    def get_scdataset(self) -> SCDataset:
+        """ Returns the input dataset
+
+        :return: self._dset
+        """
+        return self._dset
+
+    def is_converged(self) -> bool:
+        """ Returns True if the model converged
+
+        :return: self._is_converged
+        """
+        return self._is_converged
+
+    def get_data(self) -> Dict[str, torch.Tensor]:
+        """ Returns data parameter
+
+        :return: self._data
+        """
+        return self._data
+
+    def get_variables(self) -> Dict[str, torch.Tensor]:
+        """ Returns all variables
+
+        :return: self._variables
+        """
+        return self._variables
 
 
 class NotClassifiableError(RuntimeError):
