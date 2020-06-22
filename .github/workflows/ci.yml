@@ -58,7 +58,7 @@ jobs:
         print(sys.path)
         EOF
         python script.py
-        python -m pytest --cov=astir
+        python -m pytest --cov=astir -s
     - name: Upload coverage
       shell: pwsh
       run: coverage report -m
