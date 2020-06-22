@@ -60,8 +60,9 @@ def parser_setup(parser):
 
 parser_setup(type_parser)
 parser_setup(state_parser)
-state_parser.add_argument("--delta_loss_batch",
-                        help="the batch size  to consider delta loss, default to 10")
+state_parser.add_argument("--delta_loss_batch", "-lb",
+help="the batch size  to consider delta loss, default to 10",
+type=int, default=10)
 
 
 def run_type(args):
