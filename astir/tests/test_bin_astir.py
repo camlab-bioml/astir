@@ -53,11 +53,11 @@ class TestBinAstir(unittest.TestCase):
         print(sys.path)
 
         module_path = os.path.abspath(os.path.join('../..'))
-        print("####3", module_path)
-        print(module_path)
-        if module_path not in sys.path:
-            sys.path.append(module_path)
-        os.system("export PYTHONPATH=.")
+        # print("####3", module_path)
+        # print(module_path)
+        # if module_path not in sys.path:
+        #     sys.path.append(module_path)
+        # os.system("export PYTHONPATH=.")
 
         print(sys.path)
 
