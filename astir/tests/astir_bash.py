@@ -6,10 +6,14 @@ import yaml
 
 import os
 import sys
+import rootpath
 
 print(sys.path)
 module_path = os.path.abspath(os.path.join('.'))
 print("####", module_path)
+print(os.path.abspath("."))
+sys.path.append(os.path.join(rootpath.detect(), "astir"))
+print(sys.path)
 # if module_path not in sys.path:
 #     sys.path.append(module_path)
 # print(sys.path)
