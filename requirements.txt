@@ -17,4 +17,4 @@ jupyter_client
 ipykernel
 ipython
 h5py
-tbb==2020.1
+tbb>=2019.5
