@@ -40,20 +40,20 @@ class TestBinAstir(unittest.TestCase):
         with open(self.marker_yaml_file, "r") as stream:
             self.marker_dict = yaml.safe_load(stream)
 
-        print("####rootpath", rootpath.detect())
-        module_path = os.path.abspath(__file__)
-        print("####0", module_path)
-        module_path = os.path.abspath(os.path.join('.'))
-        print("####1", module_path)
-        if module_path not in sys.path:
-            sys.path.append(module_path)
-        print(sys.path)
-
-        module_path = os.path.abspath(os.path.join('..'))
-        print("####2", module_path)
-        if module_path not in sys.path:
-            sys.path.append(module_path)
-        print(sys.path)
+        # print("####rootpath", rootpath.detect())
+        # module_path = os.path.abspath(__file__)
+        # print("####0", module_path)
+        # module_path = os.path.abspath(os.path.join('.'))
+        # print("####1", module_path)
+        # if module_path not in sys.path:
+        #     sys.path.append(module_path)
+        # print(sys.path)
+        #
+        # module_path = os.path.abspath(os.path.join('..'))
+        # print("####2", module_path)
+        # if module_path not in sys.path:
+        #     sys.path.append(module_path)
+        # print(sys.path)
 
 
     # def test_basic(self):
