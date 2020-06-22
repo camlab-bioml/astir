@@ -61,8 +61,8 @@ class TestBinAstir(unittest.TestCase):
     def test_basic_command(self):
         warnings.filterwarnings("ignore", category=UserWarning)
 
-        bash_command = "python -W ignore {} {} {} {} {}".format(
-            self.exec_path, "state", self.expr_csv_file,
+        bash_command = "python -W ignore -m astir.test.test_bin_astir.py {} {} {} {}".format(
+            "state", self.expr_csv_file,
             self.marker_yaml_file, self.output_file
         )
         # process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)

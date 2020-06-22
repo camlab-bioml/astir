@@ -19,7 +19,7 @@ os.system("export PYTHONPATH=.")
 
 print(sys.path)
 
-from astir.data_readers import from_csv_yaml
+from ..data_readers import from_csv_yaml
 
 
 print("###############################1")
