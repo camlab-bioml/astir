@@ -20,6 +20,7 @@ class TestBinAstir(unittest.TestCase):
             os.path.dirname(__file__),
             "astir_bash.py"
         )
+        print(self.exec_path)
         self.expr_csv_file = os.path.join(
             os.path.dirname(__file__), "test-data/test_data.csv"
         )
@@ -153,8 +154,3 @@ class TestBinAstir(unittest.TestCase):
     #
     #     self.assertTrue((abs(actual_assign.to_numpy()
     #                          - expected_assign.to_numpy()) < 0.01).all())
-
-
-
-if __name__ == '__main__':
-    unittest.main()
