@@ -6,6 +6,8 @@ import yaml
 
 import os
 import sys
+
+print(sys.path)
 # module_path = os.path.abspath(os.path.join('.'))
 # print("####", module_path)
 # if module_path not in sys.path:
