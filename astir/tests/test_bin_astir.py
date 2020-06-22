@@ -10,6 +10,19 @@ import warnings
 
 from astir.astir import Astir
 
+# import os
+# import sys
+# import rootpath
+#
+# module_path = rootpath.detect()
+# if module_path not in sys.path:
+#     sys.path.append(module_path)
+# print(sys.path)
+#
+# module_path = os.path.join(rootpath.detect(), "astir")
+# if module_path not in sys.path:
+#     sys.path.append(module_path)
+# print(sys.path)
 
 class TestBinAstir(unittest.TestCase):
     def __init__(self, *args, **kwargs):
