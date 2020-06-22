@@ -40,24 +40,7 @@ jobs:
       run: |
         pip install pytest
         pip install pytest-cov
-        cat << EOF > script.py
-        #!/usr/bin/python
-        import sys
-        import os
-        import sys
-        import rootpath
-
-        module_path = rootpath.detect()
-        if module_path not in sys.path:
-            sys.path.append(module_path)
-        print(sys.path)
-
-        module_path = os.path.join(rootpath.detect(), "astir")
-        if module_path not in sys.path:
-            sys.path.append(module_path)
-        print(sys.path)
-        EOF
-        python script.py -m pytest --cov=astir -s
+        pytest --cov=astir
     - name: Upload coverage
       shell: pwsh
       run: coverage report -m
