@@ -27,6 +27,9 @@ from astir.astir import Astir
 class TestBinAstir(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestBinAstir, self).__init__(*args, **kwargs)
+        print("################2")
+        print(sys.path)
+        print("################2")
         self.exec_path = os.path.join(
             rootpath.detect(), "bin/astir"
         )
