@@ -11,9 +11,7 @@ class AstirModel:
     """Abstract class to perform statistical inference to assign
     """
 
-    def __init__(
-        self, dset: SCDataset, random_seed: int, dtype: torch.dtype,
-    ) -> None:
+    def __init__(self, dset: SCDataset, random_seed: int, dtype: torch.dtype,) -> None:
 
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
@@ -68,12 +66,20 @@ class AstirModel:
     def _param_init(self) -> None:
         raise NotImplementedError("AbstractModel is not supposed to be instantiated.")
 
-    def _forward(self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor) -> torch.Tensor:
+    def _forward(
+        self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
+    ) -> torch.Tensor:
         raise NotImplementedError("AbstractModel is not supposed to be instantiated.")
 
-    def fit(self, max_epochs: int, learning_rate: float, batch_size: int, delta_loss: float, msg: str) -> None:
+    def fit(
+        self,
+        max_epochs: int,
+        learning_rate: float,
+        batch_size: int,
+        delta_loss: float,
+        msg: str,
+    ) -> None:
         raise NotImplementedError("AbstractModel is not supposed to be instantiated.")
-
 
 
 class NotClassifiableError(RuntimeError):

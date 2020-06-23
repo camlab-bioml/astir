@@ -38,14 +38,12 @@ def from_csv_yaml(
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
     from astir.astir import Astir
+
     return Astir(df_gex, marker_dict, design, random_seed, dtype=dtype)
 
 
 def from_csv_dir_yaml(
-    input_dir: str,
-    marker_yaml: str,
-    random_seed=1234,
-    dtype=torch.float64,
+    input_dir: str, marker_yaml: str, random_seed=1234, dtype=torch.float64,
 ):
     """Create an Astir object a directory containing multiple csv files
 
@@ -82,6 +80,7 @@ def from_csv_dir_yaml(
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
     from astir.astir import Astir
+
     return Astir(df_gex, marker_dict, design, random_seed, dtype)
 
 
@@ -131,6 +130,7 @@ def from_loompy_yaml(
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
     from astir.astir import Astir
+
     return Astir(df_gex, marker_dict, design, random_seed, dtype)
 
 
@@ -191,4 +191,5 @@ def from_anndata_yaml(
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
     from astir.astir import Astir
+
     return Astir(df_gex, marker_dict, design, random_seed, dtype)

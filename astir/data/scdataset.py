@@ -26,8 +26,8 @@ class SCDataset(Dataset):
         expr_input: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]]],
         marker_dict: Dict[str, str],
         include_other_column: bool,
-        dtype: torch.dtype=torch.float64,
-        design: Union[np.array, pd.DataFrame]=None
+        dtype: torch.dtype = torch.float64,
+        design: Union[np.array, pd.DataFrame] = None,
     ) -> None:
         self._dtype = dtype
         self._marker_dict = marker_dict
@@ -221,8 +221,9 @@ class SCDataset(Dataset):
     def get_design(self) -> torch.Tensor:
         return self._design
 
-    def normalize(self, percentile_lower: float = 0, percentile_upper: float = 99.9,
-     cofactor=5.) -> None:
+    def normalize(
+        self, percentile_lower: float = 0, percentile_upper: float = 99.9, cofactor=5.0
+    ) -> None:
         """Normalize the expression data
 
         This performs a two-step normalization:

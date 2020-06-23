@@ -38,6 +38,7 @@ class CellTypeModel(AstirModel):
     :raises NotClassifiableError: raised when the input gene expression
         data or the marker is not classifiable
     """
+
     def __init__(
         self,
         dset: SCDataset,
@@ -134,7 +135,6 @@ class CellTypeModel(AstirModel):
         mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, C + 1)
         mean = mean + mean2
 
-
         # now do the variance modelling
         p = torch.sigmoid(self._variables["p"])
 
@@ -166,14 +166,14 @@ class CellTypeModel(AstirModel):
         delta_loss: float = 1e-3,
         msg: str = "",
     ) -> None:
-        """ Runs train loops until the convergence reaches delta_loss for
-        delta_loss_batch sizes or for max_epochs number of times
+        """ Runs train loops until the convergence reaches delta_loss for\ 
+            delta_loss_batch sizes or for max_epochs number of times
 
         :param max_epochs: number of train loop iterations, defaults to 50
         :param learning_rate: the learning rate, defaults to 0.01
         :param batch_size: the batch size, defaults to 128
-        :param delta_loss: stops iteration once the loss rate reaches
-        delta_loss, defaults to 0.001
+        :param delta_loss: stops iteration once the loss rate reaches\ 
+            delta_loss, defaults to 0.001
         :param msg: iterator bar message, defaults to empty string
         """
         # Make dataloader
@@ -243,12 +243,7 @@ class CellTypeModel(AstirModel):
         return self._recog
 
     def _compare_marker_between_types(
-        self,
-        curr_type,
-        celltype_to_compare,
-        marker,
-        cell_types,
-        alpha: float = 0.05
+        self, curr_type, celltype_to_compare, marker, cell_types, alpha: float = 0.05
     ):
         """For a given cell type and two proteins, ensure marker
         is expressed at higher level using t-test
@@ -287,11 +282,7 @@ class CellTypeModel(AstirModel):
 
         return None
 
-    def diagnostics(
-            self,
-            cell_type_assignments: list,
-            alpha: float
-    ) -> pd.DataFrame:
+    def diagnostics(self, cell_type_assignments: list, alpha: float) -> pd.DataFrame:
         """Run diagnostics on cell type assignments
 
         See :meth:`astir.Astir.diagnostics_celltype` for full documentation

@@ -502,8 +502,8 @@ class Astir:
     def get_state_losses(self) -> np.array:
         """Getter for losses
 
-        :return: a numpy array of losses for each training iteration the
-        model runs
+        :return: a numpy array of losses for each training iteration the\ 
+            model runs
         """
         if self._state_ast is None:
             raise Exception("The state model has not been trained yet")
@@ -551,9 +551,12 @@ class Astir:
         higher levels than in other cell types. This function performs the following steps:
 
         1. Iterates through every cell type and every marker for that cell type
-        2. Given a cell type *c* and marker *g*, find the set of cell types *D* that don't have *g* as a marker
-        3. For each cell type *d* in *D*, perform a t-test between the expression of marker *g* in *c* vs *d*
-        4. If *g* is not expressed significantly higher (at significance *alpha*), output a diagnostic explaining this for further investigation.
+        2. Given a cell type *c* and marker *g*, find the set of cell \ 
+            types *D* that don't have *g* as a marker
+        3. For each cell type *d* in *D*, perform a t-test between the \ 
+            expression of marker *g* in *c* vs *d*
+        4. If *g* is not expressed significantly higher (at significance \ 
+            *alpha*), output a diagnostic explaining this for further investigation.
 
         :param threshold: The threshold at which cell types are assigned (see `get_celltypes`)
         :param alpha: The significance threshold for t-tests for determining over-expression
@@ -573,10 +576,10 @@ class Astir:
 
         1. Get correlations between all cell states and proteins
         2. For each cell state *c*, get the smallest correlation with marker *g*
-        3. For each cell state *c* and its non marker *g*, find any correlation that is
-        bigger than those smallest correlation for *c*.
-        4. Any *c* and *g* pairs found in step 3 will be included in the output of
-        `Astir.diagnostics_cellstate()`, including an explanation.
+        3. For each cell state *c* and its non marker *g*, find any correlation that is\ 
+            bigger than those smallest correlation for *c*.
+        4. Any *c* and *g* pairs found in step 3 will be included in the output of\ 
+            `Astir.diagnostics_cellstate()`, including an explanation.
 
         :return: diagnostics
         """

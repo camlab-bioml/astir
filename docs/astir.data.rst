@@ -1,5 +1,5 @@
 astir.data_readers package
-====================
+==========================
 
 Module contents
 ---------------

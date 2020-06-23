@@ -13,6 +13,7 @@ class StateRecognitionNet(nn.Module):
     :param C: number of classes
     :param G: number of proteins
     """
+
     def __init__(self, C: int, G: int) -> None:
         super(StateRecognitionNet, self).__init__()
         self.input = nn.Linear(G, 2 * C).float()

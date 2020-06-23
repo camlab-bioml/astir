@@ -88,6 +88,7 @@ class CellStateModel(AstirModel):
         self._models = StateRecognitionNet(C, G).to(
             device=self._device, dtype=self._dtype
         )
+
     def _loss_fn(
         self,
         mu_z: torch.Tensor,
@@ -153,16 +154,16 @@ class CellStateModel(AstirModel):
         delta_loss_batch: int = 10,
         msg: str = "",
     ) -> List[float]:
-        """ Runs train loops until the convergence reaches delta_loss for
-        delta_loss_batch sizes or for max_epochs number of times
+        """ Runs train loops until the convergence reaches delta_loss for\ 
+            delta_loss_batch sizes or for max_epochs number of times
 
         :param max_epochs: number of train loop iterations, defaults to 50
         :param learning_rate: the learning rate, defaults to 0.01
         :param batch_size: the batch size, defaults to 128
-        :param delta_loss: stops iteration once the loss rate reaches
-        delta_loss, defaults to 0.001
-        :param delta_loss_batch: the batch size to consider delta loss,
-        defaults to 10
+        :param delta_loss: stops iteration once the loss rate reaches\ 
+            delta_loss, defaults to 0.001
+        :param delta_loss_batch: the batch size to consider delta loss,\ 
+            defaults to 10
         :param msg: iterator bar message, defaults to empty string
         """
         losses = []
@@ -217,8 +218,10 @@ class CellStateModel(AstirModel):
                 curr_mean = np.mean(losses[start_index:end_index])
             elif self._losses.shape[0] >= -start_index:
                 last_ten_losses = torch.cat(
-                    (self._losses[start_index:],
-                     torch.tensor(losses[:end_index], dtype=torch.float64))
+                    (
+                        self._losses[start_index:],
+                        torch.tensor(losses[:end_index], dtype=torch.float64),
+                    )
                 )
                 curr_mean = torch.mean(last_ten_losses).item()
             else:
@@ -240,9 +243,9 @@ class CellStateModel(AstirModel):
         if self._losses is None:
             self._losses = torch.tensor(losses, dtype=self._dtype)
         else:
-            self._losses = \
-                torch.cat((self._losses,
-                           torch.tensor(losses, dtype=self._dtype)))
+            self._losses = torch.cat(
+                (self._losses, torch.tensor(losses, dtype=self._dtype))
+            )
 
         return losses
 
@@ -256,8 +259,8 @@ class CellStateModel(AstirModel):
     def get_final_mu_z(self, new_dset: SCDataset = None) -> torch.Tensor:
         """ Returns the mean of the predicted z values for each core
 
-        :param new_dset: returns the predicted z values of this dataset on
-        the existing model. If None, it predicts using the existing dataset
+        :param new_dset: returns the predicted z values of this dataset on\ 
+            the existing model. If None, it predicts using the existing dataset
 
         :return: the mean of the predicted z values for each core
         """
