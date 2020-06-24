@@ -26,8 +26,8 @@ class SCDataset(Dataset):
         expr_input: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]]],
         marker_dict: Dict[str, str],
         include_other_column: bool,
-        dtype: torch.dtype = torch.float64,
         design: Union[np.array, pd.DataFrame] = None,
+        dtype: torch.dtype = torch.float64,
     ) -> None:
         self._dtype = dtype
         self._marker_dict = marker_dict
@@ -143,16 +143,16 @@ class SCDataset(Dataset):
         x = (y - self._exprs_mean) / self._exprs_std
         return y, x, self._design[idx, :]
 
-    def _fix_design(self, design: np.array) -> torch.tensor:
+    def _fix_design(self, design: Union[np.array, pd.DataFrame]) -> torch.tensor:
         d = None
         if design is None:
-            d = torch.ones((self._exprs.shape[0], 1), dtype=self._dtype).to(
+            d = torch.ones((self._exprs.shape[0], 1), dtype=torch.bool).to(
                 self._device
             )
         else:
             if isinstance(design, pd.DataFrame):
                 design = design.to_numpy()
-            d = torch.from_numpy(design).to(device=self._device, dtype=self._dtype)
+            d = torch.from_numpy(design).to(device=self._device, dtype=torch.bool)
 
         if d.shape[0] != self._exprs.shape[0]:
             raise NotClassifiableError(

@@ -220,7 +220,7 @@ class CellStateModel(AstirModel):
                 last_ten_losses = torch.cat(
                     (
                         self._losses[start_index:],
-                        torch.tensor(losses[:end_index], dtype=torch.float64),
+                        torch.tensor(losses[:end_index], dtype=self._dtype),
                     )
                 )
                 curr_mean = torch.mean(last_ten_losses).item()
