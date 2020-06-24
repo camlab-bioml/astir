@@ -25,7 +25,7 @@ from scipy import stats
 
 from .abstract import AstirModel
 from astir.data import SCDataset
-from .recognet import RecognitionNet
+from .celltype_recognet import TypeRecognitionNet
 
 
 class CellTypeModel(AstirModel):
@@ -51,7 +51,7 @@ class CellTypeModel(AstirModel):
         self.cov_mat = None  # temporary -- remove
         self._assignment = None
 
-        self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(
+        self._recog = TypeRecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(
             self._device, dtype=dtype
         )
         self._param_init()
@@ -235,7 +235,7 @@ class CellTypeModel(AstirModel):
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
         return g
 
-    def get_recognet(self) -> RecognitionNet:
+    def get_recognet(self) -> TypeRecognitionNet:
         """ Getter for the recognition net
 
         :return: the trained recognition net

@@ -85,7 +85,7 @@ class CellStateModel(AstirModel):
             "rho": self._dset.get_marker_mat().T.to(self._device),
         }
 
-        self._models = StateRecognitionNet(C, G).to(
+        self._recog = StateRecognitionNet(C, G).to(
             device=self._device, dtype=self._dtype
         )
 
@@ -137,7 +137,7 @@ class CellStateModel(AstirModel):
 
         :return: mu_z, std_z, z_sample
         """
-        mu_z, std_z = self._models(Y)
+        mu_z, std_z = self._recog(Y)
 
         std = torch.exp(std_z)
         eps = torch.randn_like(std)
@@ -177,7 +177,7 @@ class CellStateModel(AstirModel):
 
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
-            opt_params = list(self._models.parameters()) + list(
+            opt_params = list(self._recog.parameters()) + list(
                 self._variables.values()
             )
             self._optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
@@ -254,7 +254,7 @@ class CellStateModel(AstirModel):
 
         :return: the trained recognition net
         """
-        return self._models
+        return self._recog
 
     def get_final_mu_z(self, new_dset: SCDataset = None) -> torch.Tensor:
         """ Returns the mean of the predicted z values for each core

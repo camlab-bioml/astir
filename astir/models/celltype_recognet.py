@@ -4,9 +4,9 @@ import torch.nn as nn
 
 
 # The recognition net
-class RecognitionNet(nn.Module):
+class TypeRecognitionNet(nn.Module):
     def __init__(self, C: int, G: int, hidden_size=10) -> None:
-        super(RecognitionNet, self).__init__()
+        super(TypeRecognitionNet, self).__init__()
         self.hidden_1 = nn.Linear(G, hidden_size)
         self.hidden_2 = nn.Linear(hidden_size, C + 1)
 
