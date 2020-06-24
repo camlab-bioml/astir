@@ -590,7 +590,7 @@ class Astir:
 
         This performs a two-step normalization:
         1. A `log(1+x)` transformation to the data
-        2. Winsorizes to (:param:`percentile_lower`, :param:`percentile_upper`)
+        2. Winsorizes to (`percentile_lower`, `percentile_upper`)
 
         :param percentile_lower: Lower percentile for winsorization
         :param percentile_upper: Upper percentile for winsorization
