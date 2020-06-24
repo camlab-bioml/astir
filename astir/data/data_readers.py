@@ -47,8 +47,6 @@ def from_csv_dir_yaml(
 ):
     """Create an Astir object a directory containing multiple csv files
 
-    TODO add text explaining concatenation
-
     :param input_dir: Path to a directory containing multiple CSV files, each in the format expected by
         `from_csv_yaml`
     :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state      
@@ -56,6 +54,7 @@ def from_csv_dir_yaml(
     :param design_csv: Path to design matrix as a CSV. Rows should be cells, and columns covariates. First column is cell 
         identifier, and additional column names are covariate identifiers.
     """
+    # TODO: add text explaining concatenation
     # Parse the input directory
     csv_files = [
         os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith("csv")
@@ -106,9 +105,8 @@ def from_loompy_yaml(
     :param random_seed: The random seed to be used to initialize variables
 
     :returns: An object of class `astir_bash.py.Astir` using data imported from the loom files
-
-    .. todo:: This function is memory inefficient and goes against the philosophy of loom files. Should be improved
     """
+    # TODO: This function is memory inefficient and goes against the philosophy of loom files. Should be improved
     batch_list = None
     with loompy.connect(loom_file) as ds:
         df_gex = pd.DataFrame(ds[:, :].T)
@@ -155,9 +153,8 @@ def from_anndata_yaml(
     :param random_seed: The random seed to be used to initialize variables
 
     :returns: An object of class `astir_bash.py.Astir` using data imported from the loom files
-
-    .. todo:: This function is memory inefficient and goes against the philosophy of loom files. Should be improved
     """
+    # TODO: This function is memory inefficient and goes against the philosophy of loom files. Should be improved
     batch_list = None
 
     ad = anndata.read_h5ad(anndata_file)

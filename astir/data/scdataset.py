@@ -210,15 +210,35 @@ class SCDataset(Dataset):
         return len(self._m_features)
 
     def get_features(self) -> List[str]:
+        """Get the features (proteins).
+
+        :return: return self._m_features
+        :rtype: List[str]
+        """
         return self._m_features
 
     def get_cell_names(self) -> List[str]:
+        """Get the cell names.
+
+        :return: return self._cell_names
+        :rtype: List[str]
+        """
         return self._cell_names
 
     def get_classes(self) -> List[str]:
+        """Get the cell types/states.
+
+        :return: return self._classes
+        :rtype: List[str]
+        """
         return self._classes
 
     def get_design(self) -> torch.Tensor:
+        """Get the design matrix.
+
+        :return: return self._design
+        :rtype: torch.Tensor
+        """
         return self._design
 
     def normalize(
@@ -228,8 +248,9 @@ class SCDataset(Dataset):
 
         This performs a two-step normalization:
         1. A `log(1+x)` transformation to the data
-        2. Winsorizes to (:param:`percentile_lower`, :param:`percentile_upper`)
+        2. Winsorizes to (`percentile_lower`, `percentile_upper`)
         """
+
         with torch.no_grad():
             exprs = self.get_exprs().numpy()
             exprs = np.arcsinh(exprs / cofactor)

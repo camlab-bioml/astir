@@ -1,10 +1,10 @@
-astir.data_readers package
-==========================
+astir.data package
+====================
 
 Module contents
 ---------------
 
-.. automodule:: astir.data_readers
+.. automodule:: astir.data
     :members:
     :undoc-members:
     :show-inheritance:
