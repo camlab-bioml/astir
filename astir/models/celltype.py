@@ -212,6 +212,7 @@ class CellTypeModel(AstirModel):
             if len(losses) > 0:
                 per = abs((loss - losses[-1]) / losses[-1])
             losses.append(loss)
+            yield loss
             iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
             if per <= delta_loss:
                 self._is_converged = True
@@ -219,8 +220,7 @@ class CellTypeModel(AstirModel):
                 break
 
         # Save output
-        g = self._recog.forward(exprs_X).detach().cpu().numpy()
-        self._assignment = g
+        self._assignment = self._recog.forward(exprs_X).detach().cpu().numpy()
 
         if self._losses is None:
             self._losses = torch.tensor(losses)
@@ -228,12 +228,14 @@ class CellTypeModel(AstirModel):
             self._losses = torch.cat(
                 (self._losses.view(self._losses.shape[0]), torch.tensor(losses)), dim=0
             )
-        return g
 
     def predict(self, new_dset: pd.DataFrame) -> np.array:
         _, exprs_X, _ = new_dset[:]
         g = self._recog.forward(exprs_X).detach().cpu().numpy()
         return g
+
+    def get_assignment(self):
+        return self._assignment
 
     def get_recognet(self) -> TypeRecognitionNet:
         """ Getter for the recognition net

@@ -125,6 +125,25 @@ class Astir:
         n_init=5,
         n_init_epochs=5,
     ) -> None:
+        for l in self.fit_type_yield_loss(
+                max_epochs,
+                learning_rate,
+                batch_size,
+                delta_loss,
+                n_init,
+                n_init_epochs,
+            ):
+            pass
+
+    def fit_type_yield_loss(
+        self,
+        max_epochs=50,
+        learning_rate=1e-3,
+        batch_size=128,
+        delta_loss=1e-3,
+        n_init=5,
+        n_init_epochs=5,
+    ) -> None:
         """Run Variational Bayes to infer cell types
 
         :param max_epochs: Maximum number of epochs to train
@@ -148,23 +167,23 @@ class Astir:
         ]
         n_init_epochs = min(max_epochs, n_init_epochs)
         for i in range(n_init):
-            type_models[i].fit(
-                n_init_epochs,
-                learning_rate,
-                batch_size,
-                delta_loss,
-                " " + str(i + 1) + "/" + str(n_init),
-            )
+            for l in type_models[i].fit(
+                    n_init_epochs,
+                    learning_rate,
+                    batch_size,
+                    delta_loss,
+                    " " + str(i + 1) + "/" + str(n_init),
+                ):
+                pass
 
         losses = torch.tensor([m.get_losses()[-1] for m in type_models])
 
         best_ind = torch.argmin(losses)
         self._type_ast = type_models[best_ind]
-
-        n_epoch_remaining = max_epochs
-        assignment = self._type_ast.fit(
-            n_epoch_remaining, learning_rate, batch_size, delta_loss, " (final)"
-        )
+        for loss in self._type_ast.fit(
+                max_epochs, learning_rate, batch_size, delta_loss, " (final)"
+            ):
+            yield loss
         if not self._type_ast.is_converged():
             msg = (
                 "Maximum epochs reached. More iteration may be needed to"
@@ -172,7 +191,7 @@ class Astir:
             )
             warnings.warn(msg)
 
-        self._type_assignments = pd.DataFrame(assignment)
+        self._type_assignments = pd.DataFrame(self._type_ast.get_assignment())
         self._type_assignments.columns = self._type_dset.get_classes() + ["Other"]
         self._type_assignments.index = self._type_dset.get_cell_names()
 
@@ -231,7 +250,7 @@ class Astir:
             )
             # Fitting the model
             n_init_epochs = min(max_epochs, n_init_epochs)
-            losses = model.fit(
+            loss = model.fit(
                 max_epochs=n_init_epochs,
                 learning_rate=learning_rate,
                 batch_size=batch_size,
@@ -240,7 +259,7 @@ class Astir:
                 msg=" " + str(i + 1) + "/" + str(n_init),
             )
 
-            cellstate_losses.append(losses)
+            cellstate_losses.append(loss)
             cellstate_models.append(model)
 
         last_delta_losses_mean = np.array(

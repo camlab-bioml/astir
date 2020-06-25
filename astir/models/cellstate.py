@@ -246,7 +246,6 @@ class CellStateModel(AstirModel):
             self._losses = torch.cat(
                 (self._losses, torch.tensor(losses, dtype=self._dtype))
             )
-
         return losses
 
     def get_recognet(self) -> StateRecognitionNet:
