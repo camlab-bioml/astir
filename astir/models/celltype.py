@@ -212,7 +212,6 @@ class CellTypeModel(AstirModel):
             if len(losses) > 0:
                 per = abs((loss - losses[-1]) / losses[-1])
             losses.append(loss)
-            yield loss
             iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
             if per <= delta_loss:
                 self._is_converged = True
