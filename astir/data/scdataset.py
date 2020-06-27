@@ -144,6 +144,15 @@ class SCDataset(Dataset):
         return y, x, self._design.to_dense()[idx, :]
 
     def _fix_design(self, design: Union[np.array, pd.DataFrame]) -> torch.tensor:
+        """Sanitize the design matrix.
+
+        :param design: the unsanitized design matrix
+        :type design: Union[np.array, pd.DataFrame]
+        :raises NotClassifiableError: raised when the design matrix has 
+            different number of rows from the expression data
+        :return: the sanitized design matrix
+        :rtype: torch.tensor
+        """
         d = None
         if design is None:
             d = torch.ones((self._exprs.shape[0], 1)).to_sparse().to(
@@ -162,15 +171,25 @@ class SCDataset(Dataset):
         return d
 
     def rescale(self):
+        """Normalize the expression data.
+        """
         self._exprs = self._exprs / (self.get_sigma())
 
+    def get_dtype(self) -> str:
+        """Get the dtype of the `SCDataset`.
+
+        :return: `self._dtype`
+        :rtype: str
+        """
+        return self._dtype
+
     def get_exprs(self) -> torch.Tensor:
-        """ Return the expression data as a :class:`torch.Tensor`
+        """ Return the expression data as a :class:`torch.Tensor`.
         """
         return self._exprs
 
     def get_exprs_df(self) -> pd.DataFrame:
-        """ Return the expression data as a :class:`pandas.DataFrame`
+        """ Return the expression data as a :class:`pandas.DataFrame`.
         """
         df = pd.DataFrame(self.get_exprs().detach().numpy())
         df.index = self.get_cell_names()
@@ -178,13 +197,12 @@ class SCDataset(Dataset):
         return df
 
     def get_marker_mat(self) -> torch.Tensor:
-        """Return the marker matrix as a :class:`torch.Tensor`
-
+        """Return the marker matrix as a :class:`torch.Tensor`.
         """
         return self._marker_mat
 
     def get_mu(self) -> torch.Tensor:
-        """Get the mean expression of each protein as a :class:`torch.Tensor`
+        """Get the mean expression of each protein as a :class:`torch.Tensor`.
         """
         return self._exprs_mean
 
@@ -192,20 +210,19 @@ class SCDataset(Dataset):
         return self._exprs_std
 
     def get_n_classes(self) -> int:
-        """Get the number of 'classes': either the number of cell types or cell states 
+        """Get the number of 'classes': either the number of cell types or cell states.
 
         """
         return len(self._classes)
 
     def get_n_cells(self) -> int:
-        """Get the number of cells: either the number of cell types or cell states 
+        """Get the number of cells: either the number of cell types or cell states.
 
         """
         return len(self.get_cell_names())
 
     def get_n_features(self) -> int:
-        """Get the number of features (proteins)
-
+        """Get the number of features (proteins).
         """
         return len(self._m_features)
 

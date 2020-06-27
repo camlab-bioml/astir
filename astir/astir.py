@@ -22,23 +22,23 @@ from .data.scdataset import SCDataset
 class Astir:
     """Create an Astir object
 
-    :param df_gex: A `pd.DataFrame` holding single-cell expression data,
-        where rows are cells and columns are features. Column names refer to
-        feature names and row names refer to cell identifiers.
-    :param marker_dict: A dictionary holding cell type and state information
-    :param design: An (optional) `pd.DataFrame` that represents a
-        design matrix for the samples
-    :param random_seed: The random seed to set
-
-    :raises NotClassifiableError: raised when the input gene expression
-        data or the marker is not classifiable
-
+    :param input_expr: the single cell protein expression dataset 
+    :type input_expr: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]], Tuple[SCDataset, SCDataset]]
+    :param marker_dict: the marker dictionary which maps cell type/state to protein features, defaults to None
+    :type marker_dict: Dict[str, Dict[str, str]], optional
+    :param design: the design matrix labeling the grouping of cell, defaults to None
+    :type design: Union[pd.DataFrame, np.array], optional
+    :param random_seed: random seed for parameter initialization, defaults to `1234`
+    :type random_seed: int, optional
+    :param dtype: dtype of data, defaults to `torch.float64`
+    :type dtype: torch.dtype, optional
+    :raises NotClassifiableError: raised if the model is not trainable
     """
 
     def __init__(
         self,
         input_expr: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]], Tuple[SCDataset, SCDataset]],
-        marker_dict=None,
+        marker_dict: Dict[str, Dict[str, str]]=None,
         design: Union[pd.DataFrame, np.array]=None,
         random_seed: int=1234,
         dtype: torch.dtype=torch.float64,
@@ -118,21 +118,21 @@ class Astir:
 
     def fit_type(
         self,
-        max_epochs=50,
-        learning_rate=1e-3,
-        batch_size=128,
-        delta_loss=1e-3,
-        n_init=5,
-        n_init_epochs=5,
+        max_epochs: int=50,
+        learning_rate: float=1e-3,
+        batch_size: int=128,
+        delta_loss: float=1e-3,
+        n_init: int=5,
+        n_init_epochs: int=5,
     ) -> None:
         """Run Variational Bayes to infer cell types
 
-        :param max_epochs: Maximum number of epochs to train
+        :param max_epochs: maximum number of epochs to train
         :param learning_rate: ADAM optimizer learning rate
-        :param batch_size: Minibatch size
+        :param batch_size: minibatch size
         :param delta_loss: stops iteration once the loss rate reaches
-            delta_loss, defaults to 0.001
-        :param n_inits: Number of random initializations
+            delta_loss, defaults to `0.001`
+        :param n_inits: number of random initializations
         """
         if self._type_dset is None:
             raise NotClassifiableError("Marker for cell type classification is not provided")
@@ -185,24 +185,24 @@ class Astir:
 
     def fit_state(
         self,
-        max_epochs=50,
-        learning_rate=1e-3,
-        batch_size=128,
-        delta_loss=1e-3,
-        n_init=5,
-        n_init_epochs=5,
-        delta_loss_batch=10,
+        max_epochs: int=50,
+        learning_rate: float=1e-3,
+        batch_size: int=128,
+        delta_loss: float=1e-3,
+        n_init: int=5,
+        n_init_epochs: int=5,
+        delta_loss_batch: int=10,
     ) -> None:
         """Run Variational Bayes to infer cell states
 
-        :param max_epochs: number of epochs, defaults to 100
-        :param learning_rate: the learning rate, defaults to 1e-2
+        :param max_epochs: number of epochs, defaults to `100`
+        :param learning_rate: the learning rate, defaults to `1e-2`
         :param n_init: the number of initial parameters to compare,
-            defaults to 5
+            defaults to `5`
         :param delta_loss: stops iteration once the loss rate reaches
-            delta_loss, defaults to 0.001
-        :param delta_loss_batch: the batch size  to consider delta loss,
-            defaults to 10
+            delta_loss, defaults to `0.001`
+        :param delta_loss_batch: the batch size to consider delta loss,
+            defaults to `10`
         """
         if self._state_dset is None:
             raise NotClassifiableError("Marker for cell state classification is not provided")
@@ -283,10 +283,10 @@ class Astir:
             "delta_loss_batch": delta_loss_batch,
         }
 
-    def save_models(self, hdf5_name: str) -> None:
-        """ Save the summary of this model to a hdf5 file.
+    def save_models(self, hdf5_name: str="astir_summary.hdf5") -> None:
+        """ Save the summary of this model to an `hdf5` file.
 
-        :param hdf5_name: name of the output hdf5 file
+        :param hdf5_name: name of the output `hdf5` file, default to "astir_summary.hdf5"
         :raises Exception: raised when this function is called before the model is trained.
         """
         if self._type_ast is None and self._state_ast is None:
@@ -356,45 +356,88 @@ class Astir:
                 )
 
     def get_type_dataset(self):
+        """Get the `SCDataset` for cell type training.
+
+        :return: `self._type_dset`
+        :rtype: SCDataset
+        """
         return self._type_dset
 
     def get_state_dataset(self):
+        """Get the `SCDataset` for cell state training.
+
+        :return: `self._state_dset`
+        :rtype: SCDataset
+        """
         return self._state_dset
 
     def get_type_model(self):
+        """Get the trained `CellTypeModel`.
+
+        :raises Exception: raised when this function is called before the model is trained.
+        :return: `self._type_ast`
+        :rtype: CellTypeModel
+        """
         if self._type_ast is None:
             raise Exception("The type model has not been trained yet")
         return self._type_ast
 
     def get_state_model(self):
+        """Get the trained `CellStateModel`.
+
+        :raises Exception: raised when this function is celled before the model is trained.
+        :return: `self._state_ast`
+        :rtype: CellStateModel
+        """
         if self._state_ast is None:
             raise Exception("The state model has not been trained yet")
         return self._state_ast
 
     def get_type_run_info(self):
+        """Get the run information (i.e. `max_epochs`, `learning_rate`, 
+            `batch_size`, `delta_loss`, `n_init`, `n_init_epochs`) of the cell type training.
+
+        :raises Exception: raised when this function is celled before the model is trained.
+        :return: `self._type_run_info`
+        :rtype: Dict[str, Optional[int, float]]
+        """
         if self._type_run_info is None:
             raise Exception("The type model has not been trained yet")
         return self._type_run_info
 
     def get_state_run_info(self):
+        """Get the run information (i.e. `max_epochs`, `learning_rate`, `batch_size`,
+            `delta_loss`, `n_init`, `n_init_epochs`, `delta_loss_batch`) of the cell state training.
+
+        :raises Exception: raised when this function is celled before the model is trained.
+        :return: `self._state_run_info`
+        :rtype: Dict[str, Optional[int, float]]
+        """
         if self._state_run_info is None:
             raise Exception("The state model has not been trained yet")
         return self._state_run_info
 
     def get_celltype_probabilities(self) -> pd.DataFrame:
-        """[summary]
+        """Get the cell assignment probability.
 
-        :return: self.assignments
+        :return: `self.assignments`
         :rtype: pd.DataFrame
         """
         if self._type_assignments is None:
             raise Exception("The type model has not been trained yet")
         return self._type_assignments
 
-    def _most_likely_celltype(self, row, threshold, cell_types):
-        """Given a row of the assignment matrix
-        return the most likely cell type
+    def _most_likely_celltype(self, row: pd.DataFrame, threshold: float, cell_types: List[str]) -> str:
+        """Given a row of the assignment matrix, return the most likely cell type
 
+        :param row: the row of cell assignment matrix to be evaluated
+        :type row: pd.DataFrame
+        :param threshold: the higher bound of the maximun probability to classify a cell as `Unknown`
+        :type threshold: float
+        :param cell_types: the names of cell types, in the same order as the features of the row
+        :type cell_types: List[str]
+        :return: the most likely cell type of this cell
+        :rtype: str
         """
         row = row.to_numpy()
         max_prob = np.max(row)
@@ -446,7 +489,15 @@ class Astir:
 
         return assign_rescale
 
-    def predict_celltypes(self, dset=None):
+    def predict_celltypes(self, dset: pd.DataFrame=None) -> pd.DataFrame:
+        """Predict the probabilities of different cell type assignments. 
+
+        :param dset: the single cell protein expression dataset to predict, defaults to None
+        :type dset: pd.DataFrame, optional
+        :raises Exception: when the type model is not trained when this function is called
+        :return: the probabilities of different cell type assignments
+        :rtype: pd.DataFrame
+        """
         if self._type_ast is None:
             raise Exception("The type model has not been trained yet")
         if not self._type_ast.is_converged():
@@ -465,7 +516,7 @@ class Astir:
         """ Get the prediction cell state activations on a dataset on an
         existing model
 
-        :param new_dset: the dataset to predict cell state activations
+        :param new_dset: the dataset to predict cell state activations, default to None
 
         :return: the prediction of cell state activations
         """
@@ -488,9 +539,9 @@ class Astir:
         return assign_rescale
 
     def get_type_losses(self) -> np.array:
-        """[summary]
+        """Get the final losses of the type model.
 
-        :return: self.losses
+        :return: `self.losses`
         :rtype: np.array
         """
         if self._type_ast is None:
@@ -502,13 +553,14 @@ class Astir:
 
         :return: a numpy array of losses for each training iteration the\ 
             model runs
+        :rtype: np.array
         """
         if self._state_ast is None:
             raise Exception("The state model has not been trained yet")
         return self._state_ast.get_losses()
 
     def type_to_csv(self, output_csv: str) -> None:
-        """[summary]
+        """Save the cell type assignemnt to a `csv` file.
 
         :param output_csv: name for the output .csv file
         :type output_csv: str
@@ -549,11 +601,11 @@ class Astir:
         higher levels than in other cell types. This function performs the following steps:
 
         1. Iterates through every cell type and every marker for that cell type
-        2. Given a cell type *c* and marker *g*, find the set of cell \ 
+        2. Given a cell type *c* and marker *g*, find the set of cell
             types *D* that don't have *g* as a marker
-        3. For each cell type *d* in *D*, perform a t-test between the \ 
+        3. For each cell type *d* in *D*, perform a t-test between the 
             expression of marker *g* in *c* vs *d*
-        4. If *g* is not expressed significantly higher (at significance \ 
+        4. If *g* is not expressed significantly higher (at significance
             *alpha*), output a diagnostic explaining this for further investigation.
 
         :param threshold: The threshold at which cell types are assigned (see `get_celltypes`)
@@ -574,9 +626,9 @@ class Astir:
 
         1. Get correlations between all cell states and proteins
         2. For each cell state *c*, get the smallest correlation with marker *g*
-        3. For each cell state *c* and its non marker *g*, find any correlation that is\ 
+        3. For each cell state *c* and its non marker *g*, find any correlation that is
             bigger than those smallest correlation for *c*.
-        4. Any *c* and *g* pairs found in step 3 will be included in the output of\ 
+        4. Any *c* and *g* pairs found in step 3 will be included in the output of
             `Astir.diagnostics_cellstate()`, including an explanation.
 
         :return: diagnostics

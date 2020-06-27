@@ -8,10 +8,11 @@ from astir.data import SCDataset
 
 
 class AstirModel:
-    """Abstract class to perform statistical inference to assign
+    """Abstract class to perform statistical inference to assign. This module is the super class of 
+        `CellTypeModel` and `CellStateModel` and is not supposed to be instantiated.
     """
 
-    def __init__(self, dset: SCDataset, random_seed: int, dtype: torch.dtype,) -> None:
+    def __init__(self, dset: SCDataset, random_seed: int, dtype: torch.dtype) -> None:
 
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
@@ -22,7 +23,11 @@ class AstirModel:
 
         if dtype != torch.float32 and dtype != torch.float64:
             raise NotClassifiableError(
-                "Dtype must be one of torch.float32 and torch.float64."
+                "dtype must be one of torch.float32 and torch.float64."
+            )
+        elif dtype != dset.get_dtype():
+            raise NotClassifiableError(
+                "dtype must be the same as `dset`."
             )
         self._dtype = dtype
         self._data = None
@@ -34,7 +39,7 @@ class AstirModel:
         self._is_converged = False
 
     def get_losses(self) -> float:
-        """ Getter for losses
+        """ Getter for losses.
 
         :return: self.losses
         :rtype: float
@@ -43,7 +48,12 @@ class AstirModel:
             raise Exception("The model has not been trained yet")
         return self._losses
 
-    def get_scdataset(self):
+    def get_scdataset(self) -> SCDataset:
+        """Getter for the `SCDataset`.
+
+        :return: `self._dset`
+        :rtype: SCDataset
+        """
         return self._dset
 
     def get_data(self):
