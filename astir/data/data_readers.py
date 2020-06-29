@@ -10,6 +10,8 @@ import anndata
 import numpy as np
 import pandas as pd
 
+import FlowCytometryTools
+from FlowCytometryTools import FCMeasurement
 from sklearn.preprocessing import OneHotEncoder
 import torch
 
@@ -164,7 +166,7 @@ def from_anndata_yaml(
     if protein_name is not None:
         df_gex.columns = ad.var[protein_name]
     else:
-        df_gex.columsn = ad.var_names
+        df_gex.columns = ad.var_names
 
     if cell_name is not None:
         df_gex.index = ad.obs[cell_name]
@@ -190,3 +192,20 @@ def from_anndata_yaml(
     from astir.astir import Astir
 
     return Astir(df_gex, marker_dict, design, random_seed, dtype)
+
+
+def from_fcs_yaml(
+    fcs_file: str,
+    marker_yaml: str,
+    random_seed: int = 1234,
+    dtype=torch.float64,
+):
+    expr_fcs = FCMeasurement(ID='astir_data', datafile=fcs_file)
+    expr_df = expr_fcs.data
+
+    with open(marker_yaml, "r") as stream:
+        marker_dict = yaml.safe_load(stream)
+
+    from astir.astir import Astir
+    return Astir(expr_df, marker_dict, design, random_seed, dtype)
+    
