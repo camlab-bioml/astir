@@ -40,6 +40,7 @@ setuptools.setup(
         "ipykernel",
         "ipython",
         "h5py",
+        "FlowCytometryTools",
     ],
     include_package_data=True,
     zip_safe=False,
