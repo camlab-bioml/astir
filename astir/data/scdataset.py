@@ -74,7 +74,7 @@ class SCDataset(Dataset):
         :return: the processed input as a torch.Tensor
         """
         try:
-            Y_np = df_input[self._m_features].to_numpy()
+            Y_np = df_input[self._m_features].values
         except (KeyError):
             raise NotClassifiableError(
                 "Classification failed. There's no "
@@ -160,7 +160,7 @@ class SCDataset(Dataset):
             )
         else:
             if isinstance(design, pd.DataFrame):
-                design = design.to_numpy()
+                design = design.values
             d = torch.from_numpy(design).to_sparse().to(device=self._device, dtype=self._dtype)
 
         if d.shape[0] != self._exprs.shape[0]:

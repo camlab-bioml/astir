@@ -439,7 +439,7 @@ class Astir:
         :return: the most likely cell type of this cell
         :rtype: str
         """
-        row = row.to_numpy()
+        row = row.values
         max_prob = np.max(row)
 
         if max_prob < threshold:
