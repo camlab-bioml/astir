@@ -31,9 +31,10 @@ class CellStateModel(AbstractModel):
 
     def __init__(
         self,
+        const, dropout_rate, batch_norm,
         dset: SCDataset,
         random_seed: int = 42,
-        dtype: torch.dtype = torch.float64,
+        dtype: torch.dtype = torch.float32,
     ) -> None:
         super().__init__(dset, random_seed, dtype)
 
@@ -53,12 +54,15 @@ class CellStateModel(AbstractModel):
 
         self._optimizer = None
         self._losses = torch.empty(0, dtype=self._dtype)
-        self._param_init()
+        # self._param_init()
+        self._param_init(const, dropout_rate, batch_norm)
 
         # Convergence flag
         self._is_converged = False
 
-    def _param_init(self) -> None:
+    def _param_init(self,
+                    const, dropout_rate, batch_norm
+                    ) -> None:
         """ Initializes sets of parameters
         """
         N = len(self._dset)
@@ -85,9 +89,12 @@ class CellStateModel(AbstractModel):
             "rho": self._dset.get_marker_mat().T.to(self._device),
         }
 
-        self._models = StateRecognitionNet(C, G).to(
-            device=self._device, dtype=self._dtype
-        )
+        self._models = StateRecognitionNet(C, G,
+                                           const=const,
+                                           dropout_rate=dropout_rate,
+                                           batch_norm=batch_norm
+                                           )\
+            .to(device=self._device, dtype=self._dtype)
 
     def _loss_fn(
         self,
@@ -183,22 +190,22 @@ class CellStateModel(AbstractModel):
             self._optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
         if self._losses.shape[0] >= delta_loss_batch:
-            prev_mean = np.mean(self._losses[-delta_loss_batch:])
+            prev_mean = torch.mean(self._losses[-delta_loss_batch:])
         else:
             prev_mean = None
 
         delta_cond_met = False
 
-        iterator = trange(
-            max_epochs,
-            desc="training restart" + msg,
-            unit="epochs",
-            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
-        )
+        # iterator = trange(
+        #     max_epochs,
+        #     desc="training restart" + msg,
+        #     unit="epochs",
+        #     bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
+        # )
         train_iterator = DataLoader(
             self._dset, batch_size=min(batch_size, len(self._dset))
         )
-        for ep in iterator:
+        for ep in range(max_epochs):
             for i, (y_in, x_in, _) in enumerate(train_iterator):
                 self._optimizer.zero_grad()
 
@@ -211,11 +218,13 @@ class CellStateModel(AbstractModel):
                 self._optimizer.step()
 
             losses.append(loss.cpu().detach().item())
+            print("Epoch: {} Train Loss: {}".format(ep + 1, loss))
 
             start_index = ep - delta_loss_batch + 1
             end_index = start_index + delta_loss_batch
             if start_index >= 0:
-                curr_mean = np.mean(losses[start_index:end_index])
+                curr_mean = sum(losses[start_index:end_index]) / len(losses[
+                                                                   start_index:end_index])
             elif self._losses.shape[0] >= -start_index:
                 last_ten_losses = torch.cat(
                     (self._losses[start_index:],
@@ -228,14 +237,14 @@ class CellStateModel(AbstractModel):
             if prev_mean is not None:
                 curr_delta_loss = (prev_mean - curr_mean) / prev_mean
                 delta_cond_met = 0 <= curr_delta_loss < delta_loss
-
-            iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
+            print("Epoch: {} Current Mean: {}".format(ep + 1, curr_mean))
+            # iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
 
             prev_mean = curr_mean
             if delta_cond_met:
                 losses = losses[0 : ep + 1]
                 self._is_converged = True
-                iterator.close()
+                # iterator.close()
                 break
 
         if self._losses is None:
@@ -270,11 +279,7 @@ class CellStateModel(AbstractModel):
 
         return final_mu_z
 
-    def diagnostics(self) -> pd.DataFrame:
-        """ Run diagnostics on cell state assignments
-
-        :return: diagnostics
-        """
+    def get_correlations(self) -> np.array:
         state_assignment = self.get_final_mu_z().detach().cpu().numpy()
         y_in = self._dset.get_exprs()
 
@@ -289,6 +294,18 @@ class CellStateModel(AbstractModel):
                 states = state_assignment[:, c]
                 protein = y_in[:, g].cpu()
                 corr_mat[c, g] = np.corrcoef(protein, states)[0, 1]
+
+        return corr_mat
+
+    def diagnostics(self) -> pd.DataFrame:
+        """ Run diagnostics on cell state assignments
+
+        :return: diagnostics
+        """
+        feature_names = self._dset.get_features()
+        state_names = self._dset.get_classes()
+
+        corr_mat = self.get_correlations()
 
         # Correlation values of all marker proteins
         marker_mat = self._dset.get_marker_mat().T.cpu().numpy()

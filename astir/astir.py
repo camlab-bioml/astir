@@ -191,6 +191,7 @@ class Astir:
 
     def fit_state(
         self,
+        const, dropout_rate, batch_norm,
         max_epochs=50,
         learning_rate=1e-3,
         batch_size=128,
@@ -227,6 +228,7 @@ class Astir:
         for i in range(n_init):
             # Initializing a model
             model = CellStateModel(
+                const, dropout_rate, batch_norm,
                 dset=self._state_dset,
                 random_seed=(self.random_seed + i),
                 dtype=self._dtype,
@@ -251,7 +253,7 @@ class Astir:
         )
 
         best_model_index = int(np.argmin(last_delta_losses_mean))
-
+        print("The best model is ", best_model_index + 1)
         self._state_ast = cellstate_models[best_model_index]
 
         self._state_ast.fit(
@@ -529,9 +531,6 @@ class Astir:
         :type output_csv: str, required
         """
         self.get_cellstates().to_csv(output_csv)
-
-        read_output_csv = pd.read_csv(output_csv, index_col=0)
-        # print(read_output_csv)
 
     def __str__(self) -> str:
         return (
