@@ -37,8 +37,9 @@ class Astir:
 
     def __init__(
         self,
-        input_expr: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]], Tuple[SCDataset, SCDataset]],
-        marker_dict: Dict[str, Dict[str, str]]=None,
+        input_expr: Union[pd.DataFrame, 
+            Tuple[np.array, List[str], List[str]], Tuple[SCDataset, SCDataset]],
+        marker_dict: Dict[str, Dict[str, List[str]]]=None,
         design: Union[pd.DataFrame, np.array]=None,
         random_seed: int=1234,
         dtype: torch.dtype=torch.float64,
@@ -59,10 +60,10 @@ class Astir:
         self._type_assignments, self._state_assignments = None, None
         self._type_run_info, self._state_run_info = None, None
 
+        type_dict, state_dict, self._hierarchy_dict = self._sanitize_dict(marker_dict)
         if isinstance(input_expr, tuple) and len(input_expr) == 2:
             self._type_dset, self._state_dset = input_expr[0], input_expr[1]
         else:
-            type_dict, state_dict = self._sanitize_dict(marker_dict)
             self._type_dset = None
             self._state_dset = None
             if type_dict is not None:
@@ -91,30 +92,28 @@ class Astir:
         :raises NotClassifiableError: raized when the marker dictionary doesn't
              have required format
 
-        :return: dictionaries for cell type and state.
-        :rtype: Tuple[dict, dict]
+        :return: dictionaries, the first is the cell type dict, the second is the cell state 
+            dict and the third is the hierarchy dict.
+        :rtype: Tuple[dict, dict, dict]
         """
-        type_dict = None
-        state_dict = None
+        dics = [None, None, None]
         if marker_dict is not None:
-            keys = list(marker_dict.keys())
             ct = re.compile("cell[^a-zA-Z0-9]*type", re.IGNORECASE)
             cs = re.compile("cell[^a-zA-Z0-9]*state", re.IGNORECASE)
-            if len(keys) == 1:
-                if ct.match(keys[0]):
-                    type_dict = marker_dict[keys[0]]
-                elif cs.match(keys[0]):
-                    state_dict = marker_dict[keys[0]]
-            else:
-                if ct.match(keys[0]):
-                    type_dict = marker_dict[keys[0]]
-                elif ct.match(keys[1]):
-                    type_dict = marker_dict[keys[1]]
-                if cs.match(keys[0]):
-                    state_dict = marker_dict[keys[0]]
-                elif cs.match(keys[1]):
-                    state_dict = marker_dict[keys[1]]
-        return type_dict, state_dict
+            h = re.compile(".*hierarch.*", re.IGNORECASE)
+
+            def interpret(key, dic):
+                if ct.match(key):
+                    dics[0] = dic
+                elif cs.match(key):
+                    dics[1] = dic
+                elif h.match(key):
+                    dics[2] = dic
+
+            for key, dic in marker_dict.items():
+                interpret(key, dic)
+            
+        return dics
 
     def fit_type(
         self,
@@ -537,6 +536,32 @@ class Astir:
         assign_rescale.index = self._state_dset.get_cell_names()
 
         return assign_rescale
+
+    def assign_celltype_hierarchy(self) -> pd.DataFrame:
+        """Get cell type assignment at a higher hierarchy according to the hierarchy provided 
+            in the dictionary.
+
+        :raises Exception: raised when the dictionary for hierarchical structure is not provided
+            or the model hasn't been trained.
+        :return: probability assignment of cell type at a superstructure
+        :rtype: pd.DataFrame
+        """ 
+        if self._hierarchy_dict is None:
+            raise Exception("The dictionary for hierarchical structure is not provided")
+        if self._type_assignments is None:
+            raise Exception("The type model has not been trained yet")
+        hier_df = pd.DataFrame()
+        for key, cells in self._hierarchy_dict.items():
+            hier_df[key] = self._type_assignments[cells].sum(axis=1)
+        return hier_df
+        
+    def get_hierarchy_dict(self) -> Dict[str, List[str]]:
+        """Get the dictionary for cell type hierarchical structure.
+
+        :return: `self._hierarchy_dict`
+        :rtype: Dict[str, List[str]]
+        """
+        return self._hierarchy_dict
 
     def get_type_losses(self) -> np.array:
         """Get the final losses of the type model.

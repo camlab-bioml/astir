@@ -24,7 +24,7 @@ class SCDataset(Dataset):
     def __init__(
         self,
         expr_input: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]]],
-        marker_dict: Dict[str, str],
+        marker_dict: Dict[str, List[str]],
         include_other_column: bool,
         design: Union[np.array, pd.DataFrame] = None,
         dtype: torch.dtype = torch.float64,
