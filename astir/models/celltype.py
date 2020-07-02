@@ -169,6 +169,21 @@ class CellTypeModel(AstirModel):
         delta_loss: float = 1e-3,
         msg: str = "",
     ) -> None:
+        for l in self.fit_yield_loss(max_epochs,
+            learning_rate,
+            batch_size,
+            delta_loss,
+            msg):
+            pass
+
+    def fit_yield_loss(
+        self,
+        max_epochs: int = 50,
+        learning_rate: float = 1e-3,
+        batch_size: int = 128,
+        delta_loss: float = 1e-3,
+        msg: str = "",
+    ) -> None:
         """ Runs train loops until the convergence reaches delta_loss for\ 
             delta_loss_batch sizes or for max_epochs number of times
 
@@ -216,6 +231,9 @@ class CellTypeModel(AstirModel):
                 per = abs((loss - losses[-1]) / losses[-1])
             losses.append(loss)
             iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
+
+            yield round(float(loss))
+
             if per <= delta_loss:
                 self._is_converged = True
                 iterator.close()
