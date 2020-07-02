@@ -75,13 +75,13 @@ class SCDataset(Dataset):
         """
         try:
             Y_np = df_input[self._m_features].values
+            return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
         except (KeyError):
             raise NotClassifiableError(
                 "Classification failed. There's no "
                 + "overlap between marked features and expression features for "
                 + "the classification of cell type/state."
             )
-        return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
 
     def _process_np_input(
         self, np_input: Tuple[np.array, np.array, np.array]
@@ -191,7 +191,7 @@ class SCDataset(Dataset):
     def get_exprs_df(self) -> pd.DataFrame:
         """ Return the expression data as a :class:`pandas.DataFrame`.
         """
-        df = pd.DataFrame(self.get_exprs().detach().numpy())
+        df = pd.DataFrame(self._exprs.detach().numpy())
         df.index = self.get_cell_names()
         df.columns = self.get_features()
         return df

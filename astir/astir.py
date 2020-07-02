@@ -13,6 +13,8 @@ import torch
 import pandas as pd
 import numpy as np
 import h5py
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 from .models.celltype import CellTypeModel
 from .models.cellstate import CellStateModel
@@ -169,9 +171,7 @@ class Astir:
             )
             warnings.warn(msg)
 
-        self._type_assignments = pd.DataFrame(self._type_ast.get_assignment())
-        self._type_assignments.columns = self._type_dset.get_classes() + ["Other"]
-        self._type_assignments.index = self._type_dset.get_cell_names()
+        self._type_assignments = self._type_ast.get_assignment()
 
         self._type_run_info = {
             "max_epochs": max_epochs,
@@ -426,49 +426,10 @@ class Astir:
             raise Exception("The type model has not been trained yet")
         return self._type_assignments
 
-    def _most_likely_celltype(self, row: pd.DataFrame, threshold: float, cell_types: List[str]) -> str:
-        """Given a row of the assignment matrix, return the most likely cell type
-
-        :param row: the row of cell assignment matrix to be evaluated
-        :type row: pd.DataFrame
-        :param threshold: the higher bound of the maximun probability to classify a cell as `Unknown`
-        :type threshold: float
-        :param cell_types: the names of cell types, in the same order as the features of the row
-        :type cell_types: List[str]
-        :return: the most likely cell type of this cell
-        :rtype: str
-        """
-        row = row.values
-        max_prob = np.max(row)
-
-        if max_prob < threshold:
-            return "Unknown"
-
-        return cell_types[np.argmax(row)]
-
     def get_celltypes(self, threshold=0.7) -> pd.DataFrame:
-        """
-        Get the most likely cell types
-
-        A cell is assigned to a cell type if the probability is greater than threshold.
-        If no cell types have a probability higher than threshold, then "Unknown" is returned
-
-        :param threshold: The probability threshold above which a cell is assigned to a cell type.
-        :return: A data frame with most likely cell types for each 
-        """
-        probs = self.get_celltype_probabilities()
-        cell_types = list(probs.columns)
-
-        cell_type_assignments = probs.apply(
-            self._most_likely_celltype,
-            axis=1,
-            threshold=threshold,
-            cell_types=cell_types,
-        )
-        cell_type_assignments = pd.DataFrame(cell_type_assignments)
-        cell_type_assignments.columns = ["cell_type"]
-
-        return cell_type_assignments
+        if self._type_ast is None:
+            raise Exception("The type model has not been trained yet")
+        return self._type_ast.get_celltypes()
 
     def get_cellstates(self) -> pd.DataFrame:
         """ Get cell state activations. It returns the rescaled activations,
@@ -504,9 +465,8 @@ class Astir:
             warnings.warn(msg)
         if dset is None:
             dset = self.get_type_dataset()
-        g = self._type_ast.predict(dset)
 
-        type_assignments = pd.DataFrame(g)
+        type_assignments = self._type_ast.predict(dset)
         type_assignments.columns = dset.get_classes() + ["Other"]
         type_assignments.index = dset.get_cell_names()
         return type_assignments
@@ -554,6 +514,30 @@ class Astir:
         for key, cells in self._hierarchy_dict.items():
             hier_df[key] = self._type_assignments[cells].sum(axis=1)
         return hier_df
+
+    def type_clustermap(self, plot_name: str="celltype_protein_cluster.png", threshold: float=0.7) -> None:
+        """Save the heatmap of protein content in cells with cell types labeled.
+
+        :param plot_name: name of the plot, extension(e.g. .png or .jpg) is needed, defaults to "celltype_protein_cluster.png"
+        :type plot_name: str, optional
+        :param threshold: the probability threshold above which a cell is assigned to a cell type, defaults to 0.7
+        :type threshold: float, optional
+        """
+        expr_df = self._type_dset.get_exprs_df()
+        expr_df["cell_type"] = self.get_celltypes(threshold=threshold)
+        expr_df = expr_df.sort_values(by=["cell_type"])
+        types = expr_df.pop("cell_type")
+        types_uni = types.unique()
+
+        lut = dict(zip(types_uni, sns.color_palette("BrBG", len(types_uni))))
+        col_colors = pd.DataFrame(types.map(lut))
+        cm = sns.clustermap(expr_df.T, xticklabels=False, cmap = "vlag", col_cluster=False, col_colors=col_colors, figsize=(7, 5))
+    
+        for t in types_uni:
+            cm.ax_col_dendrogram.bar(0, 0, color=lut[t], label=t, linewidth=0)
+        cm.ax_col_dendrogram.legend(title='Cell Types', loc="center", ncol=3, 
+            bbox_to_anchor=(0.8, 0.8))
+        cm.savefig(plot_name, dpi=150)
         
     def get_hierarchy_dict(self) -> Dict[str, List[str]]:
         """Get the dictionary for cell type hierarchical structure.
