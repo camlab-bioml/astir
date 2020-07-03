@@ -134,7 +134,7 @@ class CellTypeModel(AstirModel):
 
         delta_tilde = torch.exp(self._variables["log_delta"])  # + np.log(0.5)
         mean = delta_tilde * self._data["rho"]
-        mean2 = torch.sparse.mm(design, self._variables["mu"].T)  ## N x P * P x G
+        mean2 = torch.mm(design, self._variables["mu"].T)  ## N x P * P x G
         mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, C + 1)
         mean = mean + mean2
 
@@ -161,6 +161,7 @@ class CellTypeModel(AstirModel):
 
         return -elbo
 
+    # @profile
     def fit(
         self,
         max_epochs: int = 50,

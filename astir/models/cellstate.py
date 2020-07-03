@@ -145,6 +145,7 @@ class CellStateModel(AstirModel):
 
         return mu_z, std_z, z_sample
 
+    # @profile
     def fit(
         self,
         max_epochs: int = 50,

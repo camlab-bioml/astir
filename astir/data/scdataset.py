@@ -141,7 +141,7 @@ class SCDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         y = self._exprs[idx, :]
         x = (y - self._exprs_mean) / self._exprs_std
-        return y, x, self._design.to_dense()[idx, :]
+        return y, x, self._design[idx, :]
 
     def _fix_design(self, design: Union[np.array, pd.DataFrame]) -> torch.tensor:
         """Sanitize the design matrix.
@@ -155,13 +155,13 @@ class SCDataset(Dataset):
         """
         d = None
         if design is None:
-            d = torch.ones((self._exprs.shape[0], 1)).to_sparse().to(
+            d = torch.ones((self._exprs.shape[0], 1)).to(
                 device=self._device, dtype=self._dtype
             )
         else:
             if isinstance(design, pd.DataFrame):
                 design = design.values
-            d = torch.from_numpy(design).to_sparse().to(device=self._device, dtype=self._dtype)
+            d = torch.from_numpy(design).to(device=self._device, dtype=self._dtype)
 
         if d.shape[0] != self._exprs.shape[0]:
             raise NotClassifiableError(

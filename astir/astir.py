@@ -118,6 +118,7 @@ class Astir:
             
         return dics
 
+    # @profile
     def fit_type(
         self,
         max_epochs: int=50,
@@ -183,6 +184,7 @@ class Astir:
             "n_init_epochs": n_init_epochs,
         }
 
+    # @profile
     def fit_state(
         self,
         max_epochs: int=50,
