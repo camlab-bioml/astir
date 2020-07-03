@@ -210,13 +210,14 @@ class CellTypeModel(AstirModel):
 
         _, exprs_X, _ = self._dset[:]  # calls dset.get_item
 
-        iterator = trange(
-            max_epochs,
-            desc="training restart" + msg,
-            unit="epochs",
-            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
-        )
-        for ep in iterator:
+        # iterator = trange(
+        #     max_epochs,
+        #     desc="training restart" + msg,
+        #     unit="epochs",
+        #     bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
+        # )
+        # for ep in iterator:
+        for ep in range(max_epochs):
             L = None
             loss = torch.tensor(0.0, dtype=self._dtype)
             for batch in dataloader:
@@ -230,13 +231,13 @@ class CellTypeModel(AstirModel):
             if len(losses) > 0:
                 per = abs((loss - losses[-1]) / losses[-1])
             losses.append(loss)
-            iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
+            # iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
 
             yield round(float(loss))
 
             if per <= delta_loss:
                 self._is_converged = True
-                iterator.close()
+                # iterator.close()
                 break
 
         # Save output
