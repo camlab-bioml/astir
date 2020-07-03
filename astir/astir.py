@@ -197,7 +197,7 @@ class Astir:
         batch_size=128,
         delta_loss=1e-3,
         n_init=5,
-        n_init_epochs=5,
+        n_init_epochs=10,
         delta_loss_batch=10,
     ) -> None:
         """Run Variational Bayes to infer cell states
@@ -253,7 +253,6 @@ class Astir:
         )
 
         best_model_index = int(np.argmin(last_delta_losses_mean))
-        print("The best model is ", best_model_index + 1)
         self._state_ast = cellstate_models[best_model_index]
 
         self._state_ast.fit(
