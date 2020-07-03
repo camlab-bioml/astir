@@ -302,50 +302,6 @@ class CellTypeModel(AstirModel):
 
         return None
 
-    # def _most_likely_celltype(self, row: pd.DataFrame, threshold: float, cell_types: List[str]) -> str:
-    #     """Given a row of the assignment matrix, return the most likely cell type
-
-    #     :param row: the row of cell assignment matrix to be evaluated
-    #     :type row: pd.DataFrame
-    #     :param threshold: the higher bound of the maximun probability to classify a cell as `Unknown`
-    #     :type threshold: float
-    #     :param cell_types: the names of cell types, in the same order as the features of the row
-    #     :type cell_types: List[str]
-    #     :return: the most likely cell type of this cell
-    #     :rtype: str
-    #     """
-    #     row = row.values
-    #     max_prob = np.max(row)
-
-    #     if max_prob < threshold:
-    #         return "Unknown"
-
-    #     return cell_types[np.argmax(row)]
-
-    # def get_celltypes(self, threshold=0.7) -> pd.DataFrame:
-    #     """
-    #     Get the most likely cell types
-
-    #     A cell is assigned to a cell type if the probability is greater than threshold.
-    #     If no cell types have a probability higher than threshold, then "Unknown" is returned
-
-    #     :param threshold: the probability threshold above which a cell is assigned to a cell type
-    #     :return: a data frame with most likely cell types for each 
-    #     """
-    #     probs = self.get_assignment()
-    #     cell_types = list(probs.columns)
-
-    #     cell_type_assignments = probs.apply(
-    #         self._most_likely_celltype,
-    #         axis=1,
-    #         threshold=threshold,
-    #         cell_types=cell_types,
-    #     )
-    #     cell_type_assignments = pd.DataFrame(cell_type_assignments)
-    #     cell_type_assignments.columns = ["cell_type"]
-
-    #     return cell_type_assignments
-
     def diagnostics(self, cell_type_assignments: list, alpha: float) -> pd.DataFrame:
         """Run diagnostics on cell type assignments
 

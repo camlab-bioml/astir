@@ -427,11 +427,6 @@ class Astir:
             raise Exception("The type model has not been trained yet")
         return self._type_assignments
 
-    # def get_celltypes(self, threshold=0.7) -> pd.DataFrame:
-    #     if self._type_ast is None:
-    #         raise Exception("The type model has not been trained yet")
-    #     return self._type_ast.get_celltypes()
-
     def get_cellstates(self) -> pd.DataFrame:
         """ Get cell state activations. It returns the rescaled activations,
         values between 0 and 1
