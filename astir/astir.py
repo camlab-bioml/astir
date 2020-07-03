@@ -14,6 +14,7 @@ import pandas as pd
 import numpy as np
 import h5py
 import seaborn as sns
+from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
 from .models.celltype import CellTypeModel
@@ -524,6 +525,10 @@ class Astir:
         :type threshold: float, optional
         """
         expr_df = self._type_dset.get_exprs_df()
+        scaler = StandardScaler()
+        for feature in expr_df.columns:
+            expr_df[feature] = scaler.fit_transform(expr_df[feature].values.reshape((expr_df[feature].shape[0], 1)))
+
         expr_df["cell_type"] = self.get_celltypes(threshold=threshold)
         expr_df = expr_df.sort_values(by=["cell_type"])
         types = expr_df.pop("cell_type")
