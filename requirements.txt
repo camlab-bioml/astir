@@ -6,7 +6,7 @@ pyyaml>=5.3.1
 sklearn
 argparse>=1.4.0
 matplotlib>=3.2.2
-loompy>=2.0.17
+loompy>=3.0.6
 tqdm>=4.46.1
 anndata>=0.7.3
 rootpath>=0.1.1
