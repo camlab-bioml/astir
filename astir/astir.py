@@ -25,7 +25,7 @@ from .data.scdataset import SCDataset
 class Astir:
     """Create an Astir object
 
-    :param input_expr: the single cell protein expression dataset 
+    :param input_expr: the single cell protein expression dataset
     :type input_expr: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]], Tuple[SCDataset, SCDataset]]
     :param marker_dict: the marker dictionary which maps cell type/state to protein features, defaults to None
     :type marker_dict: Dict[str, Dict[str, str]], optional
@@ -40,7 +40,7 @@ class Astir:
 
     def __init__(
         self,
-        input_expr: Union[pd.DataFrame, 
+        input_expr: Union[pd.DataFrame,
             Tuple[np.array, List[str], List[str]], Tuple[SCDataset, SCDataset]],
         marker_dict: Dict[str, Dict[str, List[str]]]=None,
         design: Union[pd.DataFrame, np.array]=None,
@@ -95,7 +95,7 @@ class Astir:
         :raises NotClassifiableError: raized when the marker dictionary doesn't
              have required format
 
-        :return: dictionaries, the first is the cell type dict, the second is the cell state 
+        :return: dictionaries, the first is the cell type dict, the second is the cell state
             dict and the third is the hierarchy dict.
         :rtype: Tuple[dict, dict, dict]
         """
@@ -115,7 +115,7 @@ class Astir:
 
             for key, dic in marker_dict.items():
                 interpret(key, dic)
-            
+
         return dics
 
     # @profile
@@ -194,6 +194,9 @@ class Astir:
         n_init: int=5,
         n_init_epochs: int=5,
         delta_loss_batch: int=10,
+        const: int = 2,
+        dropout_rate: float = 0,
+        batch_norm: bool = False,
     ) -> None:
         """Run Variational Bayes to infer cell states
 
@@ -225,6 +228,9 @@ class Astir:
         for i in range(n_init):
             # Initializing a model
             model = CellStateModel(
+                const=const,
+                dropout_rate=dropout_rate,
+                batch_norm=batch_norm,
                 dset=self._state_dset,
                 random_seed=(self.random_seed + i),
                 dtype=self._dtype,
@@ -249,7 +255,6 @@ class Astir:
         )
 
         best_model_index = int(np.argmin(last_delta_losses_mean))
-
         self._state_ast = cellstate_models[best_model_index]
 
         self._state_ast.fit(
@@ -396,7 +401,7 @@ class Astir:
         return self._state_ast
 
     def get_type_run_info(self):
-        """Get the run information (i.e. `max_epochs`, `learning_rate`, 
+        """Get the run information (i.e. `max_epochs`, `learning_rate`,
             `batch_size`, `delta_loss`, `n_init`, `n_init_epochs`) of the cell type training.
 
         :raises Exception: raised when this function is celled before the model is trained.
@@ -475,7 +480,7 @@ class Astir:
         If no cell types have a probability higher than threshold, then "Unknown" is returned
 
         :param threshold: the probability threshold above which a cell is assigned to a cell type
-        :return: a data frame with most likely cell types for each 
+        :return: a data frame with most likely cell types for each
         """
         type_probability = self.get_celltype_probabilities()
         cell_types = list(type_probability.columns)
@@ -492,7 +497,7 @@ class Astir:
         return cell_type_assignments
 
     def predict_celltypes(self, dset: pd.DataFrame=None) -> pd.DataFrame:
-        """Predict the probabilities of different cell type assignments. 
+        """Predict the probabilities of different cell type assignments.
 
         :param dset: the single cell protein expression dataset to predict, defaults to None
         :type dset: pd.DataFrame, optional
@@ -540,14 +545,14 @@ class Astir:
         return assign_rescale
 
     def assign_celltype_hierarchy(self) -> pd.DataFrame:
-        """Get cell type assignment at a higher hierarchy according to the hierarchy provided 
+        """Get cell type assignment at a higher hierarchy according to the hierarchy provided
             in the dictionary.
 
         :raises Exception: raised when the dictionary for hierarchical structure is not provided
             or the model hasn't been trained.
         :return: probability assignment of cell type at a superstructure
         :rtype: pd.DataFrame
-        """ 
+        """
         if self._hierarchy_dict is None:
             raise Exception("The dictionary for hierarchical structure is not provided")
         if self._type_assignments is None:
@@ -578,13 +583,13 @@ class Astir:
         lut = dict(zip(types_uni, sns.color_palette("BrBG", len(types_uni))))
         col_colors = pd.DataFrame(types.map(lut))
         cm = sns.clustermap(expr_df.T, xticklabels=False, cmap = "vlag", col_cluster=False, col_colors=col_colors, figsize=(7, 5))
-    
+
         for t in types_uni:
             cm.ax_col_dendrogram.bar(0, 0, color=lut[t], label=t, linewidth=0)
-        cm.ax_col_dendrogram.legend(title='Cell Types', loc="center", ncol=3, 
+        cm.ax_col_dendrogram.legend(title='Cell Types', loc="center", ncol=3,
             bbox_to_anchor=(0.8, 0.8))
         cm.savefig(plot_name, dpi=150)
-        
+
     def get_hierarchy_dict(self) -> Dict[str, List[str]]:
         """Get the dictionary for cell type hierarchical structure.
 
@@ -606,7 +611,7 @@ class Astir:
     def get_state_losses(self) -> np.array:
         """Getter for losses
 
-        :return: a numpy array of losses for each training iteration the\ 
+        :return: a numpy array of losses for each training iteration the\
             model runs
         :rtype: np.array
         """
@@ -633,9 +638,6 @@ class Astir:
         """
         self.get_cellstates().to_csv(output_csv)
 
-        read_output_csv = pd.read_csv(output_csv, index_col=0)
-        # print(read_output_csv)
-
     def __str__(self) -> str:
         return (
             "Astir object with "
@@ -658,7 +660,7 @@ class Astir:
         1. Iterates through every cell type and every marker for that cell type
         2. Given a cell type *c* and marker *g*, find the set of cell
             types *D* that don't have *g* as a marker
-        3. For each cell type *d* in *D*, perform a t-test between the 
+        3. For each cell type *d* in *D*, perform a t-test between the
             expression of marker *g* in *c* vs *d*
         4. If *g* is not expressed significantly higher (at significance
             *alpha*), output a diagnostic explaining this for further investigation.

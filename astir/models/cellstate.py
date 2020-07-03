@@ -32,6 +32,9 @@ class CellStateModel(AstirModel):
     def __init__(
         self,
         dset: SCDataset,
+        const: int = 2,
+        dropout_rate: float = 0,
+        batch_norm: bool = False,
         random_seed: int = 42,
         dtype: torch.dtype = torch.float64,
     ) -> None:
@@ -53,12 +56,14 @@ class CellStateModel(AstirModel):
 
         self._optimizer = None
         self._losses = torch.empty(0, dtype=self._dtype)
-        self._param_init()
+        self._param_init(const, dropout_rate, batch_norm)
 
         # Convergence flag
         self._is_converged = False
 
-    def _param_init(self) -> None:
+    def _param_init(self,
+                    const, dropout_rate, batch_norm
+                    ) -> None:
         """ Initializes sets of parameters
         """
         N = len(self._dset)
@@ -85,9 +90,12 @@ class CellStateModel(AstirModel):
             "rho": self._dset.get_marker_mat().T.to(self._device),
         }
 
-        self._recog = StateRecognitionNet(C, G).to(
-            device=self._device, dtype=self._dtype
-        )
+        self._recog = StateRecognitionNet(C, G,
+                                           const=const,
+                                           dropout_rate=dropout_rate,
+                                           batch_norm=batch_norm
+                                           )\
+            .to(device=self._device, dtype=self._dtype)
 
     def _loss_fn(
         self,
@@ -155,15 +163,15 @@ class CellStateModel(AstirModel):
         delta_loss_batch: int = 10,
         msg: str = "",
     ) -> List[float]:
-        """ Runs train loops until the convergence reaches delta_loss for\ 
+        """ Runs train loops until the convergence reaches delta_loss for\
             delta_loss_batch sizes or for max_epochs number of times
 
         :param max_epochs: number of train loop iterations, defaults to 50
         :param learning_rate: the learning rate, defaults to 0.01
         :param batch_size: the batch size, defaults to 128
-        :param delta_loss: stops iteration once the loss rate reaches\ 
+        :param delta_loss: stops iteration once the loss rate reaches\
             delta_loss, defaults to 0.001
-        :param delta_loss_batch: the batch size to consider delta loss,\ 
+        :param delta_loss_batch: the batch size to consider delta loss,\
             defaults to 10
         :param msg: iterator bar message, defaults to empty string
         """
@@ -184,7 +192,7 @@ class CellStateModel(AstirModel):
             self._optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
         if self._losses.shape[0] >= delta_loss_batch:
-            prev_mean = np.mean(self._losses[-delta_loss_batch:])
+            prev_mean = torch.mean(self._losses[-delta_loss_batch:])
         else:
             prev_mean = None
 
@@ -216,13 +224,12 @@ class CellStateModel(AstirModel):
             start_index = ep - delta_loss_batch + 1
             end_index = start_index + delta_loss_batch
             if start_index >= 0:
-                curr_mean = np.mean(losses[start_index:end_index])
+                curr_mean = sum(losses[start_index:end_index]) / len(losses[
+                                                                   start_index:end_index])
             elif self._losses.shape[0] >= -start_index:
                 last_ten_losses = torch.cat(
-                    (
-                        self._losses[start_index:],
-                        torch.tensor(losses[:end_index], dtype=self._dtype),
-                    )
+                    (self._losses[start_index:],
+                     torch.tensor(losses[:end_index], dtype=torch.float64))
                 )
                 curr_mean = torch.mean(last_ten_losses).item()
             else:
@@ -231,7 +238,6 @@ class CellStateModel(AstirModel):
             if prev_mean is not None:
                 curr_delta_loss = (prev_mean - curr_mean) / prev_mean
                 delta_cond_met = 0 <= curr_delta_loss < delta_loss
-
             iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
 
             prev_mean = curr_mean
@@ -244,9 +250,10 @@ class CellStateModel(AstirModel):
         if self._losses is None:
             self._losses = torch.tensor(losses, dtype=self._dtype)
         else:
-            self._losses = torch.cat(
-                (self._losses, torch.tensor(losses, dtype=self._dtype))
-            )
+            self._losses = \
+                torch.cat((self._losses,
+                           torch.tensor(losses, dtype=self._dtype)))
+
         return losses
 
     def get_recognet(self) -> StateRecognitionNet:
@@ -259,8 +266,8 @@ class CellStateModel(AstirModel):
     def get_final_mu_z(self, new_dset: SCDataset = None) -> torch.Tensor:
         """ Returns the mean of the predicted z values for each core
 
-        :param new_dset: returns the predicted z values of this dataset on\ 
-            the existing model. If None, it predicts using the existing dataset
+        :param new_dset: returns the predicted z values of this dataset on
+        the existing model. If None, it predicts using the existing dataset
 
         :return: the mean of the predicted z values for each core
         """
@@ -272,11 +279,7 @@ class CellStateModel(AstirModel):
 
         return final_mu_z
 
-    def diagnostics(self) -> pd.DataFrame:
-        """ Run diagnostics on cell state assignments
-
-        :return: diagnostics
-        """
+    def get_correlations(self) -> np.array:
         state_assignment = self.get_final_mu_z().detach().cpu().numpy()
         y_in = self._dset.get_exprs()
 
@@ -291,6 +294,18 @@ class CellStateModel(AstirModel):
                 states = state_assignment[:, c]
                 protein = y_in[:, g].cpu()
                 corr_mat[c, g] = np.corrcoef(protein, states)[0, 1]
+
+        return corr_mat
+
+    def diagnostics(self) -> pd.DataFrame:
+        """ Run diagnostics on cell state assignments
+
+        :return: diagnostics
+        """
+        feature_names = self._dset.get_features()
+        state_names = self._dset.get_classes()
+
+        corr_mat = self.get_correlations()
 
         # Correlation values of all marker proteins
         marker_mat = self._dset.get_marker_mat().T.cpu().numpy()
