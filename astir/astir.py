@@ -191,7 +191,9 @@ class Astir:
 
     def fit_state(
         self,
-        const, dropout_rate, batch_norm,
+        const: int = 2,
+        dropout_rate: float = 0,
+        batch_norm: bool = False,
         max_epochs=50,
         learning_rate=1e-3,
         batch_size=128,
@@ -228,7 +230,9 @@ class Astir:
         for i in range(n_init):
             # Initializing a model
             model = CellStateModel(
-                const, dropout_rate, batch_norm,
+                const=const,
+                dropout_rate=dropout_rate,
+                batch_norm=batch_norm,
                 dset=self._state_dset,
                 random_seed=(self.random_seed + i),
                 dtype=self._dtype,

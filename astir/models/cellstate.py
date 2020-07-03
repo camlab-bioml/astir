@@ -31,8 +31,10 @@ class CellStateModel(AbstractModel):
 
     def __init__(
         self,
-        const, dropout_rate, batch_norm,
         dset: SCDataset,
+        const: int = 2,
+        dropout_rate: float = 0,
+        batch_norm: bool = False,
         random_seed: int = 42,
         dtype: torch.dtype = torch.float32,
     ) -> None:
@@ -196,16 +198,16 @@ class CellStateModel(AbstractModel):
 
         delta_cond_met = False
 
-        # iterator = trange(
-        #     max_epochs,
-        #     desc="training restart" + msg,
-        #     unit="epochs",
-        #     bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
-        # )
+        iterator = trange(
+            max_epochs,
+            desc="training restart" + msg,
+            unit="epochs",
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
+        )
         train_iterator = DataLoader(
             self._dset, batch_size=min(batch_size, len(self._dset))
         )
-        for ep in range(max_epochs):
+        for ep in iterator:
             for i, (y_in, x_in, _) in enumerate(train_iterator):
                 self._optimizer.zero_grad()
 
@@ -218,7 +220,6 @@ class CellStateModel(AbstractModel):
                 self._optimizer.step()
 
             losses.append(loss.cpu().detach().item())
-            print("Epoch: {} Train Loss: {}".format(ep + 1, loss))
 
             start_index = ep - delta_loss_batch + 1
             end_index = start_index + delta_loss_batch
@@ -237,14 +238,13 @@ class CellStateModel(AbstractModel):
             if prev_mean is not None:
                 curr_delta_loss = (prev_mean - curr_mean) / prev_mean
                 delta_cond_met = 0 <= curr_delta_loss < delta_loss
-            print("Epoch: {} Current Mean: {}".format(ep + 1, curr_mean))
-            # iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
+            iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
 
             prev_mean = curr_mean
             if delta_cond_met:
                 losses = losses[0 : ep + 1]
                 self._is_converged = True
-                # iterator.close()
+                iterator.close()
                 break
 
         if self._losses is None:

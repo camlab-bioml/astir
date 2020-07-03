@@ -29,12 +29,6 @@ class StateRecognitionNet(nn.Module):
         super(StateRecognitionNet, self).__init__()
         self.batch_norm = batch_norm
 
-        print("C: ", C)
-        print("G: ", G)
-        print("const: ", const)
-        print("dropout_rate: ", dropout_rate)
-        print("batch_norm: ", batch_norm)
-
         hidden_layer_size = math.ceil(const * C)
         # First hidden layer
         self.linear1 = nn.Linear(G, hidden_layer_size).float()
