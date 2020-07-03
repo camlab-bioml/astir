@@ -90,7 +90,7 @@ class CellStateModel(AstirModel):
             "rho": self._dset.get_marker_mat().T.to(self._device),
         }
 
-        self._recogs = StateRecognitionNet(C, G,
+        self._recog = StateRecognitionNet(C, G,
                                            const=const,
                                            dropout_rate=dropout_rate,
                                            batch_norm=batch_norm
