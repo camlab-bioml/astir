@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import yaml
 
-from .abstract import AbstractModel
+from .abstract import AstirModel
 from astir.data import SCDataset
 from .cellstate_recognet import StateRecognitionNet
 
@@ -19,7 +19,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
 
-class CellStateModel(AbstractModel):
+class CellStateModel(AstirModel):
     """Class to perform statistical inference to on the activation
         of states (pathways) across cells
 
@@ -36,7 +36,7 @@ class CellStateModel(AbstractModel):
         dropout_rate: float = 0,
         batch_norm: bool = False,
         random_seed: int = 42,
-        dtype: torch.dtype = torch.float32,
+        dtype: torch.dtype = torch.float64,
     ) -> None:
         super().__init__(dset, random_seed, dtype)
 
@@ -56,7 +56,6 @@ class CellStateModel(AbstractModel):
 
         self._optimizer = None
         self._losses = torch.empty(0, dtype=self._dtype)
-        # self._param_init()
         self._param_init(const, dropout_rate, batch_norm)
 
         # Convergence flag
@@ -91,7 +90,7 @@ class CellStateModel(AbstractModel):
             "rho": self._dset.get_marker_mat().T.to(self._device),
         }
 
-        self._models = StateRecognitionNet(C, G,
+        self._recogs = StateRecognitionNet(C, G,
                                            const=const,
                                            dropout_rate=dropout_rate,
                                            batch_norm=batch_norm
@@ -146,7 +145,7 @@ class CellStateModel(AbstractModel):
 
         :return: mu_z, std_z, z_sample
         """
-        mu_z, std_z = self._models(Y)
+        mu_z, std_z = self._recog(Y)
 
         std = torch.exp(std_z)
         eps = torch.randn_like(std)
@@ -163,16 +162,16 @@ class CellStateModel(AbstractModel):
         delta_loss_batch: int = 10,
         msg: str = "",
     ) -> List[float]:
-        """ Runs train loops until the convergence reaches delta_loss for
-        delta_loss_batch sizes or for max_epochs number of times
+        """ Runs train loops until the convergence reaches delta_loss for\
+            delta_loss_batch sizes or for max_epochs number of times
 
         :param max_epochs: number of train loop iterations, defaults to 50
         :param learning_rate: the learning rate, defaults to 0.01
         :param batch_size: the batch size, defaults to 128
-        :param delta_loss: stops iteration once the loss rate reaches
-        delta_loss, defaults to 0.001
-        :param delta_loss_batch: the batch size to consider delta loss,
-        defaults to 10
+        :param delta_loss: stops iteration once the loss rate reaches\
+            delta_loss, defaults to 0.001
+        :param delta_loss_batch: the batch size to consider delta loss,\
+            defaults to 10
         :param msg: iterator bar message, defaults to empty string
         """
         losses = []
@@ -186,7 +185,7 @@ class CellStateModel(AbstractModel):
 
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
-            opt_params = list(self._models.parameters()) + list(
+            opt_params = list(self._recog.parameters()) + list(
                 self._variables.values()
             )
             self._optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
@@ -261,7 +260,7 @@ class CellStateModel(AbstractModel):
 
         :return: the trained recognition net
         """
-        return self._models
+        return self._recog
 
     def get_final_mu_z(self, new_dset: SCDataset = None) -> torch.Tensor:
         """ Returns the mean of the predicted z values for each core

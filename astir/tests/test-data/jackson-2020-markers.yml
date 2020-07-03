@@ -14,7 +14,7 @@ cell_states:
     - Cleaved Caspase3
 
 cell_types:
-  Stromal:
+  stromal:
     - Vimentin
     - Fibronectin
   B cells:
@@ -23,16 +23,16 @@ cell_types:
   T cells:
     - CD45
     - CD3
-  Macrophage:
+  macrophage:
     - CD45
     - CD68
-  Epithelial (basal):
+  epithelial(basal):
     - E-Cadherin
     - pan Cytokeratin
     - Cytokeratin 5
     - Cytokeratin 14
     - Her2
-  Epithelial (luminal):
+  epithelial(luminal):
     - E-Cadherin
     - pan Cytokeratin
     - Cytokeratin 7
@@ -41,6 +41,14 @@ cell_types:
     - Cytokeratin 5
     - Her2
 
+hierarchy:
+  immune:
+    - B cells
+    - T cells
+    - macrophage
+  epithelial:
+    - epithelial(basal)
+    - epithelial(luminal)
 
 
 

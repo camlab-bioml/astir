@@ -61,10 +61,10 @@ class TestAstir(TestCase):
         self.assertIsInstance(a, Astir)
 
         ## Make sure the design matrix has been constructed correctly
-        self.assertTrue(a._design.shape[0] == len(a._type_dset))
+        self.assertTrue(a._type_dset._design.shape[0] == len(a._type_dset))
         files = os.listdir(self.test_dir)
         files = [f for f in files if f.endswith(".csv")]
-        self.assertTrue(a._design.shape[1] == len(files))
+        self.assertTrue(a._type_dset._design.shape[1] == len(files))
 
     def test_csv_reading_with_design(self):
 
@@ -117,6 +117,7 @@ class TestAstir(TestCase):
         raised = False
         try:
             test = Astir(self.expr, bad_dict)
+            test.fit_type()
         except (RuntimeError):
             raised = True
         self.assertTrue(raised == True)
@@ -129,7 +130,7 @@ class TestAstir(TestCase):
         """ Testing the method _sanitize_dict
         """
         expected_state_dict = self.marker_dict["cell_states"]
-        (_, actual_state_dict) = self.a._sanitize_dict(self.marker_dict)
+        (_, actual_state_dict, _) = self.a._sanitize_dict(self.marker_dict)
 
         expected_state_dict = {
             i: sorted(j) if isinstance(j, list) else j
@@ -150,7 +151,7 @@ class TestAstir(TestCase):
         """ Test _state_names field
         """
         expected_state_names = sorted(self.marker_dict["cell_states"].keys())
-        (_, actual_state_dict) = self.a._sanitize_dict(self.marker_dict)
+        (_, actual_state_dict, _) = self.a._sanitize_dict(self.marker_dict)
         actual_state_names = sorted(actual_state_dict.keys())
 
         self.assertListEqual(
@@ -418,3 +419,13 @@ class TestAstir(TestCase):
             ).all():
                 same = False
         self.assertTrue(same)
+    
+    def test_hierarchy_assignment(self):
+        self.a.fit_type(max_epochs=5, n_init=1, n_init_epochs=1)
+        original_assignment = self.a.get_celltype_probabilities()
+        hier_dict = self.a.get_hierarchy_dict()
+        expected_assignment = pd.DataFrame()
+        for key, cells in hier_dict.items():
+            expected_assignment[key] = original_assignment[cells].sum(axis=1)
+        actual_assignment = self.a.assign_celltype_hierarchy()
+        self.assertTrue((expected_assignment == actual_assignment).all().all())

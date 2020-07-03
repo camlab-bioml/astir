@@ -58,9 +58,7 @@ class TestCellTypeModel(TestCase):
             design=None,
             dtype=torch.float32,
         )
-        m = CellTypeModel(
-            dset=ds, random_seed=42, dtype=torch.float32
-        )
+        m = CellTypeModel(dset=ds, random_seed=42, dtype=torch.float32)
         m.fit(max_epochs=1)
         data = m.get_data()
         variables = m.get_variables()
@@ -76,9 +74,7 @@ class TestCellTypeModel(TestCase):
             design=None,
             dtype=torch.float64,
         )
-        m = CellTypeModel(
-            dset=ds, random_seed=42, dtype=torch.float64
-        )
+        m = CellTypeModel(dset=ds, random_seed=42, dtype=torch.float64)
         m.fit(max_epochs=1)
         data = m.get_data()
         variables = m.get_variables()

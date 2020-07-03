@@ -39,7 +39,9 @@ setuptools.setup(
         "jupyter_client",
         "ipykernel",
         "ipython",
-        "h5py"
+        "h5py",
+        "FlowCytometryTools",
+        "fastcluster",
     ],
     include_package_data=True,
     zip_safe=False,

@@ -23,10 +23,10 @@ class SCDataset(Dataset):
 
     def __init__(
         self,
-        expr_input: Union[pd.DataFrame, tuple],
-        marker_dict: Dict[str, str],
-        design: np.array,
+        expr_input: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]]],
+        marker_dict: Dict[str, List[str]],
         include_other_column: bool,
+        design: Union[np.array, pd.DataFrame] = None,
         dtype: torch.dtype = torch.float64,
     ) -> None:
         self._dtype = dtype
@@ -74,14 +74,14 @@ class SCDataset(Dataset):
         :return: the processed input as a torch.Tensor
         """
         try:
-            Y_np = df_input[self._m_features].to_numpy()
+            Y_np = df_input[self._m_features].values
+            return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
         except (KeyError):
             raise NotClassifiableError(
                 "Classification failed. There's no "
                 + "overlap between marked features and expression features for "
                 + "the classification of cell type/state."
             )
-        return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
 
     def _process_np_input(
         self, np_input: Tuple[np.array, np.array, np.array]
@@ -108,11 +108,11 @@ class SCDataset(Dataset):
             )
         if len(ind) < len(self._m_features):
             warnings.warn("Classified features are less than marked features.")
-        Y_np = []
-        for cell in np_input[0]:
-            temp = [cell[i] for i in ind]
-            Y_np.append(np.array(temp))
-        Y_np = np.concatenate([Y_np], axis=0)
+        # Y_np = []
+        # for cell in np_input[0]:
+        #     temp = [cell[i] for i in ind]
+        #     Y_np.append(np.array(temp))
+        Y_np = np_input[:, ind]
         return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
 
     def _construct_marker_mat(self, include_other_column: bool) -> torch.Tensor:
@@ -141,16 +141,27 @@ class SCDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         y = self._exprs[idx, :]
         x = (y - self._exprs_mean) / self._exprs_std
-        return y, x, self._design[idx, :]
+        return y, x, self._design.to_dense()[idx, :]
 
-    def _fix_design(self, design: np.array) -> torch.tensor:
+    def _fix_design(self, design: Union[np.array, pd.DataFrame]) -> torch.tensor:
+        """Sanitize the design matrix.
+
+        :param design: the unsanitized design matrix
+        :type design: Union[np.array, pd.DataFrame]
+        :raises NotClassifiableError: raised when the design matrix has 
+            different number of rows from the expression data
+        :return: the sanitized design matrix
+        :rtype: torch.tensor
+        """
         d = None
         if design is None:
-            d = torch.ones((self._exprs.shape[0], 1), dtype=self._dtype).to(
-                self._device
+            d = torch.ones((self._exprs.shape[0], 1)).to_sparse().to(
+                device=self._device, dtype=self._dtype
             )
         else:
-            d = torch.from_numpy(design).to(device=self._device, dtype=self._dtype)
+            if isinstance(design, pd.DataFrame):
+                design = design.values
+            d = torch.from_numpy(design).to_sparse().to(device=self._device, dtype=self._dtype)
 
         if d.shape[0] != self._exprs.shape[0]:
             raise NotClassifiableError(
@@ -160,29 +171,38 @@ class SCDataset(Dataset):
         return d
 
     def rescale(self):
+        """Normalize the expression data.
+        """
         self._exprs = self._exprs / (self.get_sigma())
 
+    def get_dtype(self) -> str:
+        """Get the dtype of the `SCDataset`.
+
+        :return: `self._dtype`
+        :rtype: str
+        """
+        return self._dtype
+
     def get_exprs(self) -> torch.Tensor:
-        """ Return the expression data as a :class:`torch.Tensor`
+        """ Return the expression data as a :class:`torch.Tensor`.
         """
         return self._exprs
 
     def get_exprs_df(self) -> pd.DataFrame:
-        """ Return the expression data as a :class:`pandas.DataFrame`
+        """ Return the expression data as a :class:`pandas.DataFrame`.
         """
-        df = pd.DataFrame(self.get_exprs().detach().numpy())
+        df = pd.DataFrame(self._exprs.detach().numpy())
         df.index = self.get_cell_names()
         df.columns = self.get_features()
         return df
 
     def get_marker_mat(self) -> torch.Tensor:
-        """Return the marker matrix as a :class:`torch.Tensor`
-
+        """Return the marker matrix as a :class:`torch.Tensor`.
         """
         return self._marker_mat
 
     def get_mu(self) -> torch.Tensor:
-        """Get the mean expression of each protein as a :class:`torch.Tensor`
+        """Get the mean expression of each protein as a :class:`torch.Tensor`.
         """
         return self._exprs_mean
 
@@ -190,43 +210,64 @@ class SCDataset(Dataset):
         return self._exprs_std
 
     def get_n_classes(self) -> int:
-        """Get the number of 'classes': either the number of cell types or cell states 
+        """Get the number of 'classes': either the number of cell types or cell states.
 
         """
         return len(self._classes)
 
     def get_n_cells(self) -> int:
-        """Get the number of cells: either the number of cell types or cell states 
+        """Get the number of cells: either the number of cell types or cell states.
 
         """
         return len(self.get_cell_names())
 
     def get_n_features(self) -> int:
-        """Get the number of features (proteins)
-
+        """Get the number of features (proteins).
         """
         return len(self._m_features)
 
     def get_features(self) -> List[str]:
+        """Get the features (proteins).
+
+        :return: return self._m_features
+        :rtype: List[str]
+        """
         return self._m_features
 
     def get_cell_names(self) -> List[str]:
+        """Get the cell names.
+
+        :return: return self._cell_names
+        :rtype: List[str]
+        """
         return self._cell_names
 
     def get_classes(self) -> List[str]:
+        """Get the cell types/states.
+
+        :return: return self._classes
+        :rtype: List[str]
+        """
         return self._classes
 
     def get_design(self) -> torch.Tensor:
+        """Get the design matrix.
+
+        :return: return self._design
+        :rtype: torch.Tensor
+        """
         return self._design
 
-    def normalize(self, percentile_lower: float = 0, percentile_upper: float = 99.9,
-     cofactor=5.) -> None:
+    def normalize(
+        self, percentile_lower: float = 0, percentile_upper: float = 99.9, cofactor=5.0
+    ) -> None:
         """Normalize the expression data
 
         This performs a two-step normalization:
         1. A `log(1+x)` transformation to the data
-        2. Winsorizes to (:param:`percentile_lower`, :param:`percentile_upper`)
+        2. Winsorizes to (`percentile_lower`, `percentile_upper`)
         """
+
         with torch.no_grad():
             exprs = self.get_exprs().numpy()
             exprs = np.arcsinh(exprs / cofactor)

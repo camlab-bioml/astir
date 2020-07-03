@@ -1,6 +1,8 @@
 import warnings
+import matplotlib.cbook
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
+warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
 
 import yaml
 import os
@@ -10,6 +12,8 @@ import anndata
 import numpy as np
 import pandas as pd
 
+import FlowCytometryTools
+from FlowCytometryTools import FCMeasurement
 from sklearn.preprocessing import OneHotEncoder
 import torch
 
@@ -38,18 +42,14 @@ def from_csv_yaml(
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
     from astir.astir import Astir
+
     return Astir(df_gex, marker_dict, design, random_seed, dtype=dtype)
 
 
 def from_csv_dir_yaml(
-    input_dir: str,
-    marker_yaml: str,
-    random_seed=1234,
-    dtype=torch.float64,
+    input_dir: str, marker_yaml: str, random_seed=1234, dtype=torch.float64,
 ):
     """Create an Astir object a directory containing multiple csv files
-
-    TODO add text explaining concatenation
 
     :param input_dir: Path to a directory containing multiple CSV files, each in the format expected by
         `from_csv_yaml`
@@ -58,6 +58,7 @@ def from_csv_dir_yaml(
     :param design_csv: Path to design matrix as a CSV. Rows should be cells, and columns covariates. First column is cell 
         identifier, and additional column names are covariate identifiers.
     """
+    # TODO: add text explaining concatenation
     # Parse the input directory
     csv_files = [
         os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith("csv")
@@ -82,6 +83,7 @@ def from_csv_dir_yaml(
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
     from astir.astir import Astir
+
     return Astir(df_gex, marker_dict, design, random_seed, dtype)
 
 
@@ -107,9 +109,8 @@ def from_loompy_yaml(
     :param random_seed: The random seed to be used to initialize variables
 
     :returns: An object of class `astir_bash.py.Astir` using data imported from the loom files
-
-    .. todo:: This function is memory inefficient and goes against the philosophy of loom files. Should be improved
     """
+    # TODO: This function is memory inefficient and goes against the philosophy of loom files. Should be improved
     batch_list = None
     with loompy.connect(loom_file) as ds:
         df_gex = pd.DataFrame(ds[:, :].T)
@@ -131,6 +132,7 @@ def from_loompy_yaml(
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
     from astir.astir import Astir
+
     return Astir(df_gex, marker_dict, design, random_seed, dtype)
 
 
@@ -155,9 +157,8 @@ def from_anndata_yaml(
     :param random_seed: The random seed to be used to initialize variables
 
     :returns: An object of class `astir_bash.py.Astir` using data imported from the loom files
-
-    .. todo:: This function is memory inefficient and goes against the philosophy of loom files. Should be improved
     """
+    # TODO: This function is memory inefficient and goes against the philosophy of loom files. Should be improved
     batch_list = None
 
     ad = anndata.read_h5ad(anndata_file)
@@ -167,7 +168,7 @@ def from_anndata_yaml(
     if protein_name is not None:
         df_gex.columns = ad.var[protein_name]
     else:
-        df_gex.columsn = ad.var_names
+        df_gex.columns = ad.var_names
 
     if cell_name is not None:
         df_gex.index = ad.obs[cell_name]
@@ -191,4 +192,22 @@ def from_anndata_yaml(
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
     from astir.astir import Astir
+
     return Astir(df_gex, marker_dict, design, random_seed, dtype)
+
+
+def from_fcs_yaml(
+    fcs_file: str,
+    marker_yaml: str,
+    random_seed: int = 1234,
+    dtype=torch.float64,
+):
+    expr_fcs = FCMeasurement(ID='astir_data', datafile=fcs_file)
+    expr_df = expr_fcs.data
+
+    with open(marker_yaml, "r") as stream:
+        marker_dict = yaml.safe_load(stream)
+
+    from astir.astir import Astir
+    return Astir(expr_df, marker_dict, design, random_seed, dtype)
+    

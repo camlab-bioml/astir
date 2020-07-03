@@ -15,7 +15,7 @@
    :hidden:
 
    astir
-   astir.data_readers
+   astir.data
    astir.models
 
 

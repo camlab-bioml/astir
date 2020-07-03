@@ -23,25 +23,26 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from scipy import stats
 
-from .abstract import AbstractModel
+from .abstract import AstirModel
 from astir.data import SCDataset
-from .recognet import RecognitionNet
+from .celltype_recognet import TypeRecognitionNet
 
 
-class CellTypeModel(AbstractModel):
-    """Class to perform statistical inference to assign
-        cells to cell types
+class CellTypeModel(AstirModel):
+    """Class to perform statistical inference to assign cells to cell types.
 
     :param dset: the input gene expression dataframe
-    :param random_seed: [description], defaults to 42
-
-    :raises NotClassifiableError: raised when the input gene expression
-        data or the marker is not classifiable
+    :type dset: SCDataset
+    :param random_seed: the random seed for parameter initialization, defaults to 1234
+    :type random_seed: int, optional
+    :param dtype: the data type of parameters, should be the same as `dset`, defaults to torch.float64
+    :type dtype: torch.dtype, optional
     """
+
     def __init__(
         self,
         dset: SCDataset,
-        random_seed: int = 42,
+        random_seed: int = 1234,
         dtype: torch.dtype = torch.float64,
     ) -> None:
         super().__init__(dset, random_seed, dtype)
@@ -50,7 +51,7 @@ class CellTypeModel(AbstractModel):
         self.cov_mat = None  # temporary -- remove
         self._assignment = None
 
-        self._recog = RecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(
+        self._recog = TypeRecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(
             self._device, dtype=dtype
         )
         self._param_init()
@@ -114,13 +115,16 @@ class CellTypeModel(AbstractModel):
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
     ) -> torch.Tensor:
-        """ One forward pass
+        """One forward pass.
 
-        :param Y: [description]
-        :param X: [description]
-        :param design: [description]
-
-        :return: [description]
+        :param Y: a sample from the dataset
+        :type Y: torch.Tensor
+        :param X: normalized sample data
+        :type X: torch.Tensor
+        :param design: the corresponding row of design matrix
+        :type design: torch.Tensor
+        :return: the cost (elbo) of the current pass
+        :rtype: torch.Tensor
         """
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
@@ -130,10 +134,9 @@ class CellTypeModel(AbstractModel):
 
         delta_tilde = torch.exp(self._variables["log_delta"])  # + np.log(0.5)
         mean = delta_tilde * self._data["rho"]
-        mean2 = torch.matmul(design, self._variables["mu"].T)  ## N x P * P x G
+        mean2 = torch.sparse.mm(design, self._variables["mu"].T)  ## N x P * P x G
         mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, C + 1)
         mean = mean + mean2
-
 
         # now do the variance modelling
         p = torch.sigmoid(self._variables["p"])
@@ -166,14 +169,14 @@ class CellTypeModel(AbstractModel):
         delta_loss: float = 1e-3,
         msg: str = "",
     ) -> None:
-        """ Runs train loops until the convergence reaches delta_loss for
-        delta_loss_batch sizes or for max_epochs number of times
+        """ Runs train loops until the convergence reaches delta_loss for\ 
+            delta_loss_batch sizes or for max_epochs number of times
 
         :param max_epochs: number of train loop iterations, defaults to 50
         :param learning_rate: the learning rate, defaults to 0.01
         :param batch_size: the batch size, defaults to 128
-        :param delta_loss: stops iteration once the loss rate reaches
-        delta_loss, defaults to 0.001
+        :param delta_loss: stops iteration once the loss rate reaches\ 
+            delta_loss, defaults to 0.001
         :param msg: iterator bar message, defaults to empty string
         """
         # Make dataloader
@@ -219,8 +222,9 @@ class CellTypeModel(AbstractModel):
                 break
 
         # Save output
-        g = self._recog.forward(exprs_X).detach().cpu().numpy()
-        self._assignment = g
+        self._assignment = pd.DataFrame(self._recog.forward(exprs_X).detach().cpu().numpy())
+        self._assignment.columns = self._dset.get_classes() + ["Other"]
+        self._assignment.index = self._dset.get_cell_names()
 
         if self._losses is None:
             self._losses = torch.tensor(losses)
@@ -228,45 +232,38 @@ class CellTypeModel(AbstractModel):
             self._losses = torch.cat(
                 (self._losses.view(self._losses.shape[0]), torch.tensor(losses)), dim=0
             )
-        return g
 
     def predict(self, new_dset: pd.DataFrame) -> np.array:
+        """Feed `new_dset` to the recognition net to get a prediction.
+
+        :param new_dset: the dataset to be predicted
+        :type new_dset: pd.DataFrame
+        :return: the resulting cell type assignment
+        :rtype: np.array
+        """
         _, exprs_X, _ = new_dset[:]
-        g = self._recog.forward(exprs_X).detach().cpu().numpy()
+        g = pd.DataFrame(self._recog.forward(exprs_X).detach().cpu().numpy())
         return g
 
-    def get_losses(self) -> torch.Tensor:
-        """ Getter for losses
+    def get_assignment(self) -> np.array:
+        """Get the final assignment of the dataset.
 
-        :return: self.losses
-        :rtype: float
+        :return: the final assignment of the dataset
+        :rtype: np.array
         """
-        if self._losses is None:
+        if self._assignment is None:
             raise Exception("The type model has not been trained yet")
-        return self._losses
+        return self._assignment
 
-    def get_recognet(self) -> RecognitionNet:
+    def get_recognet(self) -> TypeRecognitionNet:
+        """ Getter for the recognition net.
+
+        :return: the trained recognition net
+        """
         return self._recog
 
-    def get_scdataset(self) -> pd.DataFrame:
-        return self._dset
-
-    def get_data(self) -> Dict[str, torch.Tensor]:
-        return self._data
-
-    def get_variables(self) -> Dict[str, torch.Tensor]:
-        return self._variables
-
-    def is_converged(self) -> bool:
-        return self._is_converged
-
     def _compare_marker_between_types(
-        self,
-        curr_type,
-        celltype_to_compare,
-        marker,
-        cell_types,
-        alpha: float = 0.05
+        self, curr_type, celltype_to_compare, marker, cell_types, alpha: float = 0.05
     ):
         """For a given cell type and two proteins, ensure marker
         is expressed at higher level using t-test
@@ -305,11 +302,7 @@ class CellTypeModel(AbstractModel):
 
         return None
 
-    def diagnostics(
-            self,
-            cell_type_assignments: list,
-            alpha: float
-    ) -> pd.DataFrame:
+    def diagnostics(self, cell_type_assignments: list, alpha: float) -> pd.DataFrame:
         """Run diagnostics on cell type assignments
 
         See :meth:`astir.Astir.diagnostics_celltype` for full documentation
@@ -364,12 +357,3 @@ class CellTypeModel(AbstractModel):
             df_issues = pd.DataFrame(columns=col_names)
 
         return df_issues
-
-
-## NotClassifiableError: an error to be raised when the dataset fails
-# to be analysed.
-class NotClassifiableError(RuntimeError):
-    """ Raised when the input data is not classifiable.
-    """
-
-    pass
