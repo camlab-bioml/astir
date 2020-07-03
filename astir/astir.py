@@ -427,10 +427,10 @@ class Astir:
             raise Exception("The type model has not been trained yet")
         return self._type_assignments
 
-    def get_celltypes(self, threshold=0.7) -> pd.DataFrame:
-        if self._type_ast is None:
-            raise Exception("The type model has not been trained yet")
-        return self._type_ast.get_celltypes()
+    # def get_celltypes(self, threshold=0.7) -> pd.DataFrame:
+    #     if self._type_ast is None:
+    #         raise Exception("The type model has not been trained yet")
+    #     return self._type_ast.get_celltypes()
 
     def get_cellstates(self) -> pd.DataFrame:
         """ Get cell state activations. It returns the rescaled activations,
@@ -449,6 +449,50 @@ class Astir:
         assign_rescale = (assign - assign_min) / (assign_max - assign_min)
 
         return assign_rescale
+
+    def _most_likely_celltype(self, row: pd.DataFrame, threshold: float, cell_types: List[str]) -> str:
+        """Given a row of the assignment matrix, return the most likely cell type
+
+        :param row: the row of cell assignment matrix to be evaluated
+        :type row: pd.DataFrame
+        :param threshold: the higher bound of the maximun probability to classify a cell as `Unknown`
+        :type threshold: float
+        :param cell_types: the names of cell types, in the same order as the features of the row
+        :type cell_types: List[str]
+        :return: the most likely cell type of this cell
+        :rtype: str
+        """
+        row = row.values
+        max_prob = np.max(row)
+
+        if max_prob < threshold:
+            return "Unknown"
+
+        return cell_types[np.argmax(row)]
+
+    def get_celltypes(self, threshold=0.7) -> pd.DataFrame:
+        """
+        Get the most likely cell types
+
+        A cell is assigned to a cell type if the probability is greater than threshold.
+        If no cell types have a probability higher than threshold, then "Unknown" is returned
+
+        :param threshold: the probability threshold above which a cell is assigned to a cell type
+        :return: a data frame with most likely cell types for each 
+        """
+        type_probability = self.get_celltype_probabilities()
+        cell_types = list(type_probability.columns)
+
+        cell_type_assignments = type_probability.apply(
+            self._most_likely_celltype,
+            axis=1,
+            threshold=threshold,
+            cell_types=cell_types,
+        )
+        cell_type_assignments = pd.DataFrame(cell_type_assignments)
+        cell_type_assignments.columns = ["cell_type"]
+
+        return cell_type_assignments
 
     def predict_celltypes(self, dset: pd.DataFrame=None) -> pd.DataFrame:
         """Predict the probabilities of different cell type assignments. 
