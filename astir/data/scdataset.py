@@ -23,7 +23,7 @@ class SCDataset(Dataset):
 
     def __init__(
         self,
-        expr_input: Union[pd.DataFrame, Tuple[np.array, List[str], List[str]]],
+        expr_input: Union[pd.DataFrame, Tuple[Union[np.array, torch.tensor], List[str], List[str]]],
         marker_dict: Dict[str, List[str]],
         include_other_column: bool,
         design: Union[np.array, pd.DataFrame] = None,
@@ -54,7 +54,7 @@ class SCDataset(Dataset):
         elif isinstance(expr_input, tuple):
             self._expr_features = expr_input[1]
             self._cell_names = expr_input[2]
-            self._exprs = self._process_np_input(expr_input[0])
+            self._exprs = self._process_tp_input(expr_input[0])
         self._design = self._fix_design(design)
         ## sanitize df
         if self._exprs.shape[0] <= 0:
@@ -83,14 +83,13 @@ class SCDataset(Dataset):
                 + "the classification of cell type/state."
             )
 
-    def _process_np_input(
-        self, np_input: Tuple[np.array, np.array, np.array]
+    def _process_tp_input(
+        self, in_data: Union[torch.tensor, np.array]
     ) -> torch.Tensor:
         """Process the input as Tuple[np.array, np.array, np.array] and convert it 
             to torch.Tensor.
 
-        :param np_input: input as a tuple. np_input[0] is the input data. np.input[1]
-            is the 
+        :param in_data: input as a np.array or torch.tensor
         :raises NotClassifiableError: raised when there is no overlap between marked
             features and expression feature.
         :return: the processed input as a torch.Tensor
@@ -108,11 +107,9 @@ class SCDataset(Dataset):
             )
         if len(ind) < len(self._m_features):
             warnings.warn("Classified features are less than marked features.")
-        # Y_np = []
-        # for cell in np_input[0]:
-        #     temp = [cell[i] for i in ind]
-        #     Y_np.append(np.array(temp))
-        Y_np = np_input[:, ind]
+        Y_np = in_data[:, ind]
+        if torch.is_tensor(Y_np):
+            return Y_np.to(device=self._device, dtype=self._dtype)
         return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
 
     def _construct_marker_mat(self, include_other_column: bool) -> torch.Tensor:
