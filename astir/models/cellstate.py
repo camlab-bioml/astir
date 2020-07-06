@@ -198,16 +198,17 @@ class CellStateModel(AstirModel):
 
         delta_cond_met = False
 
-        iterator = trange(
-            max_epochs,
-            desc="training restart" + msg,
-            unit="epochs",
-            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
-        )
+        # iterator = trange(
+        #     max_epochs,
+        #     desc="training restart" + msg,
+        #     unit="epochs",
+        #     bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
+        # )
         train_iterator = DataLoader(
             self._dset, batch_size=min(batch_size, len(self._dset))
         )
-        for ep in iterator:
+        # for ep in iterator:
+        for ep in range(max_epochs):
             for i, (y_in, x_in, _) in enumerate(train_iterator):
                 self._optimizer.zero_grad()
 
@@ -238,13 +239,14 @@ class CellStateModel(AstirModel):
             if prev_mean is not None:
                 curr_delta_loss = (prev_mean - curr_mean) / prev_mean
                 delta_cond_met = 0 <= curr_delta_loss < delta_loss
-            iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
+            # iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
+            yield round(losses[ep], 1)
 
             prev_mean = curr_mean
             if delta_cond_met:
                 losses = losses[0 : ep + 1]
                 self._is_converged = True
-                iterator.close()
+                # iterator.close()
                 break
 
         if self._losses is None:
@@ -254,7 +256,7 @@ class CellStateModel(AstirModel):
                 torch.cat((self._losses,
                            torch.tensor(losses, dtype=self._dtype)))
 
-        return losses
+        # return losses
 
     def get_recognet(self) -> StateRecognitionNet:
         """ Getter for the recognition net

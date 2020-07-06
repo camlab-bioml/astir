@@ -120,7 +120,7 @@ class TestAstir(TestCase):
             test.fit_type()
         except (RuntimeError):
             raised = True
-        self.assertTrue(raised == True)
+        self.assertTrue(raised)
 
     # # Uncomment below test functions to test private variables
     # # Commented it out because these tests can be highly overlapping with

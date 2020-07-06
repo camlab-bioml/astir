@@ -202,8 +202,35 @@ class Astir:
             "n_init_epochs": n_init_epochs,
         }
 
-    # @profile
     def fit_state(
+        self,
+        max_epochs: int=50,
+        learning_rate: float=1e-3,
+        batch_size: int=128,
+        delta_loss: float=1e-3,
+        n_init: int=5,
+        n_init_epochs: int=5,
+        delta_loss_batch: int=10,
+        const: int = 2,
+        dropout_rate: float = 0,
+        batch_norm: bool = False,
+    ) -> None:
+        for l in self.fit_state_yield_loss(
+            max_epochs=max_epochs,
+            learning_rate=learning_rate,
+            batch_size=batch_size,
+            delta_loss=delta_loss,
+            n_init=n_init,
+            n_init_epochs=n_init_epochs,
+            delta_loss_batch=delta_loss_batch,
+            const=const,
+            dropout_rate=dropout_rate,
+            batch_norm=batch_norm,
+        ):
+            pass
+
+    # @profile
+    def fit_state_yield_loss(
         self,
         max_epochs: int=50,
         learning_rate: float=1e-3,
@@ -255,34 +282,38 @@ class Astir:
             )
             # Fitting the model
             n_init_epochs = min(max_epochs, n_init_epochs)
-            loss = model.fit(
+            for l in model.fit(
                 max_epochs=n_init_epochs,
                 learning_rate=learning_rate,
                 batch_size=batch_size,
                 delta_loss=delta_loss,
                 delta_loss_batch=delta_loss_batch,
                 msg=" " + str(i + 1) + "/" + str(n_init),
-            )
+            ):
+                pass
+            loss = model.get_losses()[0 : n_init_epochs]
 
             cellstate_losses.append(loss)
             cellstate_models.append(model)
 
+        # print(cellstate_losses[0][-delta_loss_batch:])
         last_delta_losses_mean = np.array(
-            [np.mean(losses[-delta_loss_batch:])
+            [float(torch.mean(losses[-delta_loss_batch:]))
              for losses in cellstate_losses]
         )
 
         best_model_index = int(np.argmin(last_delta_losses_mean))
         self._state_ast = cellstate_models[best_model_index]
 
-        self._state_ast.fit(
+        for l in self._state_ast.fit(
             max_epochs=max_epochs,
             learning_rate=learning_rate,
             batch_size=batch_size,
             delta_loss=delta_loss,
             delta_loss_batch=delta_loss_batch,
             msg=" (final)",
-        )
+        ):
+            yield l
 
         # Warns the user if the model has not converged
         if not self._state_ast.is_converged():

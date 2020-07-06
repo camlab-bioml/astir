@@ -234,7 +234,7 @@ class CellTypeModel(AstirModel):
             losses.append(loss)
             # iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
 
-            yield round(float(loss))
+            yield round(float(loss), 1)
 
             if per <= delta_loss:
                 self._is_converged = True
