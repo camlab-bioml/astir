@@ -60,6 +60,7 @@ def parser_setup(parser):
                         type=int,
                         default=1024)
     parser.add_argument("--delta_loss", "-l",
+                        type=float,
                         help="the model will stop if delta loss between epochs is reached, default to 1e-3",
                         default=1e-3)
     parser.add_argument("--n_init", "-n",
