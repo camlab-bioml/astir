@@ -13,9 +13,18 @@ class SCDataset(Dataset):
     """Container for single-cell proteomic data in the form of 
     a pytorch dataset
 
-    :param expr_input: Input expression data. See details TODO
+    :param expr_input: Input expression data. See details :`expr_input` is either a `pd.DataFrame` 
+        or a three-element `tuple`. When it is `pd.DataFrame`, its index and column should indicate the cell
+        name and feature name of the dataset; when it is a three-element `tuple`, its first element should
+        be the actual dataset as either `np.array` or `torch.tensor`, the second element should be 
+        a list containing the name of the columns or the names of features, the third element should be a 
+        list containing the name of the indices or the names of the cells.:
     :param marker_dict: Marker dictionary containing cell type and 
-        information. See details :TODO:
+        information. See details :`marker_dict` is not required when `input_expr` is 
+        `Tuple[SCDataset, SCDataset]`. Otherwise it is necessary. The outer dictionary may have at most 
+        three keys: `cell_type`, `cell_state` and `hierarchy`. `cell_type` and `cell_state` maps to the 
+        corresponding dictionary which maps the name of cell type/state to protein features. `hierarchy` 
+        maps to the dictionary which indicates the cell type hierarchy.:
     :param design: A design matrix
     :param include_other_column: Should an additional 'other' column be included?
     :param dtype: torch datatype of the model
