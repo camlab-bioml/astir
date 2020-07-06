@@ -20,11 +20,7 @@ class SCDataset(Dataset):
         a list containing the name of the columns or the names of features, the third element should be a 
         list containing the name of the indices or the names of the cells.:
     :param marker_dict: Marker dictionary containing cell type and 
-        information. See details :`marker_dict` is not required when `input_expr` is 
-        `Tuple[SCDataset, SCDataset]`. Otherwise it is necessary. The outer dictionary may have at most 
-        three keys: `cell_type`, `cell_state` and `hierarchy`. `cell_type` and `cell_state` maps to the 
-        corresponding dictionary which maps the name of cell type/state to protein features. `hierarchy` 
-        maps to the dictionary which indicates the cell type hierarchy.:
+        information. See details :The dictionary maps the name of cell type/state to protein features. :
     :param design: A design matrix
     :param include_other_column: Should an additional 'other' column be included?
     :param dtype: torch datatype of the model
