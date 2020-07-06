@@ -1,6 +1,8 @@
 import warnings
+import matplotlib.cbook
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
+warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
 
 import yaml
 import os
