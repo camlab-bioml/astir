@@ -532,7 +532,8 @@ class Astir:
             hier_df[key] = self._type_assignments[cells].sum(axis=1)
         return hier_df
 
-    def type_clustermap(self, plot_name: str="celltype_protein_cluster.png", threshold: float=0.7) -> None:
+    def type_clustermap(self, plot_name: str="celltype_protein_cluster.png", threshold: float=0.7, 
+        figsize: Tuple[float, float]=(7, 5)) -> None:
         """Save the heatmap of protein content in cells with cell types labeled.
 
         :param plot_name: name of the plot, extension(e.g. .png or .jpg) is needed, defaults to "celltype_protein_cluster.png"
@@ -552,7 +553,7 @@ class Astir:
 
         lut = dict(zip(types_uni, sns.color_palette("BrBG", len(types_uni))))
         col_colors = pd.DataFrame(types.map(lut))
-        cm = sns.clustermap(expr_df.T, xticklabels=False, cmap = "vlag", col_cluster=False, col_colors=col_colors, figsize=(7, 5))
+        cm = sns.clustermap(expr_df.T, xticklabels=False, cmap = "vlag", col_cluster=False, col_colors=col_colors, figsize=figsize)
 
         for t in types_uni:
             cm.ax_col_dendrogram.bar(0, 0, color=lut[t], label=t, linewidth=0)

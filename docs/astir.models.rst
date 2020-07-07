@@ -1,10 +1,10 @@
-astir.models package
-====================
+.. astir.models package
+.. ====================
 
-Module contents
----------------
+.. Module contents
+.. ---------------
 
-.. automodule:: astir.models
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. .. automodule:: astir.models
+..     :members:
+..     :undoc-members:
+..     :show-inheritance:
