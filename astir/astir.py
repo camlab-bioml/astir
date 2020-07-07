@@ -40,12 +40,15 @@ class Astir:
 
     def __init__(
         self,
-        input_expr: Union[pd.DataFrame,
-            Tuple[np.array, List[str], List[str]], Tuple[SCDataset, SCDataset]],
-        marker_dict: Dict[str, Dict[str, List[str]]]=None,
-        design: Union[pd.DataFrame, np.array]=None,
-        random_seed: int=1234,
-        dtype: torch.dtype=torch.float64,
+        input_expr: Union[
+            pd.DataFrame,
+            Tuple[np.array, List[str], List[str]],
+            Tuple[SCDataset, SCDataset],
+        ],
+        marker_dict: Dict[str, Dict[str, List[str]]] = None,
+        design: Union[pd.DataFrame, np.array] = None,
+        random_seed: int = 1234,
+        dtype: torch.dtype = torch.float64,
     ) -> None:
 
         if not isinstance(random_seed, int):
@@ -121,12 +124,12 @@ class Astir:
     # @profile
     def fit_type(
         self,
-        max_epochs: int=50,
-        learning_rate: float=1e-3,
-        batch_size: int=128,
-        delta_loss: float=1e-3,
-        n_init: int=5,
-        n_init_epochs: int=5,
+        max_epochs: int = 50,
+        learning_rate: float = 1e-3,
+        batch_size: int = 128,
+        delta_loss: float = 1e-3,
+        n_init: int = 5,
+        n_init_epochs: int = 5,
     ) -> None:
         """Run Variational Bayes to infer cell types
 
@@ -138,16 +141,13 @@ class Astir:
         :param n_inits: number of random initializations
         """
         if self._type_dset is None:
-            raise NotClassifiableError("Marker for cell type classification is not provided")
+            raise NotClassifiableError(
+                "Marker for cell type classification is not provided"
+            )
         np.random.seed(self.random_seed)
         seeds = np.random.randint(1, 100000000, n_init)
         type_models = [
-            CellTypeModel(
-                self._type_dset,
-                int(seed),
-                self._dtype,
-            )
-            for seed in seeds
+            CellTypeModel(self._type_dset, int(seed), self._dtype,) for seed in seeds
         ]
         n_init_epochs = min(max_epochs, n_init_epochs)
         for i in range(n_init):
@@ -187,13 +187,13 @@ class Astir:
     # @profile
     def fit_state(
         self,
-        max_epochs: int=50,
-        learning_rate: float=1e-3,
-        batch_size: int=128,
-        delta_loss: float=1e-3,
-        n_init: int=5,
-        n_init_epochs: int=5,
-        delta_loss_batch: int=10,
+        max_epochs: int = 50,
+        learning_rate: float = 1e-3,
+        batch_size: int = 128,
+        delta_loss: float = 1e-3,
+        n_init: int = 5,
+        n_init_epochs: int = 5,
+        delta_loss_batch: int = 10,
         const: int = 2,
         dropout_rate: float = 0,
         batch_norm: bool = False,
@@ -210,7 +210,9 @@ class Astir:
             defaults to `10`
         """
         if self._state_dset is None:
-            raise NotClassifiableError("Marker for cell state classification is not provided")
+            raise NotClassifiableError(
+                "Marker for cell state classification is not provided"
+            )
         cellstate_models = []
         cellstate_losses = []
 
@@ -250,8 +252,7 @@ class Astir:
             cellstate_models.append(model)
 
         last_delta_losses_mean = np.array(
-            [np.mean(losses[-delta_loss_batch:])
-             for losses in cellstate_losses]
+            [np.mean(losses[-delta_loss_batch:]) for losses in cellstate_losses]
         )
 
         best_model_index = int(np.argmin(last_delta_losses_mean))
@@ -290,7 +291,7 @@ class Astir:
             "delta_loss_batch": delta_loss_batch,
         }
 
-    def save_models(self, hdf5_name: str="astir_summary.hdf5") -> None:
+    def save_models(self, hdf5_name: str = "astir_summary.hdf5") -> None:
         """ Save the summary of this model to an `hdf5` file.
 
         :param hdf5_name: name of the output `hdf5` file, default to "astir_summary.hdf5"
@@ -466,7 +467,7 @@ class Astir:
             raise Exception("The type model has not been trained yet")
         return self._type_ast.get_celltypes(threshold)
 
-    def predict_celltypes(self, dset: pd.DataFrame=None) -> pd.DataFrame:
+    def predict_celltypes(self, dset: pd.DataFrame = None) -> pd.DataFrame:
         """Predict the probabilities of different cell type assignments.
 
         :param dset: the single cell protein expression dataset to predict, defaults to None
@@ -532,8 +533,12 @@ class Astir:
             hier_df[key] = self._type_assignments[cells].sum(axis=1)
         return hier_df
 
-    def type_clustermap(self, plot_name: str="celltype_protein_cluster.png", threshold: float=0.7, 
-        figsize: Tuple[float, float]=(7, 5)) -> None:
+    def type_clustermap(
+        self,
+        plot_name: str = "celltype_protein_cluster.png",
+        threshold: float = 0.7,
+        figsize: Tuple[float, float] = (7, 5),
+    ) -> None:
         """Save the heatmap of protein content in cells with cell types labeled.
 
         :param plot_name: name of the plot, extension(e.g. .png or .jpg) is needed, defaults to "celltype_protein_cluster.png"
@@ -544,7 +549,9 @@ class Astir:
         expr_df = self._type_dset.get_exprs_df()
         scaler = StandardScaler()
         for feature in expr_df.columns:
-            expr_df[feature] = scaler.fit_transform(expr_df[feature].values.reshape((expr_df[feature].shape[0], 1)))
+            expr_df[feature] = scaler.fit_transform(
+                expr_df[feature].values.reshape((expr_df[feature].shape[0], 1))
+            )
 
         expr_df["cell_type"] = self.get_celltypes(threshold=threshold)
         expr_df = expr_df.sort_values(by=["cell_type"])
@@ -553,12 +560,20 @@ class Astir:
 
         lut = dict(zip(types_uni, sns.color_palette("BrBG", len(types_uni))))
         col_colors = pd.DataFrame(types.map(lut))
-        cm = sns.clustermap(expr_df.T, xticklabels=False, cmap = "vlag", col_cluster=False, col_colors=col_colors, figsize=figsize)
+        cm = sns.clustermap(
+            expr_df.T,
+            xticklabels=False,
+            cmap="vlag",
+            col_cluster=False,
+            col_colors=col_colors,
+            figsize=figsize,
+        )
 
         for t in types_uni:
             cm.ax_col_dendrogram.bar(0, 0, color=lut[t], label=t, linewidth=0)
-        cm.ax_col_dendrogram.legend(title='Cell Types', loc="center", ncol=3,
-            bbox_to_anchor=(0.8, 0.8))
+        cm.ax_col_dendrogram.legend(
+            title="Cell Types", loc="center", ncol=3, bbox_to_anchor=(0.8, 0.8)
+        )
         cm.savefig(plot_name, dpi=150)
 
     def get_hierarchy_dict(self) -> Dict[str, List[str]]:

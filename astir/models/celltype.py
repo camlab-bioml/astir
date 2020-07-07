@@ -1,11 +1,15 @@
+""" 
+Cell Type Model
+"""
+
+from .abstract import AstirModel
+from astir.data import SCDataset
+from .celltype_recognet import TypeRecognitionNet
+import torch
 import re
 from typing import Tuple, List, Dict
 import warnings
-
-import h5py
 from tqdm import trange
-
-import torch
 from torch.autograd import Variable
 from torch.distributions import (
     Normal,
@@ -16,16 +20,10 @@ from torch.distributions import (
 import torch.nn.functional as F
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-
 import pandas as pd
 import numpy as np
-
 from sklearn.preprocessing import StandardScaler
 from scipy import stats
-
-from .abstract import AstirModel
-from astir.data import SCDataset
-from .celltype_recognet import TypeRecognitionNet
 
 
 class CellTypeModel(AstirModel):
@@ -35,7 +33,8 @@ class CellTypeModel(AstirModel):
     :type dset: SCDataset
     :param random_seed: the random seed for parameter initialization, defaults to 1234
     :type random_seed: int, optional
-    :param dtype: the data type of parameters, should be the same as `dset`, defaults to torch.float64
+    :param dtype: the data type of parameters, should be the same as `dset`, defaults to 
+        torch.float64
     :type dtype: torch.dtype, optional
     """
 
@@ -51,9 +50,9 @@ class CellTypeModel(AstirModel):
         self.cov_mat = None  # temporary -- remove
         self._assignment = None
 
-        self._recog = TypeRecognitionNet(dset.get_n_classes(), dset.get_n_features()).to(
-            self._device, dtype=dtype
-        )
+        self._recog = TypeRecognitionNet(
+            dset.get_n_classes(), dset.get_n_features()
+        ).to(self._device, dtype=dtype)
         self._param_init()
 
     def _param_init(self) -> None:
@@ -78,9 +77,7 @@ class CellTypeModel(AstirModel):
             torch.tensor(0.1, dtype=self._dtype),
         )
         log_delta_init = t.sample((G, C + 1))
-
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
-
         mu_init = mu_init - (
             self._data["rho"] * torch.exp(log_delta_init).to(self._device)
         ).mean(1)
@@ -93,7 +90,6 @@ class CellTypeModel(AstirModel):
             "log_delta": log_delta_init,
             "p": torch.zeros((G, C + 1), dtype=self._dtype, device=self._device),
         }
-
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
         initializations["mu"] = torch.cat(
@@ -103,7 +99,6 @@ class CellTypeModel(AstirModel):
             ],
             1,
         )
-
         # Create trainable variables
         self._variables = {}
         for (n, v) in initializations.items():
@@ -223,7 +218,9 @@ class CellTypeModel(AstirModel):
                 break
 
         # Save output
-        self._assignment = pd.DataFrame(self._recog.forward(exprs_X).detach().cpu().numpy())
+        self._assignment = pd.DataFrame(
+            self._recog.forward(exprs_X).detach().cpu().numpy()
+        )
         self._assignment.columns = self._dset.get_classes() + ["Other"]
         self._assignment.index = self._dset.get_cell_names()
 
@@ -263,7 +260,9 @@ class CellTypeModel(AstirModel):
         """
         return self._recog
 
-    def _most_likely_celltype(self, row: pd.DataFrame, threshold: float, cell_types: List[str]) -> str:
+    def _most_likely_celltype(
+        self, row: pd.DataFrame, threshold: float, cell_types: List[str]
+    ) -> str:
         """Given a row of the assignment matrix, return the most likely cell type
 
         :param row: the row of cell assignment matrix to be evaluated

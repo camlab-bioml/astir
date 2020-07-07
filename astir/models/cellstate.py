@@ -1,7 +1,6 @@
 """
 Cell State Model
 """
-
 from typing import Tuple, List, Dict, Union
 import warnings
 import torch
@@ -9,11 +8,9 @@ import torch.nn as nn
 import numpy as np
 import pandas as pd
 import yaml
-
 from .abstract import AstirModel
 from astir.data import SCDataset
 from .cellstate_recognet import StateRecognitionNet
-
 from tqdm import trange
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
@@ -61,9 +58,7 @@ class CellStateModel(AstirModel):
         # Convergence flag
         self._is_converged = False
 
-    def _param_init(self,
-                    const, dropout_rate, batch_norm
-                    ) -> None:
+    def _param_init(self, const, dropout_rate, batch_norm) -> None:
         """ Initializes sets of parameters
         """
         N = len(self._dset)
@@ -90,12 +85,9 @@ class CellStateModel(AstirModel):
             "rho": self._dset.get_marker_mat().T.to(self._device),
         }
 
-        self._recog = StateRecognitionNet(C, G,
-                                           const=const,
-                                           dropout_rate=dropout_rate,
-                                           batch_norm=batch_norm
-                                           )\
-            .to(device=self._device, dtype=self._dtype)
+        self._recog = StateRecognitionNet(
+            C, G, const=const, dropout_rate=dropout_rate, batch_norm=batch_norm
+        ).to(device=self._device, dtype=self._dtype)
 
     def _loss_fn(
         self,
@@ -186,9 +178,7 @@ class CellStateModel(AstirModel):
 
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
-            opt_params = list(self._recog.parameters()) + list(
-                self._variables.values()
-            )
+            opt_params = list(self._recog.parameters()) + list(self._variables.values())
             self._optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
         if self._losses.shape[0] >= delta_loss_batch:
@@ -224,12 +214,15 @@ class CellStateModel(AstirModel):
             start_index = ep - delta_loss_batch + 1
             end_index = start_index + delta_loss_batch
             if start_index >= 0:
-                curr_mean = sum(losses[start_index:end_index]) / len(losses[
-                                                                   start_index:end_index])
+                curr_mean = sum(losses[start_index:end_index]) / len(
+                    losses[start_index:end_index]
+                )
             elif self._losses.shape[0] >= -start_index:
                 last_ten_losses = torch.cat(
-                    (self._losses[start_index:],
-                     torch.tensor(losses[:end_index], dtype=torch.float64))
+                    (
+                        self._losses[start_index:],
+                        torch.tensor(losses[:end_index], dtype=torch.float64),
+                    )
                 )
                 curr_mean = torch.mean(last_ten_losses).item()
             else:
@@ -250,9 +243,9 @@ class CellStateModel(AstirModel):
         if self._losses is None:
             self._losses = torch.tensor(losses, dtype=self._dtype)
         else:
-            self._losses = \
-                torch.cat((self._losses,
-                           torch.tensor(losses, dtype=self._dtype)))
+            self._losses = torch.cat(
+                (self._losses, torch.tensor(losses, dtype=self._dtype))
+            )
 
         return losses
 
@@ -267,7 +260,7 @@ class CellStateModel(AstirModel):
         """ Returns the mean of the predicted z values for each core
 
         :param new_dset: returns the predicted z values of this dataset on
-        the existing model. If None, it predicts using the existing dataset
+            the existing model. If None, it predicts using the existing dataset
 
         :return: the mean of the predicted z values for each core
         """

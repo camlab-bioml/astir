@@ -14,18 +14,26 @@ class StateRecognitionNet(nn.Module):
     The neural network architecture looks like this:
         G -> const * C -> const * C -> G (for mu)
                                     -> G (for std)
+
     With batch normal layers after each activation output layers and dropout
-    activation units
+        activation units
 
     :param C: number of classes
     :param G: number of proteins
     :param const: the size of the hidden layers are const times proportional
-    to C
+        to C
     :param dropout_rate: the dropout rate
     :param batch_norm: apply batch normal layers if True
     """
-    def __init__(self, C: int, G: int, const: int=2,
-                 dropout_rate: float=0, batch_norm: bool=False) -> None:
+
+    def __init__(
+        self,
+        C: int,
+        G: int,
+        const: int = 2,
+        dropout_rate: float = 0,
+        batch_norm: bool = False,
+    ) -> None:
         super(StateRecognitionNet, self).__init__()
         self.batch_norm = batch_norm
 

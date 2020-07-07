@@ -159,7 +159,9 @@ class TestSCDataset(unittest.TestCase):
 
     def test_fix_design_none(self):
 
-        expected_design = torch.ones((len(self.ds), 1)).to(device=self._device, dtype=torch.float64)
+        expected_design = torch.ones((len(self.ds), 1)).to(
+            device=self._device, dtype=torch.float64
+        )
         actual_design = self.ds.get_design()
 
         self.assertTrue(
@@ -174,10 +176,12 @@ class TestSCDataset(unittest.TestCase):
             expr_input=self.input_expr,
             marker_dict=self.state_markers,
             design=self.design,
-            dtype=torch.float64
+            dtype=torch.float64,
         )
 
-        expected_design = torch.from_numpy(self.design).to(device=self._device, dtype=torch.float64)
+        expected_design = torch.from_numpy(self.design).to(
+            device=self._device, dtype=torch.float64
+        )
         actual_design = self.ds.get_design()
 
         self.assertTrue(
