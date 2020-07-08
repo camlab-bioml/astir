@@ -293,7 +293,7 @@ class CellTypeModel(AstirModel):
         :param threshold: the probability threshold above which a cell is assigned to a cell type
         :return: a data frame with most likely cell types for each 
         """
-        type_probability = self._assignment
+        type_probability = self.get_assignment()
         cell_types = list(type_probability.columns)
 
         cell_type_assignments = type_probability.apply(
