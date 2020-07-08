@@ -13,7 +13,6 @@ import torch
 import pandas as pd
 import numpy as np
 import h5py
-import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
@@ -546,35 +545,9 @@ class Astir:
         :param threshold: the probability threshold above which a cell is assigned to a cell type, defaults to 0.7
         :type threshold: float, optional
         """
-        expr_df = self._type_dset.get_exprs_df()
-        scaler = StandardScaler()
-        for feature in expr_df.columns:
-            expr_df[feature] = scaler.fit_transform(
-                expr_df[feature].values.reshape((expr_df[feature].shape[0], 1))
-            )
-
-        expr_df["cell_type"] = self.get_celltypes(threshold=threshold)
-        expr_df = expr_df.sort_values(by=["cell_type"])
-        types = expr_df.pop("cell_type")
-        types_uni = types.unique()
-
-        lut = dict(zip(types_uni, sns.color_palette("BrBG", len(types_uni))))
-        col_colors = pd.DataFrame(types.map(lut))
-        cm = sns.clustermap(
-            expr_df.T,
-            xticklabels=False,
-            cmap="vlag",
-            col_cluster=False,
-            col_colors=col_colors,
-            figsize=figsize,
-        )
-
-        for t in types_uni:
-            cm.ax_col_dendrogram.bar(0, 0, color=lut[t], label=t, linewidth=0)
-        cm.ax_col_dendrogram.legend(
-            title="Cell Types", loc="center", ncol=3, bbox_to_anchor=(0.8, 0.8)
-        )
-        cm.savefig(plot_name, dpi=150)
+        if self._type_ast is None:
+            raise Exception("The type model has not been trained yet")
+        self._type_ast.plot_clustermap(plot_name, threshold, figsize)
 
     def get_hierarchy_dict(self) -> Dict[str, List[str]]:
         """Get the dictionary for cell type hierarchical structure.

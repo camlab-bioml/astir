@@ -29,7 +29,9 @@ class SCDataset(Dataset):
 
     def __init__(
         self,
-        expr_input: Union[pd.DataFrame, Tuple[Union[np.array, torch.Tensor], List[str], List[str]]],
+        expr_input: Union[
+            pd.DataFrame, Tuple[Union[np.array, torch.Tensor], List[str], List[str]]
+        ],
         marker_dict: Dict[str, List[str]],
         include_other_column: bool,
         design: Optional[Union[np.array, pd.DataFrame]] = None,
