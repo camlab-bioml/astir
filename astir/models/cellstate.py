@@ -188,17 +188,17 @@ class CellStateModel(AstirModel):
 
         delta_cond_met = False
 
-        # iterator = trange(
-        #     max_epochs,
-        #     desc="training restart" + msg,
-        #     unit="epochs",
-        #     bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
-        # )
+        iterator = trange(
+            max_epochs,
+            desc="training restart" + msg,
+            unit="epochs",
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
+        )
         train_iterator = DataLoader(
             self._dset, batch_size=min(batch_size, len(self._dset))
         )
-        # for ep in iterator:
-        for ep in range(max_epochs):
+        for ep in iterator:
+        # for ep in range(max_epochs):
             for i, (y_in, x_in, _) in enumerate(train_iterator):
                 self._optimizer.zero_grad()
 

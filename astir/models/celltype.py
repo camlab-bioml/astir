@@ -207,14 +207,14 @@ class CellTypeModel(AstirModel):
 
         _, exprs_X, _ = self._dset[:]  # calls dset.get_item
 
-        # iterator = trange(
-        #     max_epochs,
-        #     desc="training restart" + msg,
-        #     unit="epochs",
-        #     bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
-        # )
-        # for ep in iterator:
-        for ep in range(max_epochs):
+        iterator = trange(
+            max_epochs,
+            desc="training restart" + msg,
+            unit="epochs",
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
+        )
+        for ep in iterator:
+        # for ep in range(max_epochs):
             L = None
             loss = torch.tensor(0.0, dtype=self._dtype)
             for batch in dataloader:
