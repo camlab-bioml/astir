@@ -1,3 +1,7 @@
+"""
+State Recognition Neural Network Model
+"""
+
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
@@ -9,14 +13,10 @@ from typing import Tuple
 # The recognition net
 class StateRecognitionNet(nn.Module):
     """ State Recognition Neural Network to get mean of z and standard
-    deviation of z
-
-    The neural network architecture looks like this:
-        G -> const * C -> const * C -> G (for mu)
-                                    -> G (for std)
-
-    With batch normal layers after each activation output layers and dropout
-        activation units
+    deviation of z. The neural network architecture looks like this: G ->
+    const * C -> const * C -> G (for mu) or -> G (for std). With batch
+    normal layers after each activation output layers and dropout
+    activation units
 
     :param C: number of classes
     :param G: number of proteins
@@ -26,14 +26,8 @@ class StateRecognitionNet(nn.Module):
     :param batch_norm: apply batch normal layers if True
     """
 
-    def __init__(
-        self,
-        C: int,
-        G: int,
-        const: int = 2,
-        dropout_rate: float = 0,
-        batch_norm: bool = False,
-    ) -> None:
+    def __init__(self, C: int, G: int, const: int=2,
+                 dropout_rate: float=0, batch_norm: bool=False) -> None:
         super(StateRecognitionNet, self).__init__()
         self.batch_norm = batch_norm
 
