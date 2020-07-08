@@ -8,6 +8,8 @@ import pandas as pd
 import torch
 import yaml
 import h5py
+import subprocess as sp
+import os
 
 from astir import Astir
 from astir.data import from_csv_yaml, from_csv_dir_yaml, from_anndata_yaml
@@ -419,7 +421,7 @@ class TestAstir(TestCase):
             ).all():
                 same = False
         self.assertTrue(same)
-    
+
     def test_hierarchy_assignment(self):
         self.a.fit_type(max_epochs=5, n_init=1, n_init_epochs=1)
         original_assignment = self.a.get_celltype_probabilities()
@@ -429,3 +431,13 @@ class TestAstir(TestCase):
             expected_assignment[key] = original_assignment[cells].sum(axis=1)
         actual_assignment = self.a.assign_celltype_hierarchy()
         self.assertTrue((expected_assignment == actual_assignment).all().all())
+
+    # def test_make_html(self):
+    #     path = os.path.dirname(os.path.realpath(__file__)) + "/../../docs"
+    #     cmd = ["make", "html"]
+    #     p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, cwd=path)
+    #     output, err = p.communicate(b"input data that is passed to subprocess' stdin")
+    #     print(err)
+    #     print(path)
+    #     rc = p.returncode
+    #     self.assertTrue(rc == 0)

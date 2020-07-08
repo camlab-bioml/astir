@@ -2,7 +2,7 @@ import warnings
 import matplotlib.cbook
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
-warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
+warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
 
 import yaml
 import os
@@ -197,17 +197,14 @@ def from_anndata_yaml(
 
 
 def from_fcs_yaml(
-    fcs_file: str,
-    marker_yaml: str,
-    random_seed: int = 1234,
-    dtype=torch.float64,
+    fcs_file: str, marker_yaml: str, random_seed: int = 1234, dtype=torch.float64,
 ):
-    expr_fcs = FCMeasurement(ID='astir_data', datafile=fcs_file)
+    expr_fcs = FCMeasurement(ID="astir_data", datafile=fcs_file)
     expr_df = expr_fcs.data
 
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
 
     from astir.astir import Astir
-    return Astir(expr_df, marker_dict, design, random_seed, dtype)
-    
+
+    return Astir(expr_df, marker_dict, random_seed, dtype)

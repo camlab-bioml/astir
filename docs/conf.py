@@ -30,6 +30,7 @@ author = "Jinyu Hou, Sunyun Lee, Michael Geuenich, Kieran Campbell"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
     "sphinx_autodoc_typehints",
     "sphinx.ext.mathjax",

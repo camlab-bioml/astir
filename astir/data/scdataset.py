@@ -1,6 +1,6 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
-from typing import List, Tuple, Dict, Union
+from typing import List, Tuple, Dict, Union, Optional, Any
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,8 @@ class SCDataset(Dataset):
 
     :param expr_input: Input expression data. See details :`expr_input` is either a `pd.DataFrame` 
         or a three-element `tuple`. When it is `pd.DataFrame`, its index and column should indicate the cell
-        name and feature name of the dataset; when it is a three-element `tuple`, its first element should
+        name and feature name of the dataset; when it is a three-element `tuple`, it should be in the form 
+        of `Tuple[Union[np.array, torch.Tensor], List[str], List[str]]` and  its first element should
         be the actual dataset as either `np.array` or `torch.tensor`, the second element should be 
         a list containing the name of the columns or the names of features, the third element should be a 
         list containing the name of the indices or the names of the cells.:
@@ -28,12 +29,16 @@ class SCDataset(Dataset):
 
     def __init__(
         self,
-        expr_input: Union[pd.DataFrame, Tuple[Union[np.array, torch.tensor], List[str], List[str]]],
+        expr_input: Union[
+            pd.DataFrame, Tuple[Union[np.array, torch.Tensor], List[str], List[str]]
+        ],
         marker_dict: Dict[str, List[str]],
         include_other_column: bool,
-        design: Union[np.array, pd.DataFrame] = None,
+        design: Optional[Union[np.array, pd.DataFrame]] = None,
         dtype: torch.dtype = torch.float64,
     ) -> None:
+        """Initialize an SCDataset object.
+        """
         self._dtype = dtype
         self._marker_dict = marker_dict
         self._m_features = sorted(
@@ -88,9 +93,7 @@ class SCDataset(Dataset):
                 + "the classification of cell type/state."
             )
 
-    def _process_tp_input(
-        self, in_data: Union[torch.tensor, np.array]
-    ) -> torch.Tensor:
+    def _process_tp_input(self, in_data: Union[torch.tensor, np.array]) -> torch.Tensor:
         """Process the input as Tuple[np.array, np.array, np.array] and convert it 
             to torch.Tensor.
 

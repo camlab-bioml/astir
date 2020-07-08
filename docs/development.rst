@@ -130,6 +130,7 @@ You can view your current working branch with the following command
    $ git branch
 
 .. code::
+
    $ git merge <branch-to-merge-current-with>
 
 Resolve any merge conflicts you get. Once the merge is complete and
@@ -144,6 +145,7 @@ Update the local master branch by
 or depending on your setup you may even be able to run
 
 .. code::
+
    $ git pull
 
 To merge a branch into the current one
