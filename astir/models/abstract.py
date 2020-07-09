@@ -52,6 +52,8 @@ class AstirModel:
         :return: `self._dset`
         :rtype: SCDataset
         """
+        if self._dset is None:
+            raise Exception("the dataset is not provided")
         return self._dset
 
     def get_data(self):

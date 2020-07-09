@@ -25,6 +25,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from scipy import stats
+from collections import OrderedDict
 
 
 class CellTypeModel(AstirModel):
@@ -41,7 +42,7 @@ class CellTypeModel(AstirModel):
 
     def __init__(
         self,
-        dset: SCDataset,
+        dset: SCDataset = None,
         random_seed: int = 1234,
         dtype: torch.dtype = torch.float64,
     ) -> None:
@@ -51,14 +52,19 @@ class CellTypeModel(AstirModel):
         self.cov_mat = None  # temporary -- remove
         self._assignment = None
 
-        self._recog = TypeRecognitionNet(
-            dset.get_n_classes(), dset.get_n_features()
-        ).to(self._device, dtype=dtype)
+        if dset is None:
+            self._recog = None
+        else:
+            self._recog = TypeRecognitionNet(
+                dset.get_n_classes(), dset.get_n_features()
+            ).to(self._device, dtype=dtype)
         self._param_init()
 
     def _param_init(self) -> None:
         """ Initializes parameters and design matrices.
         """
+        if self._dset is None:
+            raise Exception("the dataset is not provided")
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
 
@@ -106,6 +112,35 @@ class CellTypeModel(AstirModel):
             self._variables[n] = Variable(v.clone()).to(self._device)
             self._variables[n].requires_grad = True
 
+        # print(self._recog.state_dict())
+
+    def load_hdf5(self, grp) -> None:
+        self._assignment = pd.DataFrame(np.array(grp["celltype_assignments"]))
+        # print("assignment: " + str(type(self._assignment)))
+
+        param = grp["parameters"]
+        self._variables = {"mu": torch.tensor(np.array(param["mu"])), 
+            "log_sigma": torch.tensor(np.array(param["log_sigma"])), 
+            "log_delta": torch.tensor(np.array(param["log_delta"])), 
+            "p": torch.tensor(np.array(param["p"]))}
+        self._data = {"log_alpha": torch.tensor(np.array(param["log_alpha"])), 
+            "rho": torch.tensor(np.array(param["rho"]))}
+        self._losses = torch.tensor(np.array(grp["losses"]["losses"]))
+        # print(self._variables)
+        # print(self._data)
+        # print("losses: " + str(type(self._losses)))
+
+        rec = grp["recog_net"]
+        # state_dict = {'hidden_1.weight': rec['hidden_1.weight'], 'hidden_1.bias': rec["hidden_1.bias"], 
+        #     'hidden_2.weight': rec['hidden_2.weight'], 'hidden_2.bias': rec["hidden_2.bias"]}
+        # state_dict = OrderedDict({})
+        state_dict = torch.load("statedict.pt")
+        print(state_dict)
+        self._recog = TypeRecognitionNet()
+        self._recog.load_state_dict(state_dict)
+        self._recog.eval()
+
+
     # @profile
     ## Declare pytorch forward fn
     def _forward(
@@ -122,6 +157,8 @@ class CellTypeModel(AstirModel):
         :return: the cost (elbo) of the current pass
         :rtype: torch.Tensor
         """
+        if self._dset is None:
+            raise Exception("the dataset is not provided")
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
         N = Y.shape[0]
@@ -191,6 +228,8 @@ class CellTypeModel(AstirModel):
             delta_loss, defaults to 0.001
         :param msg: iterator bar message, defaults to empty string
         """
+        if self._dset is None:
+            raise Exception("the dataset is not provided")
         # Make dataloader
         dataloader = DataLoader(
             self._dset, batch_size=min(batch_size, len(self._dset)), shuffle=True
@@ -228,13 +267,13 @@ class CellTypeModel(AstirModel):
             if len(losses) > 0:
                 per = abs((loss - losses[-1]) / losses[-1])
             losses.append(loss)
-            # iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
+            iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
 
             yield round(float(loss), 1)
 
             if per <= delta_loss:
                 self._is_converged = True
-                # iterator.close()
+                iterator.close()
                 break
 
         # Save output
@@ -333,6 +372,8 @@ class CellTypeModel(AstirModel):
         is expressed at higher level using t-test
 
         """
+        if self._dset is None:
+            raise Exception("the dataset is not provided")
         current_marker_ind = np.array(self._dset.get_features()) == marker
 
         cells_x = np.array(cell_types) == curr_type
@@ -379,6 +420,8 @@ class CellTypeModel(AstirModel):
         :param threshold: the probability threshold above which a cell is assigned to a cell type, defaults to 0.7
         :type threshold: float, optional
         """
+        if self._dset is None:
+            raise Exception("the dataset is not provided")
         expr_df = self._dset.get_exprs_df()
         scaler = StandardScaler()
         for feature in expr_df.columns:
@@ -414,6 +457,8 @@ class CellTypeModel(AstirModel):
 
         See :meth:`astir.Astir.diagnostics_celltype` for full documentation
         """
+        if self._dset is None:
+            raise Exception("the dataset is not provided")
         problems = []
 
         # Want to construct a data frame that models rho with

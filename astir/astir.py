@@ -42,7 +42,7 @@ class Astir:
             pd.DataFrame,
             Tuple[np.array, List[str], List[str]],
             Tuple[SCDataset, SCDataset],
-        ],
+        ] = None,
         marker_dict: Dict[str, Dict[str, List[str]]] = None,
         design: Union[pd.DataFrame, np.array] = None,
         random_seed: int = 1234,
@@ -64,12 +64,13 @@ class Astir:
         self._type_assignments, self._state_assignments = None, None
         self._type_run_info, self._state_run_info = None, None
 
+        self._type_dset = None
+        self._state_dset = None
+    
         type_dict, state_dict, self._hierarchy_dict = self._sanitize_dict(marker_dict)
         if isinstance(input_expr, tuple) and len(input_expr) == 2:
             self._type_dset, self._state_dset = input_expr[0], input_expr[1]
         else:
-            self._type_dset = None
-            self._state_dset = None
             if type_dict is not None:
                 self._type_dset = SCDataset(
                     expr_input=input_expr,
@@ -157,7 +158,7 @@ class Astir:
         """
         if self._type_dset is None:
             raise NotClassifiableError(
-                "Marker for cell type classification is not provided"
+                "Dataset or marker for cell type classification is not provided"
             )
         np.random.seed(self.random_seed)
         seeds = np.random.randint(1, 100000000, n_init)
@@ -200,6 +201,8 @@ class Astir:
             "n_init": n_init,
             "n_init_epochs": n_init_epochs,
         }
+
+        torch.save(self._type_ast.get_recognet().state_dict(), "statedict.pt")
 
     def fit_state(
         self,
@@ -255,7 +258,7 @@ class Astir:
         """
         if self._state_dset is None:
             raise NotClassifiableError(
-                "Marker for cell state classification is not provided"
+                "Dataset or marker for cell state classification is not provided"
             )
         cellstate_models = []
         cellstate_losses = []
@@ -283,15 +286,14 @@ class Astir:
             )
             # Fitting the model
             n_init_epochs = min(max_epochs, n_init_epochs)
-            for l in model.fit(
+            model.fit(
                 max_epochs=n_init_epochs,
                 learning_rate=learning_rate,
                 batch_size=batch_size,
                 delta_loss=delta_loss,
                 delta_loss_batch=delta_loss_batch,
                 msg=" " + str(i + 1) + "/" + str(n_init),
-            ):
-                pass
+            )
             loss = model.get_losses()[0 : n_init_epochs]
 
             cellstate_losses.append(loss)
@@ -306,7 +308,7 @@ class Astir:
         best_model_index = int(np.argmin(last_delta_losses_mean))
         self._state_ast = cellstate_models[best_model_index]
 
-        for l in self._state_ast.fit(
+        for l in self._state_ast.fit_yield_loss(
             max_epochs=max_epochs,
             learning_rate=learning_rate,
             batch_size=batch_size,
@@ -376,9 +378,9 @@ class Astir:
                     info_grp[key] = val
 
                 # Storing type assignments
-                type_grp.create_dataset(
-                    "celltype_assignments", data=self._type_assignments
-                )
+                # type_assign = type_grp.create_dataset(
+                #     "celltype_assignments", data=self._type_assignments
+                # )
 
             if self._state_ast is not None:
                 state_grp = f.create_group("cellstate_model")
@@ -408,9 +410,22 @@ class Astir:
                     info_grp[key] = val
 
                 # Storing state assignments
-                state_grp.create_dataset(
-                    "cellstate_assignments", data=self._state_assignments
-                )
+                # state_grp.create_dataset(
+                #     "cellstate_assignments", data=self._state_assignments
+                # )
+        if self._type_assignments is not None:
+            self._type_assignments.to_hdf(hdf5_name, 
+                        "/celltype_model/celltype_assignments")
+        if self._state_assignments is not None:
+            self._state_assignments.to_hdf(hdf5_name, 
+                        "/cellstate_model/cellstate_assignments")
+
+    def load_model(self, hdf5_name: str, ) -> None:
+        with h5py.File(hdf5_name, "r") as f:
+            if "celltype_model" in f.keys():
+                self._type_ast = CellTypeModel(self._type_dset, dtype=self._dtype)
+                self._type_ast.load_hdf5(f["celltype_model"])
+
 
     def get_type_dataset(self):
         """Get the `SCDataset` for cell type training.
@@ -418,6 +433,8 @@ class Astir:
         :return: `self._type_dset`
         :rtype: SCDataset
         """
+        if self._type_dset is None:
+            raise Exception("the type dataset is not provided")
         return self._type_dset
 
     def get_state_dataset(self):
@@ -426,6 +443,8 @@ class Astir:
         :return: `self._state_dset`
         :rtype: SCDataset
         """
+        if self._state_dset is None:
+            raise Exception("the state dataset is not provided")
         return self._state_dset
 
     def get_type_model(self):
@@ -605,6 +624,8 @@ class Astir:
         :return: `self._hierarchy_dict`
         :rtype: Dict[str, List[str]]
         """
+        if self._hierarchy_dict is None:
+            raise Exception("the hierarchical marker is not provided")
         return self._hierarchy_dict
 
     def get_type_losses(self) -> np.array:
@@ -648,15 +669,17 @@ class Astir:
         self.get_cellstates().to_csv(output_csv)
 
     def __str__(self) -> str:
-        return (
-            "Astir object with "
-            + str(self._type_dset.get_n_classes())
-            + " cell types, "
-            + str(self._state_dset.get_n_classes())
-            + " cell states, and "
-            + str(len(self._type_dset))
-            + " cells."
-        )
+        msg = "Astir object"
+        l = 0
+        if self._type_dset is not None:
+            msg += ", " + str(self._type_dset.get_n_classes()) + " cell types"
+            l = len(self._type_dset)
+        if self._state_dset is not None:
+            msg += ", " + str(self._state_dset.get_n_classes()) + " cell states"
+            l = len(self._type_dset)
+        if l != 0:
+            msg += ", " + str(l) + " cells"
+        return msg
 
     def diagnostics_celltype(
         self, threshold: float = 0.7, alpha: float = 0.01

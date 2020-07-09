@@ -48,6 +48,7 @@ setuptools.setup(
         "autodocsumm",
         "nbsphinx",
         "nbsphinx_link",
+        "tables",
     ],
     include_package_data=True,
     zip_safe=False,

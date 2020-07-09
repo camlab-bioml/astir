@@ -28,7 +28,7 @@ class CellStateModel(AstirModel):
 
     def __init__(
         self,
-        dset: SCDataset,
+        dset: SCDataset = None,
         const: int = 2,
         dropout_rate: float = 0,
         batch_norm: bool = False,
@@ -49,8 +49,6 @@ class CellStateModel(AstirModel):
 
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self._dset = dset
-
         self._optimizer = None
         self._losses = torch.empty(0, dtype=self._dtype)
         self._param_init(const, dropout_rate, batch_norm)
@@ -61,6 +59,8 @@ class CellStateModel(AstirModel):
     def _param_init(self, const, dropout_rate, batch_norm) -> None:
         """ Initializes sets of parameters
         """
+        if self._dset is None:
+            raise Exception("the dataset is not provided")
         N = len(self._dset)
         C = self._dset.get_n_classes()
         G = self._dset.get_n_features()
@@ -145,8 +145,28 @@ class CellStateModel(AstirModel):
 
         return mu_z, std_z, z_sample
 
-    # @profile
     def fit(
+        self,
+        max_epochs: int = 50,
+        learning_rate: float = 1e-3,
+        batch_size: int = 128,
+        delta_loss: float = 1e-3,
+        delta_loss_batch: int = 10,
+        msg: str = "",
+    ) -> List[float]:
+        for l in self.fit_yield_loss(
+            max_epochs,
+            learning_rate,
+            batch_size,
+            delta_loss,
+            delta_loss_batch,
+            msg,
+        ):
+            pass
+
+
+    # @profile
+    def fit_yield_loss(
         self,
         max_epochs: int = 50,
         learning_rate: float = 1e-3,
@@ -167,6 +187,8 @@ class CellStateModel(AstirModel):
             defaults to 10
         :param msg: iterator bar message, defaults to empty string
         """
+        if self._dset is None:
+            raise Exception("the dataset is not provided")
         losses = []
 
         # Returns early if the model has already converged
@@ -232,14 +254,14 @@ class CellStateModel(AstirModel):
             if prev_mean is not None:
                 curr_delta_loss = (prev_mean - curr_mean) / prev_mean
                 delta_cond_met = 0 <= curr_delta_loss < delta_loss
-            # iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
+            iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
             yield round(losses[ep], 1)
 
             prev_mean = curr_mean
             if delta_cond_met:
                 losses = losses[0 : ep + 1]
                 self._is_converged = True
-                # iterator.close()
+                iterator.close()
                 break
 
         if self._losses is None:
@@ -248,8 +270,6 @@ class CellStateModel(AstirModel):
             self._losses = torch.cat(
                 (self._losses, torch.tensor(losses, dtype=self._dtype))
             )
-
-        # return losses
 
     def get_recognet(self) -> StateRecognitionNet:
         """ Getter for the recognition net
@@ -266,6 +286,8 @@ class CellStateModel(AstirModel):
 
         :return: the mean of the predicted z values for each core
         """
+        if self._dset is None:
+            raise Exception("the dataset is not provided")
         if new_dset is None:
             _, x_in, _ = self._dset[:]  # should be the scaled one
         else:
@@ -297,6 +319,8 @@ class CellStateModel(AstirModel):
 
         :return: diagnostics
         """
+        if self._dset is None:
+            raise Exception("the dataset is not provided")
         feature_names = self._dset.get_features()
         state_names = self._dset.get_classes()
 
@@ -376,6 +400,8 @@ class CellStateModel(AstirModel):
 
         :return: self._dset
         """
+        if self._dset is None:
+            raise Exception("the dataset is not provided")
         return self._dset
 
     def is_converged(self) -> bool:
