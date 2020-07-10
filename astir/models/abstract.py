@@ -31,6 +31,7 @@ class AstirModel:
         self._data = None
         self._variables = None
         self._losses = None
+        self._assignment = None
 
         self._dset = dset
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -72,6 +73,16 @@ class AstirModel:
         :return: self._is_converged
         """
         return self._is_converged
+
+    def get_assignment(self) -> np.array:
+        """Get the final assignment of the dataset.
+
+        :return: the final assignment of the dataset
+        :rtype: np.array
+        """
+        if self._assignment is None:
+            raise Exception("The model has not been trained yet")
+        return self._assignment
 
     def _param_init(self) -> None:
         raise NotImplementedError("AbstractModel is not supposed to be instantiated.")

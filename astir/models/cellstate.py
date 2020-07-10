@@ -305,6 +305,11 @@ class CellStateModel(AstirModel):
                 (self._losses, torch.tensor(losses, dtype=self._dtype))
             )
 
+        g = self.get_final_mu_z().detach().cpu().numpy()
+        self._assignment = pd.DataFrame(g)
+        self._assignment.columns = self._dset.get_classes()
+        self._assignment.index = self._dset.get_cell_names()
+
     def get_recognet(self) -> StateRecognitionNet:
         """ Getter for the recognition net
 
@@ -419,49 +424,8 @@ class CellStateModel(AstirModel):
 
         return df_issues
 
-    def get_losses(self) -> np.array:
-        """ Getter for losses
-
-        :return: a torch tensor of losses for each training iteration the
-            model runs
-        """
-        if self._losses is None:
-            raise Exception("The state model has not been trained yet")
-        return self._losses
-
-    def get_scdataset(self) -> SCDataset:
-        """ Returns the input dataset
-
-        :return: self._dset
-        """
-        if self._dset is None:
-            raise Exception("the dataset is not provided")
-        return self._dset
-
-    def is_converged(self) -> bool:
-        """ Returns True if the model converged
-
-        :return: self._is_converged
-        """
-        return self._is_converged
-
-    def get_data(self) -> Dict[str, torch.Tensor]:
-        """ Returns data parameter
-
-        :return: self._data
-        """
-        return self._data
-
-    def get_variables(self) -> Dict[str, torch.Tensor]:
-        """ Returns all variables
-
-        :return: self._variables
-        """
-        return self._variables
-
 
 class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
     """
-
     pass

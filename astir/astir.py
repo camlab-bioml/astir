@@ -61,7 +61,6 @@ class Astir:
         self._dtype = dtype
 
         self._type_ast, self._state_ast = None, None
-        self._type_assignments, self._state_assignments = None, None
         self._type_run_info, self._state_run_info = None, None
 
         self._type_dset = None
@@ -190,8 +189,6 @@ class Astir:
                 + " complete the training."
             )
             warnings.warn(msg)
-
-        self._type_assignments = self._type_ast.get_assignment()
 
         self._type_run_info = {
             "max_epochs": max_epochs,
@@ -326,12 +323,6 @@ class Astir:
             )
             warnings.warn(msg)
 
-        g = self._state_ast.get_final_mu_z().detach().cpu().numpy()
-
-        self._state_assignments = pd.DataFrame(g)
-        self._state_assignments.columns = self._state_dset.get_classes()
-        self._state_assignments.index = self._state_dset.get_cell_names()
-
         self._state_run_info = {
             "max_epochs": max_epochs,
             "learning_rate": learning_rate,
@@ -380,11 +371,6 @@ class Astir:
                 for key, val in self._type_run_info.items():
                     info_grp[key] = val
 
-                # Storing type assignments
-                # type_assign = type_grp.create_dataset(
-                #     "celltype_assignments", data=self._type_assignments
-                # )
-
             if self._state_ast is not None:
                 state_grp = f.create_group("cellstate_model")
 
@@ -412,15 +398,11 @@ class Astir:
                 for key, val in self._state_run_info.items():
                     info_grp[key] = val
 
-                # Storing state assignments
-                # state_grp.create_dataset(
-                #     "cellstate_assignments", data=self._state_assignments
-                # )
-        if self._type_assignments is not None:
-            self._type_assignments.to_hdf(hdf5_name, 
+        if self._type_ast is not None:
+            self._type_ast.get_assignment().to_hdf(hdf5_name, 
                         "/celltype_model/celltype_assignments")
-        if self._state_assignments is not None:
-            self._state_assignments.to_hdf(hdf5_name, 
+        if self._state_ast is not None:
+            self._state_ast.get_assignment().to_hdf(hdf5_name, 
                         "/cellstate_model/cellstate_assignments")
 
     def load_model(self, hdf5_name: str) -> None:
@@ -532,9 +514,9 @@ class Astir:
         :return: `self.assignments`
         :rtype: pd.DataFrame
         """
-        if self._type_assignments is None:
+        if self._type_ast is None:
             raise Exception("The type model has not been trained yet")
-        return self._type_assignments
+        return self._type_ast.get_assignment()
 
     def get_cellstates(self) -> pd.DataFrame:
         """ Get cell state activations. It returns the rescaled activations,
@@ -543,10 +525,10 @@ class Astir:
         :return: state assignments
         :rtype: pd.DataFrame
         """
-        if self._state_assignments is None:
+        if self._state_ast is None:
             raise Exception("The state model has not been trained yet")
 
-        assign = self._state_assignments
+        assign = self._state_ast.get_assignment()
         assign_min = assign.min(axis=0)
         assign_max = assign.max(axis=0)
 
@@ -627,11 +609,12 @@ class Astir:
         """
         if self._hierarchy_dict is None:
             raise Exception("The dictionary for hierarchical structure is not provided")
-        if self._type_assignments is None:
+        if self._type_ast is None:
             raise Exception("The type model has not been trained yet")
+        prob = self._type_ast.get_assignment()
         hier_df = pd.DataFrame()
         for key, cells in self._hierarchy_dict.items():
-            hier_df[key] = self._type_assignments[cells].sum(axis=1)
+            hier_df[key] = prob[cells].sum(axis=1)
         return hier_df
 
     def type_clustermap(
@@ -682,15 +665,13 @@ class Astir:
             raise Exception("The state model has not been trained yet")
         return self._state_ast.get_losses()
 
-    def type_to_csv(self, output_csv: str) -> None:
+    def type_to_csv(self, output_csv: str, threshold: float=0.7) -> None:
         """Save the cell type assignemnt to a `csv` file.
 
         :param output_csv: name for the output .csv file
         :type output_csv: str
         """
-        if self._type_assignments is None:
-            raise Exception("The type model has not been trained yet")
-        self._type_assignments.to_csv(output_csv)
+        self.get_celltypes(threshold).to_csv(output_csv)
 
     def state_to_csv(self, output_csv: str) -> None:
         """ Writes state assignment output from training state model in csv

@@ -302,16 +302,6 @@ class CellTypeModel(AstirModel):
         g = pd.DataFrame(self._recog.forward(exprs_X).detach().cpu().numpy())
         return g
 
-    def get_assignment(self) -> np.array:
-        """Get the final assignment of the dataset.
-
-        :return: the final assignment of the dataset
-        :rtype: np.array
-        """
-        if self._assignment is None:
-            raise Exception("The type model has not been trained yet")
-        return self._assignment
-
     def get_recognet(self) -> TypeRecognitionNet:
         """ Getter for the recognition net.
 
