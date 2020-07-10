@@ -432,6 +432,35 @@ class TestAstir(TestCase):
         actual_assignment = self.a.assign_celltype_hierarchy()
         self.assertTrue((expected_assignment == actual_assignment).all().all())
 
+    def test_hdf5_load(self):
+        hdf5_summary = "celltype_summary.hdf5"
+        orig_ast = Astir(self.expr, self.marker_dict)
+        orig_ast.fit_type(max_epochs=5, n_init=1, n_init_epochs=1)
+        orig_ast.fit_state(max_epochs=5, n_init=1, n_init_epochs=1)
+        orig_ast.save_models(hdf5_summary)
+        new_ast = Astir()
+        new_ast.load_model(hdf5_summary)
+
+        orig_type_run_info = orig_ast.get_type_run_info()
+        orig_state_run_info = orig_ast.get_state_run_info()
+        new_type_run_info = new_ast.get_type_run_info()
+        new_state_run_info = new_ast.get_state_run_info()
+        for key, val in orig_type_run_info.items():
+            if val != new_type_run_info[key]:
+                raise AssertionError("variable " + key + 
+                    " is different in original model and loaded model")
+        for key, val in orig_state_run_info.items():
+            if val != new_state_run_info[key]:
+                raise AssertionError("variable " + key + 
+                    " is different in original model and loaded model")
+
+        orig_type_losses = orig_ast.get_type_losses()
+        orig_state_losses = orig_ast.get_state_losses()
+        new_type_losses = new_ast.get_type_losses()
+        new_state_losses = new_ast.get_state_losses()
+        if not (all(orig_type_losses == new_type_losses) and all(orig_state_losses == new_state_losses)):
+            raise AssertionError("loss is different in original model and loaded model")
+
     # def test_make_html(self):
     #     path = os.path.dirname(os.path.realpath(__file__)) + "/../../docs"
     #     cmd = ["make", "html"]

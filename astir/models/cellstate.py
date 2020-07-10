@@ -14,6 +14,8 @@ from .cellstate_recognet import StateRecognitionNet
 from tqdm import trange
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
+import h5py
+from collections import OrderedDict
 
 
 class CellStateModel(AstirModel):
@@ -51,7 +53,8 @@ class CellStateModel(AstirModel):
 
         self._optimizer = None
         self._losses = torch.empty(0, dtype=self._dtype)
-        self._param_init(const, dropout_rate, batch_norm)
+        if self._dset is not None:
+            self._param_init(const, dropout_rate, batch_norm)
 
         # Convergence flag
         self._is_converged = False
@@ -88,6 +91,37 @@ class CellStateModel(AstirModel):
         self._recog = StateRecognitionNet(
             C, G, const=const, dropout_rate=dropout_rate, batch_norm=batch_norm
         ).to(device=self._device, dtype=self._dtype)
+
+    def load_hdf5(self, hdf5_name, const, dropout_rate, batch_norm):
+        self._assignment = pd.read_hdf(hdf5_name, "cellstate_model/cellstate_assignments")
+        with h5py.File(hdf5_name, "r") as f:
+            grp = f["cellstate_model"]
+            param = grp["parameters"]
+            self._variables = {"mu": torch.tensor(np.array(param["mu"])), 
+                "log_sigma": torch.tensor(np.array(param["log_sigma"])), 
+                "log_w": torch.tensor(np.array(param["log_w"]))}
+            self._data = {"rho": torch.tensor(np.array(param["rho"]))}
+            self._losses = torch.tensor(np.array(grp["losses"]["losses"]))
+
+            rec = grp["recog_net"]
+            hidden1_W = torch.tensor(np.array(rec['linear1.weight']))
+            hidden2_W = torch.tensor(np.array(rec['linear2.weight']))
+            hidden3_mu_W = torch.tensor(np.array(rec['linear3_mu.weight']))
+            hidden3_std_W = torch.tensor(np.array(rec['linear3_std.weight']))
+            state_dict = {'linear1.weight': hidden1_W, 
+                'linear1.bias': torch.tensor(np.array(rec["linear1.bias"])), 
+                'linear2.weight': hidden2_W, 
+                'linear2.bias': torch.tensor(np.array(rec["linear2.bias"])), 
+                'linear3_mu.weight': hidden3_mu_W, 
+                'linear3_mu.bias': torch.tensor(np.array(rec["linear3_mu.bias"])), 
+                'linear3_std.weight': hidden3_std_W, 
+                'linear3_std.bias': torch.tensor(np.array(rec["linear3_std.bias"]))}
+            state_dict = OrderedDict(state_dict)
+            self._recog = StateRecognitionNet(hidden3_mu_W.shape[0], hidden1_W.shape[1], 
+                const=const, dropout_rate=dropout_rate, batch_norm=batch_norm
+            ).to(device=self._device, dtype=self._dtype)
+            self._recog.load_state_dict(state_dict)
+            self._recog.eval()
 
     def _loss_fn(
         self,

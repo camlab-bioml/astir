@@ -26,6 +26,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from scipy import stats
 from collections import OrderedDict
+import h5py
 
 
 class CellTypeModel(AstirModel):
@@ -58,7 +59,7 @@ class CellTypeModel(AstirModel):
             self._recog = TypeRecognitionNet(
                 dset.get_n_classes(), dset.get_n_features()
             ).to(self._device, dtype=dtype)
-        self._param_init()
+            self._param_init()
 
     def _param_init(self) -> None:
         """ Initializes parameters and design matrices.
@@ -113,29 +114,31 @@ class CellTypeModel(AstirModel):
             self._variables[n].requires_grad = True
 
 
-    def load_hdf5(self, grp) -> None:
-        self._assignment = pd.DataFrame(np.array(grp["celltype_assignments"]))
+    def load_hdf5(self, hdf5_name) -> None:
+        self._assignment = pd.read_hdf(hdf5_name, "celltype_model/celltype_assignments")
+        with h5py.File(hdf5_name, "r") as f:
+            grp = f["celltype_model"]
+            param = grp["parameters"]
+            self._variables = {"mu": torch.tensor(np.array(param["mu"])), 
+                "log_sigma": torch.tensor(np.array(param["log_sigma"])), 
+                "log_delta": torch.tensor(np.array(param["log_delta"])), 
+                "p": torch.tensor(np.array(param["p"]))}
+            self._data = {"log_alpha": torch.tensor(np.array(param["log_alpha"])), 
+                "rho": torch.tensor(np.array(param["rho"]))}
+            self._losses = torch.tensor(np.array(grp["losses"]["losses"]))
 
-        param = grp["parameters"]
-        self._variables = {"mu": torch.tensor(np.array(param["mu"])), 
-            "log_sigma": torch.tensor(np.array(param["log_sigma"])), 
-            "log_delta": torch.tensor(np.array(param["log_delta"])), 
-            "p": torch.tensor(np.array(param["p"]))}
-        self._data = {"log_alpha": torch.tensor(np.array(param["log_alpha"])), 
-            "rho": torch.tensor(np.array(param["rho"]))}
-        self._losses = torch.tensor(np.array(grp["losses"]["losses"]))
-
-        rec = grp["recog_net"]
-        hidden1_W = torch.tensor(np.array(rec['hidden_1.weight']))
-        hidden2_W = torch.tensor(np.array(rec['hidden_2.weight']))
-        state_dict = {'hidden_1.weight': hidden1_W, 
-            'hidden_1.bias': torch.tensor(np.array(rec["hidden_1.bias"])), 
-            'hidden_2.weight': hidden2_W, 
-            'hidden_2.bias': torch.tensor(np.array(rec["hidden_2.bias"]))}
-        state_dict = OrderedDict(state_dict)
-        self._recog = TypeRecognitionNet(hidden2_W.shape[0]-1, hidden1_W.shape[1], hidden1_W.shape[0])
-        self._recog.load_state_dict(state_dict)
-        self._recog.eval()
+            rec = grp["recog_net"]
+            hidden1_W = torch.tensor(np.array(rec['hidden_1.weight']))
+            hidden2_W = torch.tensor(np.array(rec['hidden_2.weight']))
+            state_dict = {'hidden_1.weight': hidden1_W, 
+                'hidden_1.bias': torch.tensor(np.array(rec["hidden_1.bias"])), 
+                'hidden_2.weight': hidden2_W, 
+                'hidden_2.bias': torch.tensor(np.array(rec["hidden_2.bias"]))}
+            state_dict = OrderedDict(state_dict)
+            self._recog = TypeRecognitionNet(hidden2_W.shape[0]-1, hidden1_W.shape[1], hidden1_W.shape[0]
+                ).to(device=self._device, dtype=self._dtype)
+            self._recog.load_state_dict(state_dict)
+            self._recog.eval()
 
 
     # @profile

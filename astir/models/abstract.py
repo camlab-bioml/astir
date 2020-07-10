@@ -25,7 +25,7 @@ class AstirModel:
             raise NotClassifiableError(
                 "dtype must be one of torch.float32 and torch.float64."
             )
-        elif dtype != dset.get_dtype():
+        elif dset is not None and dtype != dset.get_dtype():
             raise NotClassifiableError("dtype must be the same as `dset`.")
         self._dtype = dtype
         self._data = None

@@ -340,6 +340,9 @@ class Astir:
             "n_init": n_init,
             "n_init_epochs": n_init_epochs,
             "delta_loss_batch": delta_loss_batch,
+            "const": const,
+            "dropout_rate": dropout_rate,
+            "batch_norm": batch_norm,
         }
 
     def save_models(self, hdf5_name: str = "astir_summary.hdf5") -> None:
@@ -420,11 +423,41 @@ class Astir:
             self._state_assignments.to_hdf(hdf5_name, 
                         "/cellstate_model/cellstate_assignments")
 
-    def load_model(self, hdf5_name: str, ) -> None:
+    def load_model(self, hdf5_name: str) -> None:
+        has_type = False
+        has_state = False
         with h5py.File(hdf5_name, "r") as f:
             if "celltype_model" in f.keys():
-                self._type_ast = CellTypeModel(self._type_dset, dtype=self._dtype)
-                self._type_ast.load_hdf5(f["celltype_model"])
+                run_info = f["celltype_model/run_info"]
+                self._type_run_info = {"learning_rate": float(np.array(run_info["learning_rate"])),
+                    "n_init_epochs": int(np.array(run_info["n_init_epochs"])), 
+                    "batch_size": float(np.array(run_info["batch_size"])), 
+                    "n_init": int(np.array(run_info["n_init"])), 
+                    "delta_loss": float(np.array(run_info["delta_loss"])), 
+                    "max_epochs": int(np.array(run_info["max_epochs"]))}
+                has_type = True
+            if "cellstate_model" in f.keys():
+                run_info = f["cellstate_model/run_info"]
+                const = int(np.array(run_info["const"]))
+                dropout_rate = float(np.array(run_info["dropout_rate"]))
+                batch_norm = bool(np.array(run_info["batch_norm"]))
+                self._state_run_info = {"learning_rate": float(np.array(run_info["learning_rate"])),
+                    "n_init_epochs": int(np.array(run_info["n_init_epochs"])), 
+                    "batch_size": float(np.array(run_info["batch_size"])), 
+                    "n_init": int(np.array(run_info["n_init"])), 
+                    "delta_loss": float(np.array(run_info["delta_loss"])), 
+                    "max_epochs": int(np.array(run_info["max_epochs"])), 
+                    "delta_loss_batch": int(np.array(run_info["delta_loss_batch"])), 
+                    "const": const, "dropout_rate": dropout_rate,
+                    "batch_norm": batch_norm}
+                has_state = True
+        if has_type:
+            self._type_ast = CellTypeModel(dset=self._type_dset, dtype=self._dtype, random_seed=np.random.randint(9999))
+            self._type_ast.load_hdf5(hdf5_name)
+        if has_state:
+            self._state_ast = CellStateModel(dset=self._type_dset, dtype=self._dtype, random_seed=np.random.randint(9999))
+            self._state_ast.load_hdf5(hdf5_name, const, dropout_rate, batch_norm)
+            
 
 
     def get_type_dataset(self):
