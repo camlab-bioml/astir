@@ -202,7 +202,7 @@ class Astir:
             "n_init_epochs": n_init_epochs,
         }
 
-        torch.save(self._type_ast.get_recognet().state_dict(), "statedict.pt")
+        # torch.save(self._type_ast.get_recognet().state_dict(), "statedict.pt")
 
     def fit_state(
         self,

@@ -12,11 +12,10 @@ class TypeRecognitionNet(nn.Module):
     :param hidden_size: size of hidden layers
     """
 
-    def __init__(self, C: int=None, G: int=None, hidden_size=10) -> None:
+    def __init__(self, C: int, G: int, hidden_size=10) -> None:
         super(TypeRecognitionNet, self).__init__()
-        if C is not None and G is not None:
-            self.hidden_1 = nn.Linear(G, hidden_size)
-            self.hidden_2 = nn.Linear(hidden_size, C + 1)
+        self.hidden_1 = nn.Linear(G, hidden_size)
+        self.hidden_2 = nn.Linear(hidden_size, C + 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """One forward pass.

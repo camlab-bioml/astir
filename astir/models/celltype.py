@@ -112,11 +112,9 @@ class CellTypeModel(AstirModel):
             self._variables[n] = Variable(v.clone()).to(self._device)
             self._variables[n].requires_grad = True
 
-        # print(self._recog.state_dict())
 
     def load_hdf5(self, grp) -> None:
         self._assignment = pd.DataFrame(np.array(grp["celltype_assignments"]))
-        # print("assignment: " + str(type(self._assignment)))
 
         param = grp["parameters"]
         self._variables = {"mu": torch.tensor(np.array(param["mu"])), 
@@ -126,17 +124,16 @@ class CellTypeModel(AstirModel):
         self._data = {"log_alpha": torch.tensor(np.array(param["log_alpha"])), 
             "rho": torch.tensor(np.array(param["rho"]))}
         self._losses = torch.tensor(np.array(grp["losses"]["losses"]))
-        # print(self._variables)
-        # print(self._data)
-        # print("losses: " + str(type(self._losses)))
 
         rec = grp["recog_net"]
-        # state_dict = {'hidden_1.weight': rec['hidden_1.weight'], 'hidden_1.bias': rec["hidden_1.bias"], 
-        #     'hidden_2.weight': rec['hidden_2.weight'], 'hidden_2.bias': rec["hidden_2.bias"]}
-        # state_dict = OrderedDict({})
-        state_dict = torch.load("statedict.pt")
-        print(state_dict)
-        self._recog = TypeRecognitionNet()
+        hidden1_W = torch.tensor(np.array(rec['hidden_1.weight']))
+        hidden2_W = torch.tensor(np.array(rec['hidden_2.weight']))
+        state_dict = {'hidden_1.weight': hidden1_W, 
+            'hidden_1.bias': torch.tensor(np.array(rec["hidden_1.bias"])), 
+            'hidden_2.weight': hidden2_W, 
+            'hidden_2.bias': torch.tensor(np.array(rec["hidden_2.bias"]))}
+        state_dict = OrderedDict(state_dict)
+        self._recog = TypeRecognitionNet(hidden2_W.shape[0]-1, hidden1_W.shape[1], hidden1_W.shape[0])
         self._recog.load_state_dict(state_dict)
         self._recog.eval()
 
