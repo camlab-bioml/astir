@@ -9,6 +9,7 @@ import torch
 import os
 import sys
 import rootpath
+import subprocess
 
 module_path = rootpath.detect()
 if module_path not in sys.path:
@@ -80,6 +81,14 @@ type=int, default=10)
 
 
 def run_type(args):
+    if args.design == "None":
+        args.design = None
+
+    if args.dtype == "torch.float64":
+        args.dtype = torch.float64
+    elif args.dtype == "torch.float32":
+        args.dtype = torch.float32
+    
     a = from_csv_yaml(args.expr_csv, args.marker_yaml, design_csv=args.design, random_seed=args.random_seed, dtype=args.dtype)
     a.fit_type(max_epochs = args.max_epochs,
         learning_rate = args.learning_rate,
@@ -90,6 +99,14 @@ def run_type(args):
     a.type_to_csv(args.output_csv)
 
 def run_state(args):
+    if args.design == "None":
+        args.design = None
+
+    if args.dtype == "torch.float64":
+        args.dtype = torch.float64
+    elif args.dtype == "torch.float32":
+        args.dtype = torch.float32
+    
     a = from_csv_yaml(args.expr_csv, args.marker_yaml, design_csv=args.design, random_seed=args.random_seed, dtype=args.dtype)
     a.fit_state(max_epochs = args.max_epochs,
         learning_rate = args.learning_rate,
@@ -102,15 +119,44 @@ def run_state(args):
 
 type_parser.set_defaults(func=run_type)
 state_parser.set_defaults(func=run_state)
+
+convert_parser = subparsers.add_parser("convert")
+convert_parser.add_argument("in_rds",
+                                help="input rds file",
+                                type=str)
+convert_parser.add_argument("out_csv",
+                                help="output csv file",
+                                type=str
+                            )
+convert_parser.add_argument("--assay", "-a",
+                                help="ASSAY",
+                                type=str,
+                                default="logcounts"
+                            )
+convert_parser.add_argument("--design_col",
+                                help="design column",
+                                type=str,
+                                default=None
+                            )
+convert_parser.add_argument("--design_csv",
+                                help="output design csv",
+                                type=str,
+                                default=None
+                            )
+def convert_rds(args):
+    # cmd = ["Rscript", "../astir/data/rds_reader.R", args.in_rds, 
+    #     args.out_csv, "--assay", args.assay, "--design_col", args.design_col, 
+    #     "--design_csv", args.design_csv]
+    # subprocess.call(cmd, cwd=os.getcwd())
+    # print(os.getcwd())
+    path = os.path.dirname(os.path.realpath(__file__))
+    cmd = ["Rscript", path + "/../astir/data/rds_reader.R", args.in_rds, 
+        args.out_csv, "--assay", args.assay, "--design_col", args.design_col, 
+        "--design_csv", args.design_csv]
+    subprocess.call(cmd, cwd=os.getcwd())
+convert_parser.set_defaults(func=convert_rds)
+
 args = parser.parse_args()
-
-if args.design == "None":
-    args.design = None
-
-if args.dtype == "torch.float64":
-    args.dtype = torch.float64
-elif args.dtype == "torch.float32":
-    args.dtype = torch.float32
 
 if hasattr(args, 'func'):
     args.func(args)

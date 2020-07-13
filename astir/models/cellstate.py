@@ -93,32 +93,42 @@ class CellStateModel(AstirModel):
         ).to(device=self._device, dtype=self._dtype)
 
     def load_hdf5(self, hdf5_name, const, dropout_rate, batch_norm):
-        self._assignment = pd.read_hdf(hdf5_name, "cellstate_model/cellstate_assignments")
+        self._assignment = pd.read_hdf(
+            hdf5_name, "cellstate_model/cellstate_assignments"
+        )
         with h5py.File(hdf5_name, "r") as f:
             grp = f["cellstate_model"]
             param = grp["parameters"]
-            self._variables = {"mu": torch.tensor(np.array(param["mu"])), 
-                "log_sigma": torch.tensor(np.array(param["log_sigma"])), 
-                "log_w": torch.tensor(np.array(param["log_w"]))}
+            self._variables = {
+                "mu": torch.tensor(np.array(param["mu"])),
+                "log_sigma": torch.tensor(np.array(param["log_sigma"])),
+                "log_w": torch.tensor(np.array(param["log_w"])),
+            }
             self._data = {"rho": torch.tensor(np.array(param["rho"]))}
             self._losses = torch.tensor(np.array(grp["losses"]["losses"]))
 
             rec = grp["recog_net"]
-            hidden1_W = torch.tensor(np.array(rec['linear1.weight']))
-            hidden2_W = torch.tensor(np.array(rec['linear2.weight']))
-            hidden3_mu_W = torch.tensor(np.array(rec['linear3_mu.weight']))
-            hidden3_std_W = torch.tensor(np.array(rec['linear3_std.weight']))
-            state_dict = {'linear1.weight': hidden1_W, 
-                'linear1.bias': torch.tensor(np.array(rec["linear1.bias"])), 
-                'linear2.weight': hidden2_W, 
-                'linear2.bias': torch.tensor(np.array(rec["linear2.bias"])), 
-                'linear3_mu.weight': hidden3_mu_W, 
-                'linear3_mu.bias': torch.tensor(np.array(rec["linear3_mu.bias"])), 
-                'linear3_std.weight': hidden3_std_W, 
-                'linear3_std.bias': torch.tensor(np.array(rec["linear3_std.bias"]))}
+            hidden1_W = torch.tensor(np.array(rec["linear1.weight"]))
+            hidden2_W = torch.tensor(np.array(rec["linear2.weight"]))
+            hidden3_mu_W = torch.tensor(np.array(rec["linear3_mu.weight"]))
+            hidden3_std_W = torch.tensor(np.array(rec["linear3_std.weight"]))
+            state_dict = {
+                "linear1.weight": hidden1_W,
+                "linear1.bias": torch.tensor(np.array(rec["linear1.bias"])),
+                "linear2.weight": hidden2_W,
+                "linear2.bias": torch.tensor(np.array(rec["linear2.bias"])),
+                "linear3_mu.weight": hidden3_mu_W,
+                "linear3_mu.bias": torch.tensor(np.array(rec["linear3_mu.bias"])),
+                "linear3_std.weight": hidden3_std_W,
+                "linear3_std.bias": torch.tensor(np.array(rec["linear3_std.bias"])),
+            }
             state_dict = OrderedDict(state_dict)
-            self._recog = StateRecognitionNet(hidden3_mu_W.shape[0], hidden1_W.shape[1], 
-                const=const, dropout_rate=dropout_rate, batch_norm=batch_norm
+            self._recog = StateRecognitionNet(
+                hidden3_mu_W.shape[0],
+                hidden1_W.shape[1],
+                const=const,
+                dropout_rate=dropout_rate,
+                batch_norm=batch_norm,
             ).to(device=self._device, dtype=self._dtype)
             self._recog.load_state_dict(state_dict)
             self._recog.eval()
@@ -189,15 +199,9 @@ class CellStateModel(AstirModel):
         msg: str = "",
     ) -> List[float]:
         for l in self.fit_yield_loss(
-            max_epochs,
-            learning_rate,
-            batch_size,
-            delta_loss,
-            delta_loss_batch,
-            msg,
+            max_epochs, learning_rate, batch_size, delta_loss, delta_loss_batch, msg,
         ):
             pass
-
 
     # @profile
     def fit_yield_loss(
@@ -254,7 +258,7 @@ class CellStateModel(AstirModel):
             self._dset, batch_size=min(batch_size, len(self._dset))
         )
         for ep in iterator:
-        # for ep in range(max_epochs):
+            # for ep in range(max_epochs):
             for i, (y_in, x_in, _) in enumerate(train_iterator):
                 self._optimizer.zero_grad()
 
@@ -428,4 +432,5 @@ class CellStateModel(AstirModel):
 class NotClassifiableError(RuntimeError):
     """ Raised when the input data is not classifiable.
     """
+
     pass

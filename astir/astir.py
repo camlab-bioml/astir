@@ -65,7 +65,7 @@ class Astir:
 
         self._type_dset = None
         self._state_dset = None
-    
+
         type_dict, state_dict, self._hierarchy_dict = self._sanitize_dict(marker_dict)
         if isinstance(input_expr, tuple) and len(input_expr) == 2:
             self._type_dset, self._state_dset = input_expr[0], input_expr[1]
@@ -126,25 +126,22 @@ class Astir:
         learning_rate: float = 1e-3,
         batch_size: int = 128,
         delta_loss: float = 1e-3,
-        n_init: int=5,
-        n_init_epochs: int=5
+        n_init: int = 5,
+        n_init_epochs: int = 5,
     ) -> None:
-        for l in self.fit_type_yield_loss(max_epochs,
-            learning_rate,
-            batch_size,
-            delta_loss,
-            n_init,
-            n_init_epochs):
+        for l in self.fit_type_yield_loss(
+            max_epochs, learning_rate, batch_size, delta_loss, n_init, n_init_epochs
+        ):
             pass
 
     def fit_type_yield_loss(
         self,
-        max_epochs: int=50,
-        learning_rate: float=1e-3,
-        batch_size: int=128,
-        delta_loss: float=1e-3,
-        n_init: int=5,
-        n_init_epochs: int=5
+        max_epochs: int = 50,
+        learning_rate: float = 1e-3,
+        batch_size: int = 128,
+        delta_loss: float = 1e-3,
+        n_init: int = 5,
+        n_init_epochs: int = 5,
     ) -> None:
         """Run Variational Bayes to infer cell types
 
@@ -179,8 +176,8 @@ class Astir:
         best_ind = torch.argmin(losses)
         self._type_ast = type_models[best_ind]
         for loss in self._type_ast.fit_yield_loss(
-                max_epochs, learning_rate, batch_size, delta_loss, " (final)"
-            ):
+            max_epochs, learning_rate, batch_size, delta_loss, " (final)"
+        ):
             yield loss
 
         if not self._type_ast.is_converged():
@@ -231,13 +228,13 @@ class Astir:
     # @profile
     def fit_state_yield_loss(
         self,
-        max_epochs: int=50,
-        learning_rate: float=1e-3,
-        batch_size: int=128,
-        delta_loss: float=1e-3,
-        n_init: int=5,
-        n_init_epochs: int=5,
-        delta_loss_batch: int=10,
+        max_epochs: int = 50,
+        learning_rate: float = 1e-3,
+        batch_size: int = 128,
+        delta_loss: float = 1e-3,
+        n_init: int = 5,
+        n_init_epochs: int = 5,
+        delta_loss_batch: int = 10,
         const: int = 2,
         dropout_rate: float = 0,
         batch_norm: bool = False,
@@ -291,15 +288,17 @@ class Astir:
                 delta_loss_batch=delta_loss_batch,
                 msg=" " + str(i + 1) + "/" + str(n_init),
             )
-            loss = model.get_losses()[0 : n_init_epochs]
+            loss = model.get_losses()[0:n_init_epochs]
 
             cellstate_losses.append(loss)
             cellstate_models.append(model)
 
         # print(cellstate_losses[0][-delta_loss_batch:])
         last_delta_losses_mean = np.array(
-            [float(torch.mean(losses[-delta_loss_batch:]))
-             for losses in cellstate_losses]
+            [
+                float(torch.mean(losses[-delta_loss_batch:]))
+                for losses in cellstate_losses
+            ]
         )
 
         best_model_index = int(np.argmin(last_delta_losses_mean))
@@ -399,11 +398,13 @@ class Astir:
                     info_grp[key] = val
 
         if self._type_ast is not None:
-            self._type_ast.get_assignment().to_hdf(hdf5_name, 
-                        "/celltype_model/celltype_assignments")
+            self._type_ast.get_assignment().to_hdf(
+                hdf5_name, "/celltype_model/celltype_assignments"
+            )
         if self._state_ast is not None:
-            self._state_ast.get_assignment().to_hdf(hdf5_name, 
-                        "/cellstate_model/cellstate_assignments")
+            self._state_ast.get_assignment().to_hdf(
+                hdf5_name, "/cellstate_model/cellstate_assignments"
+            )
 
     def load_model(self, hdf5_name: str) -> None:
         has_type = False
@@ -411,36 +412,47 @@ class Astir:
         with h5py.File(hdf5_name, "r") as f:
             if "celltype_model" in f.keys():
                 run_info = f["celltype_model/run_info"]
-                self._type_run_info = {"learning_rate": float(np.array(run_info["learning_rate"])),
-                    "n_init_epochs": int(np.array(run_info["n_init_epochs"])), 
-                    "batch_size": float(np.array(run_info["batch_size"])), 
-                    "n_init": int(np.array(run_info["n_init"])), 
-                    "delta_loss": float(np.array(run_info["delta_loss"])), 
-                    "max_epochs": int(np.array(run_info["max_epochs"]))}
+                self._type_run_info = {
+                    "learning_rate": float(np.array(run_info["learning_rate"])),
+                    "n_init_epochs": int(np.array(run_info["n_init_epochs"])),
+                    "batch_size": float(np.array(run_info["batch_size"])),
+                    "n_init": int(np.array(run_info["n_init"])),
+                    "delta_loss": float(np.array(run_info["delta_loss"])),
+                    "max_epochs": int(np.array(run_info["max_epochs"])),
+                }
                 has_type = True
             if "cellstate_model" in f.keys():
                 run_info = f["cellstate_model/run_info"]
                 const = int(np.array(run_info["const"]))
                 dropout_rate = float(np.array(run_info["dropout_rate"]))
                 batch_norm = bool(np.array(run_info["batch_norm"]))
-                self._state_run_info = {"learning_rate": float(np.array(run_info["learning_rate"])),
-                    "n_init_epochs": int(np.array(run_info["n_init_epochs"])), 
-                    "batch_size": float(np.array(run_info["batch_size"])), 
-                    "n_init": int(np.array(run_info["n_init"])), 
-                    "delta_loss": float(np.array(run_info["delta_loss"])), 
-                    "max_epochs": int(np.array(run_info["max_epochs"])), 
-                    "delta_loss_batch": int(np.array(run_info["delta_loss_batch"])), 
-                    "const": const, "dropout_rate": dropout_rate,
-                    "batch_norm": batch_norm}
+                self._state_run_info = {
+                    "learning_rate": float(np.array(run_info["learning_rate"])),
+                    "n_init_epochs": int(np.array(run_info["n_init_epochs"])),
+                    "batch_size": float(np.array(run_info["batch_size"])),
+                    "n_init": int(np.array(run_info["n_init"])),
+                    "delta_loss": float(np.array(run_info["delta_loss"])),
+                    "max_epochs": int(np.array(run_info["max_epochs"])),
+                    "delta_loss_batch": int(np.array(run_info["delta_loss_batch"])),
+                    "const": const,
+                    "dropout_rate": dropout_rate,
+                    "batch_norm": batch_norm,
+                }
                 has_state = True
         if has_type:
-            self._type_ast = CellTypeModel(dset=self._type_dset, dtype=self._dtype, random_seed=np.random.randint(9999))
+            self._type_ast = CellTypeModel(
+                dset=self._type_dset,
+                dtype=self._dtype,
+                random_seed=np.random.randint(9999),
+            )
             self._type_ast.load_hdf5(hdf5_name)
         if has_state:
-            self._state_ast = CellStateModel(dset=self._type_dset, dtype=self._dtype, random_seed=np.random.randint(9999))
+            self._state_ast = CellStateModel(
+                dset=self._type_dset,
+                dtype=self._dtype,
+                random_seed=np.random.randint(9999),
+            )
             self._state_ast.load_hdf5(hdf5_name, const, dropout_rate, batch_norm)
-            
-
 
     def get_type_dataset(self):
         """Get the `SCDataset` for cell type training.
@@ -665,7 +677,7 @@ class Astir:
             raise Exception("The state model has not been trained yet")
         return self._state_ast.get_losses()
 
-    def type_to_csv(self, output_csv: str, threshold: float=0.7) -> None:
+    def type_to_csv(self, output_csv: str, threshold: float = 0.7) -> None:
         """Save the cell type assignemnt to a `csv` file.
 
         :param output_csv: name for the output .csv file
