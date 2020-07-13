@@ -5,12 +5,13 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
 
 import yaml
-import os
+import os, sys
 import loompy
 import anndata
 
 import numpy as np
 import pandas as pd
+import subprocess
 
 import FlowCytometryTools
 from FlowCytometryTools import FCMeasurement
@@ -208,3 +209,8 @@ def from_fcs_yaml(
     from astir.astir import Astir
 
     return Astir(expr_df, marker_dict, random_seed, dtype)
+
+
+# def from_rds_csv(in_rds: str, out_csv: str, assay: str="logcounts",
+#     design_col: str="PCSI", design_csv: str="design.csv") -> None:
+#     cmd = ["Rscript", "rds_reader.R", ]

@@ -447,18 +447,27 @@ class TestAstir(TestCase):
         new_state_run_info = new_ast.get_state_run_info()
         for key, val in orig_type_run_info.items():
             if val != new_type_run_info[key]:
-                raise AssertionError("variable " + key + 
-                    " is different in original model and loaded model")
+                raise AssertionError(
+                    "variable "
+                    + key
+                    + " is different in original model and loaded model"
+                )
         for key, val in orig_state_run_info.items():
             if val != new_state_run_info[key]:
-                raise AssertionError("variable " + key + 
-                    " is different in original model and loaded model")
+                raise AssertionError(
+                    "variable "
+                    + key
+                    + " is different in original model and loaded model"
+                )
 
         orig_type_losses = orig_ast.get_type_losses()
         orig_state_losses = orig_ast.get_state_losses()
         new_type_losses = new_ast.get_type_losses()
         new_state_losses = new_ast.get_state_losses()
-        if not (all(orig_type_losses == new_type_losses) and all(orig_state_losses == new_state_losses)):
+        if not (
+            all(orig_type_losses == new_type_losses)
+            and all(orig_state_losses == new_state_losses)
+        ):
             raise AssertionError("loss is different in original model and loaded model")
 
     # def test_make_html(self):

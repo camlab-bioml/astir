@@ -26,8 +26,14 @@ class StateRecognitionNet(nn.Module):
     :param batch_norm: apply batch normal layers if True
     """
 
-    def __init__(self, C: int, G: int, const: int=2,
-                 dropout_rate: float=0, batch_norm: bool=False) -> None:
+    def __init__(
+        self,
+        C: int,
+        G: int,
+        const: int = 2,
+        dropout_rate: float = 0,
+        batch_norm: bool = False,
+    ) -> None:
         super(StateRecognitionNet, self).__init__()
         self.batch_norm = batch_norm
 
