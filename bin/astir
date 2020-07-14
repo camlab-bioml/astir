@@ -143,16 +143,17 @@ convert_parser.add_argument("--design_csv",
                                 type=str,
                                 default=None
                             )
+convert_parser.add_argument("--winsorize", "-w",
+                                help="percentage remaining after winsorizing",
+                                type=float,
+                                default=1.0
+                            )
+
 def convert_rds(args):
-    # cmd = ["Rscript", "../astir/data/rds_reader.R", args.in_rds, 
-    #     args.out_csv, "--assay", args.assay, "--design_col", args.design_col, 
-    #     "--design_csv", args.design_csv]
-    # subprocess.call(cmd, cwd=os.getcwd())
-    # print(os.getcwd())
     path = os.path.dirname(os.path.realpath(__file__))
     cmd = ["Rscript", path + "/../astir/data/rds_reader.R", args.in_rds, 
         args.out_csv, "--assay", args.assay, "--design_col", args.design_col, 
-        "--design_csv", args.design_csv]
+        "--design_csv", args.design_csv, "--winsorize", args.winsorize]
     subprocess.call(cmd, cwd=os.getcwd())
 convert_parser.set_defaults(func=convert_rds)
 
