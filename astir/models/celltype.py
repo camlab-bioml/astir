@@ -46,8 +46,9 @@ class CellTypeModel(AstirModel):
         dset: SCDataset = None,
         random_seed: int = 1234,
         dtype: torch.dtype = torch.float64,
+        device: torch.device = torch.device("cpu")
     ) -> None:
-        super().__init__(dset, random_seed, dtype)
+        super().__init__(dset, random_seed, dtype, device)
 
         self.losses = None  # losses after optimization
         self.cov_mat = None  # temporary -- remove

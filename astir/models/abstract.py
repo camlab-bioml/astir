@@ -12,7 +12,7 @@ class AstirModel:
         `CellTypeModel` and `CellStateModel` and is not supposed to be instantiated.
     """
 
-    def __init__(self, dset: SCDataset, random_seed: int, dtype: torch.dtype) -> None:
+    def __init__(self, dset: SCDataset, random_seed: int, dtype: torch.dtype, device: torch.device = torch.device("cpu")) -> None:
 
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
@@ -34,7 +34,8 @@ class AstirModel:
         self._assignment = None
 
         self._dset = dset
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._device = device
         self._is_converged = False
 
     def get_losses(self) -> float:

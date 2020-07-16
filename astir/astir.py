@@ -60,6 +60,8 @@ class Astir:
             )
         self._dtype = dtype
 
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         self._type_ast, self._state_ast = None, None
         self._type_run_info, self._state_run_info = None, None
 
@@ -77,6 +79,7 @@ class Astir:
                     design=design,
                     include_other_column=True,
                     dtype=self._dtype,
+                    device=self._device
                 )
             if state_dict is not None:
                 self._state_dset = SCDataset(
@@ -85,6 +88,7 @@ class Astir:
                     design=design,
                     include_other_column=False,
                     dtype=self._dtype,
+                    device=self._device
                 )
 
     def _sanitize_dict(self, marker_dict: Dict[str, dict]) -> Tuple[dict, dict]:

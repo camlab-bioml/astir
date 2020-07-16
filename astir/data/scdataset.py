@@ -37,6 +37,7 @@ class SCDataset(Dataset):
         include_other_column: bool,
         design: Optional[Union[np.array, pd.DataFrame]] = None,
         dtype: torch.dtype = torch.float64,
+        device: torch.device = torch.device("cpu")
     ) -> None:
         """Initialize an SCDataset object.
         """
@@ -47,7 +48,7 @@ class SCDataset(Dataset):
         )
         self._classes = list(marker_dict.keys())
 
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._device = device
         ## sanitize features
         if len(self._classes) <= 1:
             raise NotClassifiableError(

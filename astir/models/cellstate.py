@@ -36,8 +36,9 @@ class CellStateModel(AstirModel):
         batch_norm: bool = False,
         random_seed: int = 42,
         dtype: torch.dtype = torch.float64,
+        device: torch.device = torch.device("cpu")
     ) -> None:
-        super().__init__(dset, random_seed, dtype)
+        super().__init__(dset, random_seed, dtype, device)
 
         # Setting random seeds
         self.random_seed = random_seed
@@ -48,8 +49,6 @@ class CellStateModel(AstirModel):
 
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
-
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self._optimizer = None
         self._losses = torch.empty(0, dtype=self._dtype)
