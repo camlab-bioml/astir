@@ -36,6 +36,7 @@ class TestCellStateModel(TestCase):
             marker_dict = yaml.safe_load(stream)
 
         state_dict = marker_dict["cell_states"]
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self._dset = SCDataset(
             include_other_column=False,
@@ -43,10 +44,12 @@ class TestCellStateModel(TestCase):
             marker_dict=state_dict,
             design=None,
             dtype=torch.float32,
+            device=self._device
         )
 
         self.model = CellStateModel(
-            dset=self._dset, random_seed=42, dtype=torch.float32
+            dset=self._dset, random_seed=42, dtype=torch.float32,
+            device=self._device
         )
 
         self.model.fit(max_epochs=1)

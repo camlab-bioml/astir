@@ -41,6 +41,7 @@ class TestAstir(TestCase):
             self.marker_dict = yaml.safe_load(stream)
 
         self.a = Astir(self.expr, self.marker_dict)
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def test_basic_instance_creation(self):
         """ Tests basic instance creation
@@ -278,6 +279,7 @@ class TestAstir(TestCase):
             marker_dict=self.marker_dict["cell_states"],
             design=None,
             include_other_column=False,
+            device=self._device
         )
 
         self.a.fit_state(max_epochs=50, n_init=1)

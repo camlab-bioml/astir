@@ -49,6 +49,7 @@ class TestSCDataset(unittest.TestCase):
             marker_dict=self.state_markers,
             design=None,
             dtype=torch.float32,
+            device=self._device
         )
 
     def _expr_input_tuple(self):
@@ -139,6 +140,7 @@ class TestSCDataset(unittest.TestCase):
             marker_dict=self.type_markers,
             design=None,
             dtype=torch.float32,
+            device=self._device
         )
 
         G = self.ds.get_n_features()
@@ -177,6 +179,7 @@ class TestSCDataset(unittest.TestCase):
             marker_dict=self.state_markers,
             design=self.design,
             dtype=torch.float64,
+            device=self._device
         )
 
         expected_design = torch.from_numpy(self.design).to(
