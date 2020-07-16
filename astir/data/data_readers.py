@@ -13,8 +13,8 @@ import numpy as np
 import pandas as pd
 import subprocess
 
-import FlowCytometryTools
-from FlowCytometryTools import FCMeasurement
+# import FlowCytometryTools
+# from FlowCytometryTools import FCMeasurement
 from sklearn.preprocessing import OneHotEncoder
 import torch
 
@@ -197,18 +197,18 @@ def from_anndata_yaml(
     return Astir(df_gex, marker_dict, design, random_seed, dtype)
 
 
-def from_fcs_yaml(
-    fcs_file: str, marker_yaml: str, random_seed: int = 1234, dtype=torch.float64,
-):
-    expr_fcs = FCMeasurement(ID="astir_data", datafile=fcs_file)
-    expr_df = expr_fcs.data
+# def from_fcs_yaml(
+#     fcs_file: str, marker_yaml: str, random_seed: int = 1234, dtype=torch.float64,
+# ):
+#     expr_fcs = FCMeasurement(ID="astir_data", datafile=fcs_file)
+#     expr_df = expr_fcs.data
 
-    with open(marker_yaml, "r") as stream:
-        marker_dict = yaml.safe_load(stream)
+#     with open(marker_yaml, "r") as stream:
+#         marker_dict = yaml.safe_load(stream)
 
-    from astir.astir import Astir
+#     from astir.astir import Astir
 
-    return Astir(expr_df, marker_dict, random_seed, dtype)
+#     return Astir(expr_df, marker_dict, random_seed, dtype)
 
 
 # def from_rds_csv(in_rds: str, out_csv: str, assay: str="logcounts",
