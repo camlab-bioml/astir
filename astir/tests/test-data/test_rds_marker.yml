@@ -1,0 +1,9 @@
+cell_types:
+  Treg: 
+    - CD3
+    - CD4
+  Cytotoxic T cell: 
+    - CD3
+    - CD8
+  Macrophage: 
+    - CD14

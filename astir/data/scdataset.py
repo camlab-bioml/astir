@@ -93,7 +93,6 @@ class SCDataset(Dataset):
                     col_names[n] = self._m_features[r]
                     break
         df_input.columns = col_names
-        print(col_names)
         try:
             Y_np = df_input[self._m_features].values
             return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
