@@ -214,7 +214,7 @@ class SCDataset(Dataset):
     def get_exprs_df(self) -> pd.DataFrame:
         """ Return the expression data as a :class:`pandas.DataFrame`.
         """
-        df = pd.DataFrame(self._exprs.detach().numpy())
+        df = pd.DataFrame(self._exprs.detach().cpu().numpy())
         df.index = self.get_cell_names()
         df.columns = self.get_features()
         return df
@@ -292,7 +292,7 @@ class SCDataset(Dataset):
         """
 
         with torch.no_grad():
-            exprs = self.get_exprs().numpy()
+            exprs = self.get_exprs().cpu().numpy()
             exprs = np.arcsinh(exprs / cofactor)
             q_low = np.percentile(exprs, (percentile_lower), axis=0)
             q_high = np.percentile(exprs, (percentile_upper), axis=0)
