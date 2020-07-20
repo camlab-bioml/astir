@@ -1,9 +1,9 @@
 cell_types:
   Treg: 
-    - CD3
-    - CD4
+    - CD3.Q605
+    - CD4.PETR
   Cytotoxic T cell: 
-    - CD3
-    - CD8
+    - CD3.Q605
+    - CD8a.Q705
   Macrophage: 
-    - CD14
+    - CD14.Q800
