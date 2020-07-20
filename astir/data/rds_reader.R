@@ -1,3 +1,13 @@
+local({r <- getOption("repos")
+       r["CRAN"] <- "http://cran.r-project.org" 
+       options(repos=r)
+})
+if("argparse" %in% rownames(installed.packages()) == FALSE) {install.packages("argparse")}
+if("SingleCellExperiment" %in% rownames(installed.packages()) == FALSE) {
+  if("BiocManager" %in% rownames(installed.packages()) == FALSE) {install.packages("BiocManager")}
+  BiocManager::install("SingleCellExperiment")
+}
+
 suppressPackageStartupMessages({
   library(SingleCellExperiment)
   library(argparse)
