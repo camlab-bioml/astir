@@ -27,7 +27,7 @@ from astir.data import from_csv_yaml
 parser = argparse.ArgumentParser(description='Run astir')
 # parser.add_argument("expr_csv", help="Path to CSV expression matrix with cells as rows and proteins as columns. First column is cell ID")
 
-subparsers = parser.add_subparsers(title="Criterion", help="specify if the cells are to be classified by types or states.")
+subparsers = parser.add_subparsers(title="Criterion", help="specify if the cells are to be classified by types or states or if the user wants convert a SingleCellExperiment data.")
 type_parser = subparsers.add_parser("type")
 state_parser = subparsers.add_parser("state")
 
@@ -74,10 +74,20 @@ def parser_setup(parser):
                         default=5)
 
 parser_setup(type_parser)
+
 parser_setup(state_parser)
-state_parser.add_argument("--delta_loss_batch", "-lb",
-help="the batch size  to consider delta loss, default to 10",
-type=int, default=10)
+state_parser.add_argument("--delta_loss_batch",
+    help="the batch size  to consider delta loss, default to 10",
+    type=int, default=10)
+state_parser.add_argument("--const", "-c",
+    help="constant, default to 2",
+    type=int, default=2)
+state_parser.add_argument("--dropout_rate",
+    help="dropout rate, default to 0",
+    type=float, default=0.0)
+state_parser.add_argument("--batch_norm",
+    help="apply batch normalization if set to True, default to False",
+    type=bool, default=False)
 
 
 def run_type(args):
@@ -114,7 +124,10 @@ def run_state(args):
         delta_loss = args.delta_loss,
         n_init = args.n_init,
         n_init_epochs = args.n_init_epochs,
-        delta_loss_batch = args.delta_loss_batch)
+        delta_loss_batch = args.delta_loss_batch,
+        const=args.const,
+        dropout_rate=args.dropout_rate,
+        batch_norm=args.batch_norm)
     a.state_to_csv(args.output_csv)
 
 type_parser.set_defaults(func=run_type)
@@ -129,22 +142,22 @@ convert_parser.add_argument("out_csv",
                                 type=str
                             )
 convert_parser.add_argument("--assay", "-a",
-                                help="ASSAY",
+                                help="the assay to convert, default to logcounts",
                                 type=str,
                                 default="logcounts"
                             )
 convert_parser.add_argument("--design_col",
-                                help="design column",
+                                help="design column, default to None",
                                 type=str,
                                 default=""
                             )
 convert_parser.add_argument("--design_csv",
-                                help="output design csv",
+                                help="output design csv, default to None",
                                 type=str,
                                 default=""
                             )
 convert_parser.add_argument("--winsorize", "-w",
-                                help="the winsorize limit will be (<w>, 1-<w>)",
+                                help="the winsorize limit will be (<w>, 1-<w>), default to 0.0",
                                 type=float,
                                 default=0.0
                             )
