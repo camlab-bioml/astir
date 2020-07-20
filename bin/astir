@@ -144,9 +144,9 @@ convert_parser.add_argument("--design_csv",
                                 default=""
                             )
 convert_parser.add_argument("--winsorize", "-w",
-                                help="percentage remaining after winsorizing",
+                                help="the winsorize limit will be (<w>, 1-<w>)",
                                 type=float,
-                                default=1.0
+                                default=0.0
                             )
 
 def convert_rds(args): 

@@ -1,7 +1,6 @@
 suppressPackageStartupMessages({
   library(SingleCellExperiment)
   library(argparse)
-  library(taproom)
 })
 options(warn=-1)
 
@@ -11,14 +10,27 @@ parser$add_argument('csv_out', type='character', help='output csv file')
 parser$add_argument('--assay', type='character', help='assay')
 parser$add_argument('--design_col', type='character', help='design column')
 parser$add_argument('--design_csv', type='character', help='output design csv file')
-parser$add_argument('--winsorize', type='character', help="percentage remaining after winsorizing")
+parser$add_argument('--winsorize', type='character', help='the winsorize limit will be c(<win>, 1-<win>)')
 args <- parser$parse_args()
 
 sce <- readRDS(args$rds_in)
 
+winsorize <- function(sce,
+                      exprs_values = "logcounts",
+                      w_limits = c(0.05, 0.95)) {
+  ## Save unwinsorized expression values
+  assay(sce, paste0(exprs_values, "_unwinsorized")) <- assay(sce, exprs_values)
+  
+  assay(sce, exprs_values) <- t(apply(assay(sce, exprs_values),
+                                      1,
+                                      winsorize_one,
+                                      w_limits))
+  sce
+}
+
 win = as.numeric(args$winsorize)
 for (channel in rownames(sce)) {
-  sce[channel, ] = winsorize(sce[channel, ], exprs_values=args$assay, w_limits=c((1-win)/2, (1+win)/2))
+  sce[channel, ] = winsorize(sce[channel, ], exprs_values=args$assay, w_limits=c(win, 1-win))
 }
 
 # print(sce)
