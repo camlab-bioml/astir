@@ -18,7 +18,7 @@ astir - Automated single-cell pathology
 Getting started
 ---------------------
 
-See the full `documentation <TODO>`_ and check out the `tutorials <TODO>`_.
+See the full `documentation <https://www.camlab.ca/astir-doc/>`_ and check out the `tutorials <https://www.camlab.ca/astir-doc/tutorials/index.html>`_.
 
 
 Authors
