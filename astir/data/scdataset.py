@@ -5,7 +5,6 @@ from typing import List, Tuple, Dict, Union, Optional, Any
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-import re
 
 import warnings
 
@@ -85,15 +84,6 @@ class SCDataset(Dataset):
             data and the marker
         :return: the processed input as a torch.Tensor
         """
-        #Trim expression feature names
-        re_list = [re.compile((".*" + f + "[^0-9].*"), re.IGNORECASE) for f in self._m_features]
-        col_names = list(df_input.columns)
-        for n in range(len(col_names)):
-            for r in range(len(re_list)):
-                if re_list[r].match(col_names[n]):
-                    col_names[n] = self._m_features[r]
-                    break
-        df_input.columns = col_names
         try:
             Y_np = df_input[self._m_features].values
             return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
@@ -113,13 +103,6 @@ class SCDataset(Dataset):
             features and expression feature.
         :return: the processed input as a torch.Tensor
         """
-        #Trim expression feature names
-        re_list = [re.compile((".*" + f + "[^0-9].*"), re.IGNORECASE) for f in self._m_features]
-        for n in range(len(self._expr_features)):
-            for r in range(len(re_list)):
-                if re_list[r].match(self._expr_features[n]):
-                    self._expr_features[n] = self._m_features[r]
-                    break
         ind = [
             self._expr_features.index(name)
             for name in self._m_features
