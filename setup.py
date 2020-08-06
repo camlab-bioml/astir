@@ -49,6 +49,7 @@ setuptools.setup(
         "nbsphinx",
         "nbsphinx_link",
         "tables",
+        "typeguard"
     ],
     include_package_data=True,
     zip_safe=False,
