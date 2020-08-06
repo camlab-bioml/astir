@@ -8,7 +8,7 @@ from .celltype_recognet import TypeRecognitionNet
 import torch
 import seaborn as sns
 import re
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Optional, Generator, Union
 import warnings
 from tqdm import trange
 from torch.autograd import Variable
@@ -52,7 +52,7 @@ class CellTypeModel(AstirModel):
 
         self.losses = None  # losses after optimization
         self.cov_mat = None  # temporary -- remove
-        self._assignment = None
+        self._assignment: Optional[pd.DataFrame] = None
 
         if dset is None:
             self._recog = None
@@ -240,8 +240,8 @@ class CellTypeModel(AstirModel):
         )
 
         # Run training loop
-        losses = []
-        per = 1
+        losses: List[torch.Tensor] = []
+        per = torch.tensor(1)
 
         # Construct optimizer
         opt_params = list(self._variables.values()) + list(self._recog.parameters())
