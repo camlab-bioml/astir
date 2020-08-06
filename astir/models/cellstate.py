@@ -1,7 +1,7 @@
 """
 Cell State Model
 """
-from typing import Tuple, List, Dict, Union, Generator
+from typing import Tuple, List, Dict, Union, Generator, Optional
 import warnings
 import torch
 import numpy as np
@@ -14,10 +14,7 @@ from torch.utils.data import DataLoader
 import h5py
 from collections import OrderedDict
 
-from typeguard import typechecked
 
-
-@typechecked
 class CellStateModel(AstirModel):
     """Class to perform statistical inference to on the activation
         of states (pathways) across cells
@@ -49,14 +46,9 @@ class CellStateModel(AstirModel):
         # Setting random seeds
         self.random_seed = random_seed
         torch.manual_seed(self.random_seed)
-        torch.cuda.manual_seed_all(self.random_seed)
-        torch.cuda.manual_seed(self.random_seed)
         np.random.seed(self.random_seed)
 
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
-
-        self._optimizer = None
+        self._optimizer: Optional[torch.optim.Adam] = None
         self._losses = torch.empty(0, dtype=self._dtype)
         self.const, self.dropout_rate, self.batch_norm = const, dropout_rate,\
                                                          batch_norm
@@ -206,7 +198,6 @@ class CellStateModel(AstirModel):
 
         return mu_z, std_z, z_sample
 
-
     def fit(
         self,
         max_epochs: int = 50,
@@ -216,23 +207,6 @@ class CellStateModel(AstirModel):
         delta_loss_batch: int = 10,
         msg: str = "",
     ) -> None:
-        """ Fit """
-        for l in self.fit_yield_loss(
-            max_epochs, learning_rate, batch_size, delta_loss, delta_loss_batch, msg,
-        ):
-            pass
-        return None
-
-    # @profile
-    def fit_yield_loss(
-        self,
-        max_epochs: int = 50,
-        learning_rate: float = 1e-3,
-        batch_size: int = 128,
-        delta_loss: float = 1e-3,
-        delta_loss_batch: int = 10,
-        msg: str = "",
-    ) -> Union[Generator, None]:
         """ Runs train loops until the convergence reaches delta_loss for\
             delta_loss_batch sizes or for max_epochs number of times
 
@@ -253,18 +227,15 @@ class CellStateModel(AstirModel):
         if self._is_converged:
             return
 
-        if delta_loss_batch >= max_epochs:
-            warnings.warn("Delta loss batch size is greater than the number of epochs")
-
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
             opt_params = list(self._recog.parameters()) + list(self._variables.values())
             self._optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
+        prev_mean: Optional[float] = None
+        curr_mean: Optional[float] = None
         if self._losses.shape[0] >= delta_loss_batch:
-            prev_mean = torch.mean(self._losses[-delta_loss_batch:])
-        else:
-            prev_mean = None
+            prev_mean = torch.mean(self._losses[-delta_loss_batch:]).item()
 
         delta_cond_met = False
 
@@ -282,9 +253,11 @@ class CellStateModel(AstirModel):
             for i, (y_in, x_in, _) in enumerate(train_iterator):
                 self._optimizer.zero_grad()
 
-                mu_z, std_z, z_samples = self._forward(x_in)
+                mu_z, std_z, z_samples = self._forward(x_in.type(
+                    self._dtype).to(self._device))
 
-                loss = self._loss_fn(mu_z, std_z, z_samples, x_in)
+                loss = self._loss_fn(mu_z, std_z, z_samples, x_in.type(
+                    self._dtype).to(self._device))
 
                 loss.backward()
 
@@ -306,8 +279,6 @@ class CellStateModel(AstirModel):
                     )
                 )
                 curr_mean = torch.mean(last_ten_losses).item()
-            else:
-                curr_mean = None
 
             if prev_mean is not None:
                 curr_delta_loss = (prev_mean - curr_mean) / prev_mean
@@ -355,7 +326,8 @@ class CellStateModel(AstirModel):
             _, x_in, _ = self._dset[:]  # should be the scaled one
         else:
             _, x_in, _ = new_dset[:]
-        final_mu_z, _, _ = self._forward(x_in)
+        final_mu_z, _, _ = self._forward(x_in.type(
+                    self._dtype).to(self._device))
 
         return final_mu_z
 
