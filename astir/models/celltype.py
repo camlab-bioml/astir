@@ -221,7 +221,7 @@ class CellTypeModel(AstirModel):
         batch_size: int = 128,
         delta_loss: float = 1e-3,
         msg: str = "",
-    ) -> None:
+    ) -> Union[Generator, None]:
         """ Runs train loops until the convergence reaches delta_loss for\ 
             delta_loss_batch sizes or for max_epochs number of times
 
