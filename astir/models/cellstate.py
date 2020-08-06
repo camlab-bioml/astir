@@ -209,9 +209,34 @@ class CellStateModel(AstirModel):
     ) -> None:
         """ Runs train loops until the convergence reaches delta_loss for\
             delta_loss_batch sizes or for max_epochs number of times
-
         :param max_epochs: number of train loop iterations, defaults to 50
-        :param learning_rate: the learning rate, defaults to 0.001
+        :param learning_rate: the learning rate, defaults to 0.01
+        :param batch_size: the batch size, defaults to 128
+        :param delta_loss: stops iteration once the loss rate reaches\
+            delta_loss, defaults to 0.001
+        :param delta_loss_batch: the batch size to consider delta loss,\
+            defaults to 10
+        :param msg: iterator bar message, defaults to empty string
+        """
+        for l in self.fit_yield_loss(
+            max_epochs, learning_rate, batch_size, delta_loss, delta_loss_batch, msg,
+        ):
+            pass
+
+    # @profile
+    def fit_yield_loss(
+        self,
+        max_epochs: int = 50,
+        learning_rate: float = 1e-3,
+        batch_size: int = 128,
+        delta_loss: float = 1e-3,
+        delta_loss_batch: int = 10,
+        msg: str = "",
+    ) -> Union[Generator, None, list]:
+        """ Runs train loops until the convergence reaches delta_loss for\
+            delta_loss_batch sizes or for max_epochs number of times
+        :param max_epochs: number of train loop iterations, defaults to 50
+        :param learning_rate: the learning rate, defaults to 0.01
         :param batch_size: the batch size, defaults to 128
         :param delta_loss: stops iteration once the loss rate reaches\
             delta_loss, defaults to 0.001
@@ -225,7 +250,7 @@ class CellStateModel(AstirModel):
 
         # Returns early if the model has already converged
         if self._is_converged:
-            return
+            return losses
 
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
