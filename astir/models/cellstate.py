@@ -1,31 +1,37 @@
 """
 Cell State Model
 """
-from typing import Tuple, List, Dict, Union
+from typing import Tuple, List, Dict, Union, Generator
 import warnings
 import torch
-import torch.nn as nn
 import numpy as np
 import pandas as pd
-import yaml
 from .abstract import AstirModel
 from astir.data import SCDataset
 from .cellstate_recognet import StateRecognitionNet
 from tqdm import trange
-from torch.autograd import Variable
 from torch.utils.data import DataLoader
 import h5py
 from collections import OrderedDict
 
+from typeguard import typechecked
 
+
+@typechecked
 class CellStateModel(AstirModel):
     """Class to perform statistical inference to on the activation
         of states (pathways) across cells
 
-    :param df_gex: the input gene expression dataframe
-    :param marker_dict: the gene marker dictionary
-    :param random_seed: seed number to reproduce results, defaults to 1234
-    :param dtype: torch datatype to use in the model
+    :param dset: the input gene expression dataset, defaults to None
+    :param const: See parameter ``const`` in
+        :func:`astir.models.StateRecognitionNet`, defaults to 2
+    :param dropout_rate: See parameter ``dropout_rate`` in
+        :func:`astir.models.StateRecognitionNet`, defaults to 0
+    :param batch_norm: See parameter ``batch_norm`` in
+        :func:`astir.models.StateRecognitionNet`, defaults to False
+    :param random_seed: the random seed number to reproduce results, defaults to 42
+    :param dtype: torch datatype to use in the model, defaults to torch.float64
+    :param device: torch.device's cpu or gpu, defaults to torch.device("cpu")
     """
 
     def __init__(
@@ -52,14 +58,24 @@ class CellStateModel(AstirModel):
 
         self._optimizer = None
         self._losses = torch.empty(0, dtype=self._dtype)
+        self.const, self.dropout_rate, self.batch_norm = const, dropout_rate,\
+                                                         batch_norm
         if self._dset is not None:
-            self._param_init(const, dropout_rate, batch_norm)
+            self._param_init(self.const, self.dropout_rate, self.batch_norm)
 
         # Convergence flag
         self._is_converged = False
 
-    def _param_init(self, const, dropout_rate, batch_norm) -> None:
+    def _param_init(self, const: int, dropout_rate: float, batch_norm: bool) \
+            -> None:
         """ Initializes sets of parameters
+
+        :param const: See parameter ``const`` in
+            :meth:`astir.models.StateRecognitionNet`, defaults to 2
+        :param dropout_rate: See parameter ``dropout_rate`` in
+            :meth:`astir.models.StateRecognitionNet`, defaults to 0
+        :param batch_norm: See parameter ``batch_norm`` in
+            :meth:`astir.models.StateRecognitionNet`, defaults to False
         """
         if self._dset is None:
             raise Exception("the dataset is not provided")
@@ -76,7 +92,7 @@ class CellStateModel(AstirModel):
         d = torch.distributions.Uniform(
             torch.tensor(0.0, dtype=self._dtype), torch.tensor(1.5, dtype=self._dtype)
         )
-        initializations["log_w"] = torch.log(d.sample((C, self._dset.get_n_features())))
+        initializations["log_w"] = torch.log(d.sample((C, G)))
 
         self._variables = {
             n: i.to(self._device).detach().clone().requires_grad_()
@@ -91,7 +107,11 @@ class CellStateModel(AstirModel):
             C, G, const=const, dropout_rate=dropout_rate, batch_norm=batch_norm
         ).to(device=self._device, dtype=self._dtype)
 
-    def load_hdf5(self, hdf5_name, const, dropout_rate, batch_norm):
+    def load_hdf5(self, hdf5_name: str) -> None:
+        """ Sets up Cell Type Model from a hdf5 file type
+
+        :param hdf5_name: file path
+        """
         self._assignment = pd.read_hdf(
             hdf5_name, "cellstate_model/cellstate_assignments"
         )
@@ -125,9 +145,9 @@ class CellStateModel(AstirModel):
             self._recog = StateRecognitionNet(
                 hidden3_mu_W.shape[0],
                 hidden1_W.shape[1],
-                const=const,
-                dropout_rate=dropout_rate,
-                batch_norm=batch_norm,
+                const=self.const,
+                dropout_rate=self.dropout_rate,
+                batch_norm=self.batch_norm,
             ).to(device=self._device, dtype=self._dtype)
             self._recog.load_state_dict(state_dict)
             self._recog.eval()
@@ -145,7 +165,6 @@ class CellStateModel(AstirModel):
         :param std_z: the predicted standard deviation of z
         :param z_sample: the sampled z values
         :param y_in: the input data
-
         :return: the loss
         """
         S = y_in.shape[0]
@@ -177,7 +196,6 @@ class CellStateModel(AstirModel):
         """ One forward pass
 
         :param Y: dataset to do forward pass on
-
         :return: mu_z, std_z, z_sample
         """
         mu_z, std_z = self._recog(Y)
@@ -188,6 +206,7 @@ class CellStateModel(AstirModel):
 
         return mu_z, std_z, z_sample
 
+
     def fit(
         self,
         max_epochs: int = 50,
@@ -196,11 +215,13 @@ class CellStateModel(AstirModel):
         delta_loss: float = 1e-3,
         delta_loss_batch: int = 10,
         msg: str = "",
-    ) -> List[float]:
+    ) -> None:
+        """ Fit """
         for l in self.fit_yield_loss(
             max_epochs, learning_rate, batch_size, delta_loss, delta_loss_batch, msg,
         ):
             pass
+        return None
 
     # @profile
     def fit_yield_loss(
@@ -211,12 +232,12 @@ class CellStateModel(AstirModel):
         delta_loss: float = 1e-3,
         delta_loss_batch: int = 10,
         msg: str = "",
-    ) -> List[float]:
+    ) -> Union[Generator, None]:
         """ Runs train loops until the convergence reaches delta_loss for\
             delta_loss_batch sizes or for max_epochs number of times
 
         :param max_epochs: number of train loop iterations, defaults to 50
-        :param learning_rate: the learning rate, defaults to 0.01
+        :param learning_rate: the learning rate, defaults to 0.001
         :param batch_size: the batch size, defaults to 128
         :param delta_loss: stops iteration once the loss rate reaches\
             delta_loss, defaults to 0.001
@@ -230,7 +251,7 @@ class CellStateModel(AstirModel):
 
         # Returns early if the model has already converged
         if self._is_converged:
-            return losses
+            return
 
         if delta_loss_batch >= max_epochs:
             warnings.warn("Delta loss batch size is greater than the number of epochs")
@@ -316,7 +337,7 @@ class CellStateModel(AstirModel):
     def get_recognet(self) -> StateRecognitionNet:
         """ Getter for the recognition net
 
-        :return: the trained recognition net
+        :return: the recognition net
         """
         return self._recog
 
@@ -324,8 +345,8 @@ class CellStateModel(AstirModel):
         """ Returns the mean of the predicted z values for each core
 
         :param new_dset: returns the predicted z values of this dataset on
-            the existing model. If None, it predicts using the existing dataset
-
+            the existing model. If None, it predicts using the existing
+            dataset, defaults to None
         :return: the mean of the predicted z values for each core
         """
         if self._dset is None:
@@ -339,6 +360,12 @@ class CellStateModel(AstirModel):
         return final_mu_z
 
     def get_correlations(self) -> np.array:
+        """ Returns a C (# of pathways) X G (# of proteins) matrix
+        where each element represents the correlation value of the pathway
+        and the protein
+
+        :return: matrix of correlation between all pathway and protein pairs.
+        """
         state_assignment = self.get_final_mu_z().detach().cpu().numpy()
         y_in = self._dset.get_exprs()
 
@@ -357,9 +384,9 @@ class CellStateModel(AstirModel):
         return corr_mat
 
     def diagnostics(self) -> pd.DataFrame:
-        """ Run diagnostics on cell state assignments
+        """ Run diagnostics on cell type assignments
 
-        :return: diagnostics
+        See :meth:`astir.Astir.diagnostics_cellstate` for full documentation
         """
         if self._dset is None:
             raise Exception("the dataset is not provided")

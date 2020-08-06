@@ -5,7 +5,7 @@
 # cmd+P to go to file
 import os
 import re
-from typing import Tuple, List, Dict, Union
+from typing import Tuple, List, Dict, Union, Generator
 import warnings
 
 import torch
@@ -242,7 +242,7 @@ class Astir:
         const: int = 2,
         dropout_rate: float = 0,
         batch_norm: bool = False,
-    ) -> None:
+    ) -> Union[Generator, None]:
         """Run Variational Bayes to infer cell states
 
         :param max_epochs: number of epochs, defaults to `100`
@@ -338,6 +338,7 @@ class Astir:
             "dropout_rate": dropout_rate,
             "batch_norm": batch_norm,
         }
+        return l
 
     def save_models(self, hdf5_name: str = "astir_summary.hdf5") -> None:
         """ Save the summary of this model to an `hdf5` file.
@@ -453,10 +454,14 @@ class Astir:
         if has_state:
             self._state_ast = CellStateModel(
                 dset=self._type_dset,
-                dtype=self._dtype,
+                const=const,
+                dropout_rate=dropout_rate,
+                batch_norm=batch_norm,
                 random_seed=np.random.randint(9999),
+                dtype=self._dtype,
+                device=self._device,
             )
-            self._state_ast.load_hdf5(hdf5_name, const, dropout_rate, batch_norm)
+            self._state_ast.load_hdf5(hdf5_name)
 
     def get_type_dataset(self):
         """Get the `SCDataset` for cell type training.
