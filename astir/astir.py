@@ -369,6 +369,10 @@ class Astir:
             )
 
     def load_model(self, hdf5_name: str) -> None:
+        """ Load model from hdf5 file
+
+        :param hdf5_name: the full path to file
+        """
         has_type = False
         has_state = False
         with h5py.File(hdf5_name, "r") as f:
@@ -661,6 +665,8 @@ class Astir:
         self.get_cellstates().to_csv(output_csv)
 
     def __str__(self) -> str:
+        """ String representation of Astir object
+        """
         msg = "Astir object"
         l = 0
         if self._type_dset is not None:
