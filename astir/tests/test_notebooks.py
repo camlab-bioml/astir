@@ -2,6 +2,7 @@ import unittest
 import os
 import nbformat
 import rootpath
+import warnings
 
 from nbconvert.preprocessors import ExecutePreprocessor
 
@@ -37,6 +38,7 @@ class TestNotebook(unittest.TestCase):
         self.maxDiff = None
 
     def test_for_errors(self):
+        warnings.filterwarnings("ignore")
         root_path = rootpath.detect()
         dirname = os.path.join(root_path, "docs/tutorials/notebooks")
 
@@ -47,9 +49,8 @@ class TestNotebook(unittest.TestCase):
         ]
 
         for fn in nb_names:
-            if fn.__contains__("data_loading.ipynb"):
-                _, errors = run_notebook(fn)
-                self.assertEqual(errors, [], "Unexpected error in {}".format(fn))
+            _, errors = run_notebook(fn)
+            self.assertEqual(errors, [], "Unexpected error in {}".format(fn))
 
 
 if __name__ == "__main__":
