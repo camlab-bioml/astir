@@ -151,7 +151,7 @@ class CellTypeModel(AstirModel):
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
     ) -> torch.Tensor:
-        """One forward pass.
+        """ One forward pass.
 
         :param Y: a sample from the dataset
         :param X: normalized sample data

@@ -94,7 +94,8 @@ class SCDataset(Dataset):
                 + "the classification of cell type/state."
             )
 
-    def _process_tp_input(self, in_data: Union[torch.tensor, np.array]) -> torch.Tensor:
+    def _process_tp_input(self, in_data: Union[torch.Tensor, np.array]) -> \
+            torch.Tensor:
         """Process the input as Tuple[np.array, np.array, np.array] and convert it 
             to torch.Tensor.
 
@@ -160,7 +161,8 @@ class SCDataset(Dataset):
         x = (y - self._exprs_mean) / self._exprs_std
         return y, x, self._design[idx, :]
 
-    def _fix_design(self, design: Union[np.array, pd.DataFrame]) -> torch.tensor:
+    def _fix_design(self, design: Union[np.array, pd.DataFrame]) -> \
+            torch.Tensor:
         """ Sanitize the design matrix.
 
         :param design: the unsanitized design matrix
