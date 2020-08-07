@@ -56,10 +56,14 @@ class AstirModel:
             raise Exception("the dataset is not provided")
         return self._dset
 
-    def get_data(self):
+    def get_data(self) -> Dict[str, torch.Tensor]:
+        """ Get model data
+
+        :return: data
+        """
         return self._data
 
-    def get_variables(self):
+    def get_variables(self) -> Dict[str, torch.Tensor]:
         """ Returns all variables
 
         :return: self._variables
@@ -84,11 +88,15 @@ class AstirModel:
         return self._assignment
 
     def _param_init(self) -> None:
+        """ Initializes parameters and design matrices.
+        """
         raise NotImplementedError("AbstractModel is not supposed to be instantiated.")
 
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
     ) -> torch.Tensor:
+        """ One forward pass
+        """
         raise NotImplementedError("AbstractModel is not supposed to be instantiated.")
 
     def fit(
@@ -100,6 +108,9 @@ class AstirModel:
         delta_loss_batch: int,
         msg: str,
     ) -> None:
+        """ Runs train loops until the convergence reaches delta_loss for
+        delta_loss_batch sizes or for max_epochs number of times
+        """
         raise NotImplementedError("AbstractModel is not supposed to be instantiated.")
 
 
