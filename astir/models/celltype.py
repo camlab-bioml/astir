@@ -33,12 +33,9 @@ class CellTypeModel(AstirModel):
     """Class to perform statistical inference to assign cells to cell types.
 
     :param dset: the input gene expression dataframe
-    :type dset: SCDataset
     :param random_seed: the random seed for parameter initialization, defaults to 1234
-    :type random_seed: int, optional
-    :param dtype: the data type of parameters, should be the same as `dset`, defaults to 
+    :param dtype: the data type of parameters, should be the same as `dset`, defaults to
         torch.float64
-    :type dtype: torch.dtype, optional
     """
 
     def __init__(
@@ -114,7 +111,11 @@ class CellTypeModel(AstirModel):
             self._variables[n] = Variable(v.clone()).to(self._device)
             self._variables[n].requires_grad = True
 
-    def load_hdf5(self, hdf5_name) -> None:
+    def load_hdf5(self, hdf5_name: str) -> None:
+        """ Initializes Cell Type Model from a hdf5 file type
+
+        :param hdf5_name: file path
+        """
         self._assignment = pd.read_hdf(hdf5_name, "celltype_model/celltype_assignments")
         with h5py.File(hdf5_name, "r") as f:
             grp = f["celltype_model"]
@@ -147,21 +148,15 @@ class CellTypeModel(AstirModel):
             self._recog.load_state_dict(state_dict)
             self._recog.eval()
 
-    # @profile
-    ## Declare pytorch forward fn
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
     ) -> torch.Tensor:
-        """One forward pass.
+        """ One forward pass.
 
         :param Y: a sample from the dataset
-        :type Y: torch.Tensor
         :param X: normalized sample data
-        :type X: torch.Tensor
         :param design: the corresponding row of design matrix
-        :type design: torch.Tensor
         :return: the cost (elbo) of the current pass
-        :rtype: torch.Tensor
         """
         if self._dset is None:
             raise Exception("the dataset is not provided")
@@ -206,6 +201,7 @@ class CellTypeModel(AstirModel):
         learning_rate: float = 1e-3,
         batch_size: int = 128,
         delta_loss: float = 1e-3,
+        delta_loss_batch: int = 10,
         msg: str = "",
     ) -> None:
         """ Runs train loops until the convergence reaches delta_loss for
@@ -216,6 +212,8 @@ class CellTypeModel(AstirModel):
         :param batch_size: the batch size, defaults to 128
         :param delta_loss: stops iteration once the loss rate reaches
         delta_loss, defaults to 0.001
+        :param delta_loss_batch: the batch size to consider delta loss,\
+            defaults to 10
         :param msg: iterator bar message, defaults to empty string
         """
         if self._dset is None:
@@ -257,8 +255,7 @@ class CellTypeModel(AstirModel):
             if len(losses) > 0:
                 per = abs((loss - losses[-1]) / losses[-1])
             losses.append(loss)
-            print("Epoch: {} Loss: {}".format(ep + 1, loss))
-            # iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
+            iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
 
             if per <= delta_loss:
                 self._is_converged = True
@@ -283,9 +280,7 @@ class CellTypeModel(AstirModel):
         """Feed `new_dset` to the recognition net to get a prediction.
 
         :param new_dset: the dataset to be predicted
-        :type new_dset: pd.DataFrame
         :return: the resulting cell type assignment
-        :rtype: np.array
         """
         _, exprs_X, _ = new_dset[:]
         g = pd.DataFrame(self._recog.forward(exprs_X).detach().cpu().numpy())
@@ -304,13 +299,9 @@ class CellTypeModel(AstirModel):
         """Given a row of the assignment matrix, return the most likely cell type
 
         :param row: the row of cell assignment matrix to be evaluated
-        :type row: pd.DataFrame
         :param threshold: the higher bound of the maximun probability to classify a cell as `Unknown`
-        :type threshold: float
         :param cell_types: the names of cell types, in the same order as the features of the row
-        :type cell_types: List[str]
         :return: the most likely cell type of this cell
-        :rtype: str
         """
         row = row.values
         max_prob = np.max(row)
@@ -320,14 +311,14 @@ class CellTypeModel(AstirModel):
 
         return cell_types[np.argmax(row)]
 
-    def get_celltypes(self, threshold=0.7) -> pd.DataFrame:
-        """
-        Get the most likely cell types
+    def get_celltypes(self, threshold: float = 0.7) -> pd.DataFrame:
+        """ Get the most likely cell types
 
         A cell is assigned to a cell type if the probability is greater than threshold.
         If no cell types have a probability higher than threshold, then "Unknown" is returned
 
-        :param threshold: the probability threshold above which a cell is assigned to a cell type
+        :param threshold: the probability threshold above which a cell is
+        assigned to a cell type, defaults to 0.7
         :return: a data frame with most likely cell types for each 
         """
         type_probability = self.get_assignment()
@@ -345,11 +336,21 @@ class CellTypeModel(AstirModel):
         return cell_type_assignments
 
     def _compare_marker_between_types(
-        self, curr_type, celltype_to_compare, marker, cell_types, alpha: float = 0.05
-    ):
+        self, curr_type: np.array,
+            celltype_to_compare: np.array,
+            marker: np.array,
+            cell_types: list,
+            alpha: float = 0.05
+    ) -> Optional[dict]:
         """For a given cell type and two proteins, ensure marker
         is expressed at higher level using t-test
 
+        :param curr_type:
+        :param celltype_to_compare:
+        :param marker:
+        :param cell_types:
+        :param alpha:
+        :return:
         """
         if self._dset is None:
             raise Exception("the dataset is not provided")
@@ -390,14 +391,13 @@ class CellTypeModel(AstirModel):
         self,
         plot_name: str = "celltype_protein_cluster.png",
         threshold: float = 0.7,
-        figsize: Tuple[float, float] = (7, 5),
+        figsize: Tuple[float, float] = (7.0, 5.0),
     ) -> None:
         """Save the heatmap of protein content in cells with cell types labeled.
 
         :param plot_name: name of the plot, extension(e.g. .png or .jpg) is needed, defaults to "celltype_protein_cluster.png"
-        :type plot_name: str, optional
         :param threshold: the probability threshold above which a cell is assigned to a cell type, defaults to 0.7
-        :type threshold: float, optional
+        :param figsize: the size of the figure, defaults to (7.0, 5.0)
         """
         if self._dset is None:
             raise Exception("the dataset is not provided")

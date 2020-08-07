@@ -100,14 +100,10 @@ class Astir:
         """ Sanitizes the marker dictionary.
 
         :param marker_dict: dictionary read from the yaml file
-        :type marker_dict: Dict[str, dict]
-
         :raises NotClassifiableError: raized when the marker dictionary doesn't
              have required format
-
         :return: dictionaries, the first is the cell type dict, the second is the cell state
             dict and the third is the hierarchy dict.
-        :rtype: Tuple[dict, dict, dict]
         """
         dics = [None, None, None]
         if marker_dict is not None:
@@ -369,6 +365,10 @@ class Astir:
             )
 
     def load_model(self, hdf5_name: str) -> None:
+        """ Load model from hdf5 file
+
+        :param hdf5_name: the full path to file
+        """
         has_type = False
         has_state = False
         with h5py.File(hdf5_name, "r") as f:
@@ -420,67 +420,61 @@ class Astir:
             )
             self._state_ast.load_hdf5(hdf5_name)
 
-    def get_type_dataset(self):
-        """Get the `SCDataset` for cell type training.
+    def get_type_dataset(self) -> SCDataset:
+        """ Get the `SCDataset` for cell type training.
 
         :return: `self._type_dset`
-        :rtype: SCDataset
         """
         if self._type_dset is None:
             raise Exception("the type dataset is not provided")
         return self._type_dset
 
-    def get_state_dataset(self):
+    def get_state_dataset(self) -> SCDataset:
         """Get the `SCDataset` for cell state training.
 
         :return: `self._state_dset`
-        :rtype: SCDataset
         """
         if self._state_dset is None:
             raise Exception("the state dataset is not provided")
         return self._state_dset
 
-    def get_type_model(self):
+    def get_type_model(self) -> CellTypeModel:
         """Get the trained `CellTypeModel`.
 
         :raises Exception: raised when this function is called before the model is trained.
         :return: `self._type_ast`
-        :rtype: CellTypeModel
         """
         if self._type_ast is None:
             raise Exception("The type model has not been trained yet")
         return self._type_ast
 
-    def get_state_model(self):
+    def get_state_model(self) -> CellStateModel:
         """Get the trained `CellStateModel`.
 
         :raises Exception: raised when this function is celled before the model is trained.
         :return: `self._state_ast`
-        :rtype: CellStateModel
         """
         if self._state_ast is None:
             raise Exception("The state model has not been trained yet")
         return self._state_ast
 
-    def get_type_run_info(self):
+    def get_type_run_info(self) -> Dict[str, Union[int, float]]:
         """Get the run information (i.e. `max_epochs`, `learning_rate`,
             `batch_size`, `delta_loss`, `n_init`, `n_init_epochs`) of the cell type training.
 
         :raises Exception: raised when this function is celled before the model is trained.
         :return: `self._type_run_info`
-        :rtype: Dict[str, Optional[int, float]]
         """
         if self._type_run_info is None:
             raise Exception("The type model has not been trained yet")
         return self._type_run_info
 
-    def get_state_run_info(self):
+    def get_state_run_info(self) -> Dict[str, Union[int, float]]:
         """Get the run information (i.e. `max_epochs`, `learning_rate`, `batch_size`,
             `delta_loss`, `n_init`, `n_init_epochs`, `delta_loss_batch`) of the cell state training.
 
         :raises Exception: raised when this function is celled before the model is trained.
         :return: `self._state_run_info`
-        :rtype: Dict[str, Optional[int, float]]
         """
         if self._state_run_info is None:
             raise Exception("The state model has not been trained yet")
@@ -514,7 +508,7 @@ class Astir:
 
         return assign_rescale
 
-    def get_celltypes(self, threshold=0.7) -> pd.DataFrame:
+    def get_celltypes(self, threshold: float = 0.7) -> pd.DataFrame:
         """
         Get the most likely cell types
 
@@ -661,6 +655,8 @@ class Astir:
         self.get_cellstates().to_csv(output_csv)
 
     def __str__(self) -> str:
+        """ String representation of Astir object
+        """
         msg = "Astir object"
         l = 0
         if self._type_dset is not None:
