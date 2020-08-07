@@ -43,8 +43,8 @@ class Astir:
             Tuple[np.array, List[str], List[str]],
             Tuple[SCDataset, SCDataset],
         ] = None,
-        marker_dict: Dict[str, Dict[str, List[str]]] = None,
-        design: Union[pd.DataFrame, np.array] = None,
+        marker_dict: Optional[Dict[str, Dict[str, List[str]]]] = None,
+        design: Union[pd.DataFrame, np.array, None] = None,
         random_seed: int = 1234,
         dtype: torch.dtype = torch.float64,
     ) -> None:
@@ -128,22 +128,7 @@ class Astir:
 
         return dics
 
-    # @profile
     def fit_type(
-        self,
-        max_epochs: int = 50,
-        learning_rate: float = 1e-3,
-        batch_size: int = 128,
-        delta_loss: float = 1e-3,
-        n_init: int = 5,
-        n_init_epochs: int = 5,
-    ) -> None:
-        for l in self.fit_type_yield_loss(
-            max_epochs, learning_rate, batch_size, delta_loss, n_init, n_init_epochs
-        ):
-            pass
-
-    def fit_type_yield_loss(
         self,
         max_epochs: int = 50,
         learning_rate: float = 1e-3,
@@ -184,10 +169,9 @@ class Astir:
 
         best_ind = int(torch.argmin(losses).item())
         self._type_ast = type_models[best_ind]
-        for loss in self._type_ast.fit_yield_loss(
+        self._type_ast.fit(
             max_epochs, learning_rate, batch_size, delta_loss, " (final)"
-        ):
-            yield loss
+        )
 
         if not self._type_ast.is_converged():
             msg = (
