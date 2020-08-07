@@ -63,6 +63,9 @@ class StateRecognitionNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """ One forward pass of the StateRecognitionNet
+
+        :param x: the input to the recognition network model
+        :return: the value from the output layer of the network
         """
         # Input --linear1--> Hidden1
         x = self.linear1(x)
