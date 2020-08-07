@@ -17,8 +17,6 @@ class AstirModel:
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")
         torch.manual_seed(random_seed)
-        torch.cuda.manual_seed_all(random_seed)
-        torch.cuda.manual_seed(random_seed)
         np.random.seed(random_seed)
 
         if dtype != torch.float32 and dtype != torch.float64:

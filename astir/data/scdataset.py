@@ -181,11 +181,11 @@ class SCDataset(Dataset):
         """
         self._exprs = self._exprs / (self.get_sigma())
 
-    def get_dtype(self) -> str:
+    def get_dtype(self) -> torch.dtype:
         """Get the dtype of the `SCDataset`.
 
         :return: `self._dtype`
-        :rtype: str
+        :rtype: torch.dtype
         """
         return self._dtype
 

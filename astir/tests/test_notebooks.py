@@ -2,6 +2,7 @@ import unittest
 import os
 import nbformat
 import rootpath
+import warnings
 
 from nbconvert.preprocessors import ExecutePreprocessor
 
@@ -20,7 +21,6 @@ def run_notebook(notebook_path):
     root_path = rootpath.detect()
     path = root_path + "/docs/tutorials/notebooks"
     proc.preprocess(nb, {"metadata": {"path": path}})
-
     # Collect all errors
     errors = []
     for cell in nb.cells:
@@ -38,6 +38,7 @@ class TestNotebook(unittest.TestCase):
         self.maxDiff = None
 
     def test_for_errors(self):
+        warnings.filterwarnings("ignore")
         root_path = rootpath.detect()
         dirname = os.path.join(root_path, "docs/tutorials/notebooks")
 

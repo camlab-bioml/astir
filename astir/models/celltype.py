@@ -8,7 +8,7 @@ from .celltype_recognet import TypeRecognitionNet
 import torch
 import seaborn as sns
 import re
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Optional, Generator, Union
 import warnings
 from tqdm import trange
 from torch.autograd import Variable
@@ -52,7 +52,7 @@ class CellTypeModel(AstirModel):
 
         self.losses = None  # losses after optimization
         self.cov_mat = None  # temporary -- remove
-        self._assignment = None
+        self._assignment: Optional[pd.DataFrame] = None
 
         if dset is None:
             self._recog = None
@@ -200,7 +200,6 @@ class CellTypeModel(AstirModel):
 
         return -elbo
 
-    # @profile
     def fit(
         self,
         max_epochs: int = 50,
@@ -209,27 +208,14 @@ class CellTypeModel(AstirModel):
         delta_loss: float = 1e-3,
         msg: str = "",
     ) -> None:
-        for l in self.fit_yield_loss(
-            max_epochs, learning_rate, batch_size, delta_loss, msg
-        ):
-            pass
-
-    def fit_yield_loss(
-        self,
-        max_epochs: int = 50,
-        learning_rate: float = 1e-3,
-        batch_size: int = 128,
-        delta_loss: float = 1e-3,
-        msg: str = "",
-    ) -> None:
-        """ Runs train loops until the convergence reaches delta_loss for\ 
-            delta_loss_batch sizes or for max_epochs number of times
+        """ Runs train loops until the convergence reaches delta_loss for
+        delta_loss_batch sizes or for max_epochs number of times
 
         :param max_epochs: number of train loop iterations, defaults to 50
         :param learning_rate: the learning rate, defaults to 0.01
         :param batch_size: the batch size, defaults to 128
-        :param delta_loss: stops iteration once the loss rate reaches\ 
-            delta_loss, defaults to 0.001
+        :param delta_loss: stops iteration once the loss rate reaches
+        delta_loss, defaults to 0.001
         :param msg: iterator bar message, defaults to empty string
         """
         if self._dset is None:
@@ -240,8 +226,8 @@ class CellTypeModel(AstirModel):
         )
 
         # Run training loop
-        losses = []
-        per = 1
+        losses: List[torch.Tensor] = []
+        per = torch.tensor(1)
 
         # Construct optimizer
         opt_params = list(self._variables.values()) + list(self._recog.parameters())
@@ -272,8 +258,6 @@ class CellTypeModel(AstirModel):
                 per = abs((loss - losses[-1]) / losses[-1])
             losses.append(loss)
             iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
-
-            yield round(float(loss), 1)
 
             if per <= delta_loss:
                 self._is_converged = True
