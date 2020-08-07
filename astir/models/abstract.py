@@ -97,6 +97,7 @@ class AstirModel:
         learning_rate: float,
         batch_size: int,
         delta_loss: float,
+        delta_loss_batch: int,
         msg: str,
     ) -> None:
         raise NotImplementedError("AbstractModel is not supposed to be instantiated.")

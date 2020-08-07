@@ -53,21 +53,13 @@ class CellStateModel(AstirModel):
         self.const, self.dropout_rate, self.batch_norm = const, dropout_rate,\
                                                          batch_norm
         if self._dset is not None:
-            self._param_init(self.const, self.dropout_rate, self.batch_norm)
+            self._param_init()
 
         # Convergence flag
         self._is_converged = False
 
-    def _param_init(self, const: int, dropout_rate: float, batch_norm: bool) \
-            -> None:
+    def _param_init(self) -> None:
         """ Initializes sets of parameters
-
-        :param const: See parameter ``const`` in
-            :meth:`astir.models.StateRecognitionNet`, defaults to 2
-        :param dropout_rate: See parameter ``dropout_rate`` in
-            :meth:`astir.models.StateRecognitionNet`, defaults to 0
-        :param batch_norm: See parameter ``batch_norm`` in
-            :meth:`astir.models.StateRecognitionNet`, defaults to False
         """
         if self._dset is None:
             raise Exception("the dataset is not provided")
@@ -96,11 +88,12 @@ class CellStateModel(AstirModel):
         }
 
         self._recog = StateRecognitionNet(
-            C, G, const=const, dropout_rate=dropout_rate, batch_norm=batch_norm
+            C, G, const=self.const, dropout_rate=self.dropout_rate,
+            batch_norm=self.batch_norm
         ).to(device=self._device, dtype=self._dtype)
 
     def load_hdf5(self, hdf5_name: str) -> None:
-        """ Sets up Cell Type Model from a hdf5 file type
+        """ Initializes Cell State Model from a hdf5 file type
 
         :param hdf5_name: file path
         """
@@ -206,7 +199,7 @@ class CellStateModel(AstirModel):
         delta_loss: float = 1e-3,
         delta_loss_batch: int = 10,
         msg: str = "",
-    ) -> Union[Generator, None, list]:
+    ) -> None:
         """ Runs train loops until the convergence reaches delta_loss for\
             delta_loss_batch sizes or for max_epochs number of times
         :param max_epochs: number of train loop iterations, defaults to 50
@@ -224,7 +217,7 @@ class CellStateModel(AstirModel):
 
         # Returns early if the model has already converged
         if self._is_converged:
-            return losses
+            return
 
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
