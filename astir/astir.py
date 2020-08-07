@@ -136,7 +136,7 @@ class Astir:
         delta_loss: float = 1e-3,
         n_init: int = 5,
         n_init_epochs: int = 5,
-    ) -> Union[Generator, None]:
+    ) -> None:
         """ Run Variational Bayes to infer cell types
 
         :param max_epochs: maximum number of epochs to train

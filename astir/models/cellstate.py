@@ -206,32 +206,6 @@ class CellStateModel(AstirModel):
         delta_loss: float = 1e-3,
         delta_loss_batch: int = 10,
         msg: str = "",
-    ) -> None:
-        """ Runs train loops until the convergence reaches delta_loss for\
-            delta_loss_batch sizes or for max_epochs number of times
-        :param max_epochs: number of train loop iterations, defaults to 50
-        :param learning_rate: the learning rate, defaults to 0.01
-        :param batch_size: the batch size, defaults to 128
-        :param delta_loss: stops iteration once the loss rate reaches\
-            delta_loss, defaults to 0.001
-        :param delta_loss_batch: the batch size to consider delta loss,\
-            defaults to 10
-        :param msg: iterator bar message, defaults to empty string
-        """
-        for l in self.fit_yield_loss(
-            max_epochs, learning_rate, batch_size, delta_loss, delta_loss_batch, msg,
-        ):
-            pass
-
-    # @profile
-    def fit_yield_loss(
-        self,
-        max_epochs: int = 50,
-        learning_rate: float = 1e-3,
-        batch_size: int = 128,
-        delta_loss: float = 1e-3,
-        delta_loss_batch: int = 10,
-        msg: str = "",
     ) -> Union[Generator, None, list]:
         """ Runs train loops until the convergence reaches delta_loss for\
             delta_loss_batch sizes or for max_epochs number of times
@@ -274,7 +248,6 @@ class CellStateModel(AstirModel):
             self._dset, batch_size=min(batch_size, len(self._dset))
         )
         for ep in iterator:
-            # for ep in range(max_epochs):
             for i, (y_in, x_in, _) in enumerate(train_iterator):
                 self._optimizer.zero_grad()
 
@@ -309,7 +282,6 @@ class CellStateModel(AstirModel):
                 curr_delta_loss = (prev_mean - curr_mean) / prev_mean
                 delta_cond_met = 0 <= curr_delta_loss < delta_loss
             iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
-            yield round(losses[ep], 1)
 
             prev_mean = curr_mean
             if delta_cond_met:
