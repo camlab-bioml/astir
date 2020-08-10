@@ -91,13 +91,13 @@ class TestCodeSmells(unittest.TestCase):
         for cl_path in self.class_paths:
             root_dir = rootpath.detect()
             path = os.path.join(root_dir, cl_path)
-            print(path)
 
             process = subprocess.Popen(["mypy", path,
                                         "--ignore-missing-imports",
                                         "--no-strict-optional",
                                         "--no-implicit-optional",
-                                        "--follow-imports=skip"],
+                                        "--follow-imports=skip",
+                                        "--no-site-packages"],
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE)
 
