@@ -48,7 +48,6 @@ class CellTypeModel(AstirModel):
         super().__init__(dset, random_seed, dtype, device)
 
         self.losses = None  # losses after optimization
-        self.cov_mat = None  # temporary -- remove
         self._assignment: Optional[pd.DataFrame] = None
 
         if dset is None:
@@ -336,19 +335,19 @@ class CellTypeModel(AstirModel):
         return cell_type_assignments
 
     def _compare_marker_between_types(
-        self, curr_type: np.array,
-            celltype_to_compare: np.array,
-            marker: np.array,
-            cell_types: list,
+        self, curr_type: str,
+            celltype_to_compare: str,
+            marker: str,
+            cell_types: List[str],
             alpha: float = 0.05
     ) -> Optional[dict]:
-        """For a given cell type and two proteins, ensure marker
-        is expressed at higher level using t-test
+        """For two cell types and a protein, ensure marker
+        is expressed at higher level for curr_type than celltype_to_compare
 
-        :param curr_type:
-        :param celltype_to_compare:
-        :param marker:
-        :param cell_types:
+        :param curr_type: the cell type to assess
+        :param celltype_to_compare: all the cell types that shouldn't highly express this marker
+        :param marker: the marker protein for curr_type
+        :param cell_types: list of cell types assigned for cells
         :param alpha:
         :return:
         """
@@ -359,6 +358,8 @@ class CellTypeModel(AstirModel):
         cells_x = np.array(cell_types) == curr_type
         cells_y = np.array(cell_types) == celltype_to_compare
 
+        # x - cells whose cell types' marker protein is marker
+        # y - cells whose cell types' marker protein is not marker
         x = self._dset.get_exprs().detach().cpu().numpy()[cells_x, current_marker_ind]
         y = self._dset.get_exprs().detach().cpu().numpy()[cells_y, current_marker_ind]
 
