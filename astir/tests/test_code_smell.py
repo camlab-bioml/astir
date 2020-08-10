@@ -85,36 +85,38 @@ class TestCodeSmells(unittest.TestCase):
             self.assertTrue(no_type_hint == [], err_msg_type_hint[:-2])
             self.assertTrue(no_return_hint == [], err_msg_return_hint[:-2])
 
-    # def test_correct_return_types_and_detect_code_smells(self):
-    #     import subprocess, rootpath, os
-    #
-    #     for cl_path in self.class_paths:
-    #         root_dir = rootpath.detect()
-    #         path = os.path.join(root_dir, cl_path)
-    #
-    #         process = subprocess.Popen(["mypy", path,
-    #                                     "--ignore-missing-imports",
-    #                                     "--no-strict-optional",
-    #                                     "--no-implicit-optional",
-    #                                     "--follow-imports=skip"],
-    #                                    stdout=subprocess.PIPE,
-    #                                    stderr=subprocess.PIPE)
-    #
-    #         stdout, stderr = process.communicate()
-    #         stdout = stdout.decode("utf-8")
-    #         stderr = stderr.decode("utf-8")
-    #         output = str(stdout).split("\n")
-    #
-    #         errors = []
-    #         for line in output:
-    #             if line.__contains__("error:"):
-    #                 errors.append(line)
-    #
-    #         self.assertTrue(errors == [], "Following errors were produced by "
-    #                                       "MyPy: \n{}".format("\n".join(errors)))
-    #         self.assertTrue(stderr == "",
-    #                         "Following error were produced by MyPy: {}".format(
-    #                              stderr))
+    def test_correct_return_types_and_detect_code_smells(self):
+        import subprocess, rootpath, os
+
+        for cl_path in self.class_paths:
+            if cl_path.__contains__("cellstate_recognet.py"):
+                pass
+            root_dir = rootpath.detect()
+            path = os.path.join(root_dir, cl_path)
+
+            process = subprocess.Popen(["mypy", path,
+                                        "--ignore-missing-imports",
+                                        "--no-strict-optional",
+                                        "--no-implicit-optional",
+                                        "--follow-imports=skip"],
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+
+            stdout, stderr = process.communicate()
+            stdout = stdout.decode("utf-8")
+            stderr = stderr.decode("utf-8")
+            output = str(stdout).split("\n")
+
+            errors = []
+            for line in output:
+                if line.__contains__("error:"):
+                    errors.append(line)
+
+            self.assertTrue(errors == [], "Following errors were produced by "
+                                          "MyPy: \n{}".format("\n".join(errors)))
+            self.assertTrue(stderr == "",
+                            "Following error were produced by MyPy: {}".format(
+                                 stderr))
 
     def test_data_reader_code_smell(self):
         from typing import get_type_hints
