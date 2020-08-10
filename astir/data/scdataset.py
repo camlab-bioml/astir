@@ -149,7 +149,8 @@ class SCDataset(Dataset):
         # N
         return self._exprs.shape[0]
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: Union[slice, int]) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """ Returns the protein expression of the indexed cell on the SCDataset
         object
 

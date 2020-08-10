@@ -40,22 +40,14 @@ class CellTypeModel(AstirModel):
 
     def __init__(
         self,
-        dset: SCDataset = None,
+        dset: Optional[SCDataset] = None,
         random_seed: int = 1234,
         dtype: torch.dtype = torch.float64,
         device: torch.device = torch.device("cpu")
     ) -> None:
         super().__init__(dset, random_seed, dtype, device)
 
-        self.losses = None  # losses after optimization
-        self._assignment: Optional[pd.DataFrame] = None
-
-        if dset is None:
-            self._recog = None
-        else:
-            self._recog = TypeRecognitionNet(
-                dset.get_n_classes(), dset.get_n_features()
-            ).to(self._device, dtype=dtype)
+        if dset is not None:
             self._param_init()
 
     def _param_init(self) -> None:
@@ -66,8 +58,12 @@ class CellTypeModel(AstirModel):
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
 
+        self._recog = TypeRecognitionNet(
+            self._dset.get_n_classes(), self._dset.get_n_features()
+        ).to(self._device, dtype=self._dtype)
+
         # Establish data
-        self._data = {
+        self._data: Dict[str, torch.Tensor] = {
             "log_alpha": torch.log(torch.ones(C + 1, dtype=self._dtype) / (C + 1)).to(
                 self._device
             ),
@@ -105,7 +101,7 @@ class CellTypeModel(AstirModel):
             1,
         )
         # Create trainable variables
-        self._variables = {}
+        self._variables: Dict[str, torch.Tensor] = {}
         for (n, v) in initializations.items():
             self._variables[n] = Variable(v.clone()).to(self._device)
             self._variables[n].requires_grad = True
@@ -268,7 +264,7 @@ class CellTypeModel(AstirModel):
         self._assignment.columns = self._dset.get_classes() + ["Other"]
         self._assignment.index = self._dset.get_cell_names()
 
-        if self._losses is None:
+        if self._losses.shape[0] == 0:
             self._losses = torch.tensor(losses)
         else:
             self._losses = torch.cat(
@@ -285,12 +281,15 @@ class CellTypeModel(AstirModel):
         g = pd.DataFrame(self._recog.forward(exprs_X).detach().cpu().numpy())
         return g
 
-    def get_recognet(self) -> TypeRecognitionNet:
+    def get_recognet(self) -> Optional[TypeRecognitionNet]:
         """ Getter for the recognition net.
 
         :return: the trained recognition net
         """
-        return self._recog
+        if hasattr(self, '_recog'):
+            return self._recog
+        else:
+            return None
 
     def _most_likely_celltype(
         self, row: pd.DataFrame, threshold: float, cell_types: List[str]
@@ -365,7 +364,7 @@ class CellTypeModel(AstirModel):
 
         stat = np.NaN
         pval = np.Inf
-        note = "Only 1 cell in a type: comparison not possible"
+        note: Optional[str] = "Only 1 cell in a type: comparison not possible"
 
         if len(x) > 1 and len(y) > 1:
             tt = stats.ttest_ind(x, y)

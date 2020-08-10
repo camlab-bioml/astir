@@ -49,7 +49,6 @@ class CellStateModel(AstirModel):
         np.random.seed(self.random_seed)
 
         self._optimizer: Optional[torch.optim.Adam] = None
-        self._losses = torch.empty(0, dtype=self._dtype)
         self.const, self.dropout_rate, self.batch_norm = const, dropout_rate,\
                                                          batch_norm
         if self._dset is not None:
@@ -176,7 +175,10 @@ class CellStateModel(AstirModel):
         return loss
 
     def _forward(
-        self, Y: torch.Tensor
+        self,
+        Y: Optional[torch.Tensor],
+        X: Optional[torch.Tensor] = None,
+        design: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """ One forward pass
 
@@ -202,6 +204,7 @@ class CellStateModel(AstirModel):
     ) -> None:
         """ Runs train loops until the convergence reaches delta_loss for\
             delta_loss_batch sizes or for max_epochs number of times
+
         :param max_epochs: number of train loop iterations, defaults to 50
         :param learning_rate: the learning rate, defaults to 0.01
         :param batch_size: the batch size, defaults to 128
@@ -213,7 +216,6 @@ class CellStateModel(AstirModel):
         """
         if self._dset is None:
             raise Exception("the dataset is not provided")
-        losses = []
 
         # Returns early if the model has already converged
         if self._is_converged:
@@ -221,15 +223,9 @@ class CellStateModel(AstirModel):
 
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
-            opt_params = list(self._recog.parameters()) + list(self._variables.values())
+            opt_params = list(self._recog.parameters()) +\
+                         list(self._variables.values()) # type: ignore
             self._optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
-
-        prev_mean: Optional[float] = None
-        curr_mean: Optional[float] = None
-        if self._losses.shape[0] >= delta_loss_batch:
-            prev_mean = torch.mean(self._losses[-delta_loss_batch:]).item()
-
-        delta_cond_met = False
 
         iterator = trange(
             max_epochs,
@@ -254,41 +250,25 @@ class CellStateModel(AstirModel):
 
                 self._optimizer.step()
 
-            losses.append(loss.cpu().detach().item())
+            loss_detached = loss.cpu().detach().item()
 
-            start_index = ep - delta_loss_batch + 1
-            end_index = start_index + delta_loss_batch
-            if start_index >= 0:
-                curr_mean = sum(losses[start_index:end_index]) / len(
-                    losses[start_index:end_index]
-                )
-            elif self._losses.shape[0] >= -start_index:
-                last_ten_losses = torch.cat(
-                    (
-                        self._losses[start_index:],
-                        torch.tensor(losses[:end_index], dtype=torch.float64),
-                    )
-                )
-                curr_mean = torch.mean(last_ten_losses).item()
+            self._losses = torch.cat((self._losses,
+                                      torch.tensor([loss_detached])))
 
-            if prev_mean is not None:
+            if len(self._losses) > delta_loss_batch:
+                curr_mean = torch.mean(self._losses[-delta_loss_batch:])
+                prev_mean = torch.mean(self._losses[-delta_loss_batch-1:-1])
                 curr_delta_loss = (prev_mean - curr_mean) / prev_mean
-                delta_cond_met = 0 <= curr_delta_loss < delta_loss
-            iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
+                delta_cond_met = 0 <= curr_delta_loss.item() < delta_loss
+            else:
+                delta_cond_met = False
 
-            prev_mean = curr_mean
+            iterator.set_postfix_str("current loss: " + str(round(loss_detached, 1)))
+
             if delta_cond_met:
-                losses = losses[0 : ep + 1]
                 self._is_converged = True
                 iterator.close()
                 break
-
-        if self._losses is None:
-            self._losses = torch.tensor(losses, dtype=self._dtype)
-        else:
-            self._losses = torch.cat(
-                (self._losses, torch.tensor(losses, dtype=self._dtype))
-            )
 
         g = self.get_final_mu_z().detach().cpu().numpy()
         self._assignment = pd.DataFrame(g)
@@ -302,7 +282,8 @@ class CellStateModel(AstirModel):
         """
         return self._recog
 
-    def get_final_mu_z(self, new_dset: SCDataset = None) -> torch.Tensor:
+    def get_final_mu_z(self, new_dset: Optional[SCDataset] = None) -> \
+            torch.Tensor:
         """ Returns the mean of the predicted z values for each core
 
         :param new_dset: returns the predicted z values of this dataset on
@@ -313,7 +294,8 @@ class CellStateModel(AstirModel):
         if self._dset is None:
             raise Exception("the dataset is not provided")
         if new_dset is None:
-            _, x_in, _ = self._dset[:]  # should be the scaled one
+            _, x_in, _ = self._dset[0:len(self._dset)]  # should be the scaled
+            # one
         else:
             _, x_in, _ = new_dset[:]
         final_mu_z, _, _ = self._forward(x_in.type(
@@ -328,6 +310,9 @@ class CellStateModel(AstirModel):
 
         :return: matrix of correlation between all pathway and protein pairs.
         """
+        if self._dset is None:
+            raise Exception("No dataset input to the model")
+
         state_assignment = self.get_final_mu_z().detach().cpu().numpy()
         y_in = self._dset.get_exprs()
 
