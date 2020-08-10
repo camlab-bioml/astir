@@ -1,9 +1,9 @@
 import torch
+from torch import nn
 import torch.nn.functional as F
-import torch.nn as nn
 
 
-class TypeRecognitionNet(torch.nn.Module):
+class TypeRecognitionNet(nn.Module):
     """ Type Recognition Neural Network.
 
     :param C: number of classes
@@ -13,8 +13,8 @@ class TypeRecognitionNet(torch.nn.Module):
 
     def __init__(self, C: int, G: int, hidden_size: int = 10) -> None:
         super(TypeRecognitionNet, self).__init__()
-        self.hidden_1 = torch.nn.Linear(G, hidden_size)
-        self.hidden_2 = torch.nn.Linear(hidden_size, C + 1)
+        self.hidden_1 = nn.Linear(G, hidden_size)
+        self.hidden_2 = nn.Linear(hidden_size, C + 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """One forward pass.
