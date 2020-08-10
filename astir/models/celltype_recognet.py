@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 
 
-class TypeRecognitionNet(nn.Module):
+class TypeRecognitionNet(torch.nn.Module):
     """ Type Recognition Neural Network.
 
     :param C: number of classes
