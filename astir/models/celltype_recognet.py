@@ -13,8 +13,8 @@ class TypeRecognitionNet(nn.Module):
 
     def __init__(self, C: int, G: int, hidden_size: int = 10) -> None:
         super(TypeRecognitionNet, self).__init__()
-        self.hidden_1 = nn.Linear(G, hidden_size)
-        self.hidden_2 = nn.Linear(hidden_size, C + 1)
+        self.hidden_1 = torch.nn.Linear(G, hidden_size)
+        self.hidden_2 = torch.nn.Linear(hidden_size, C + 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """One forward pass.
