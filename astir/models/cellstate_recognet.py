@@ -4,14 +4,14 @@ State Recognition Neural Network Model
 
 import torch
 import torch.nn.functional as F
-import torch.nn as nn
+# import torch.nn as nn
 import math
 
 from typing import Tuple
 
 
 # The recognition net
-class StateRecognitionNet(nn.Module):
+class StateRecognitionNet(torch.nn.Module):
     """ State Recognition Neural Network to get mean of z and standard
     deviation of z. The neural network architecture looks like this: G ->
     const * C -> const * C -> G (for mu) or -> G (for std). With batch
@@ -39,27 +39,27 @@ class StateRecognitionNet(nn.Module):
 
         hidden_layer_size = math.ceil(const * C)
         # First hidden layer
-        self.linear1 = nn.Linear(G, hidden_layer_size).float()
-        self.dropout1 = nn.Dropout(dropout_rate)
+        self.linear1 = torch.nn.Linear(G, hidden_layer_size).float()
+        self.dropout1 = torch.nn.Dropout(dropout_rate)
 
         # Second hidden layer
-        self.linear2 = nn.Linear(hidden_layer_size, hidden_layer_size).float()
-        self.dropout2 = nn.Dropout(dropout_rate)
+        self.linear2 = torch.nn.Linear(hidden_layer_size, hidden_layer_size).float()
+        self.dropout2 = torch.nn.Dropout(dropout_rate)
 
         # Output layer for mu
-        self.linear3_mu = nn.Linear(hidden_layer_size, C).float()
-        self.dropout_mu = nn.Dropout(dropout_rate)
+        self.linear3_mu = torch.nn.Linear(hidden_layer_size, C).float()
+        self.dropout_mu = torch.nn.Dropout(dropout_rate)
 
         # Output layer for std
-        self.linear3_std = nn.Linear(hidden_layer_size, C).float()
-        self.dropout_std = nn.Dropout(dropout_rate)
+        self.linear3_std = torch.nn.Linear(hidden_layer_size, C).float()
+        self.dropout_std = torch.nn.Dropout(dropout_rate)
 
         # Batch normal layers
         if self.batch_norm:
-            self.bn1 = nn.BatchNorm1d(num_features=hidden_layer_size).float()
-            self.bn2 = nn.BatchNorm1d(num_features=hidden_layer_size).float()
-            self.bn_out_mu = nn.BatchNorm1d(num_features=C).float()
-            self.bn_out_std = nn.BatchNorm1d(num_features=C).float()
+            self.bn1 = torch.nn.BatchNorm1d(num_features=hidden_layer_size).float()
+            self.bn2 = torch.nn.BatchNorm1d(num_features=hidden_layer_size).float()
+            self.bn_out_mu = torch.nn.BatchNorm1d(num_features=C).float()
+            self.bn_out_std = torch.nn.BatchNorm1d(num_features=C).float()
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """ One forward pass of the StateRecognitionNet

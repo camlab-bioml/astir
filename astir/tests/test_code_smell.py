@@ -89,8 +89,6 @@ class TestCodeSmells(unittest.TestCase):
         import subprocess, rootpath, os
 
         for cl_path in self.class_paths:
-            if cl_path.__contains__("cellstate_recognet.py"):
-                pass
             root_dir = rootpath.detect()
             path = os.path.join(root_dir, cl_path)
 
