@@ -614,7 +614,7 @@ class Astir:
 
         return assign_rescale
 
-    def assign_celltype_hierarchy(self) -> pd.DataFrame:
+    def assign_celltype_hierarchy(self, depth: int=1) -> pd.DataFrame:
         """Get cell type assignment at a higher hierarchy according to the hierarchy provided
             in the dictionary.
 
@@ -623,15 +623,40 @@ class Astir:
         :return: probability assignment of cell type at a superstructure
         :rtype: pd.DataFrame
         """
-        if self._hierarchy_dict is None:
-            raise Exception("The dictionary for hierarchical structure is not provided")
         if self._type_ast is None:
             raise Exception("The type model has not been trained yet")
-        prob = self._type_ast.get_assignment()
+        if self._hierarchy_dict is None:
+            raise Exception("The dictionary for hierarchical structure is not provided")
+        prob = self.get_celltype_probabilities()
+        # print(prob)
         hier_df = pd.DataFrame()
-        for key, cells in self._hierarchy_dict.items():
-            hier_df[key] = prob[cells].sum(axis=1)
+        self._assign_celltype_hierarchy_helper1(hier_df, prob, self._hierarchy_dict, depth)
         return hier_df
+
+    def _assign_celltype_hierarchy_helper1(self, hier_df: Union[pd.DataFrame, str], 
+        prob: pd.DataFrame, dic: dict, depth: int=1) -> None:
+        # if isinstance(dic, list):
+        #     print(prob["epithelial(luminal)", "epithelial(basal)"])
+        #     hier_df[dic] = prob[dic].sum(axis=1)
+        # else:
+        if depth == 1:
+            for key, val in dic.items():
+                hier_df[key] = self._assign_celltype_hierarchy_helper2(prob, val)
+        else:
+            for key, cells in dic.items():
+                if isinstance(cells, list):
+                    for cell in cells:
+                        hier_df[cell] = prob[cell]
+                else:
+                    self._assign_celltype_hierarchy_helper1(hier_df, prob, cells, depth-1)
+
+    def _assign_celltype_hierarchy_helper2(self, prob: pd.DataFrame, dic: dict) -> pd.DataFrame:
+        if isinstance(dic, list):
+            return prob[dic].sum(axis=1)
+        temp_df = pd.DataFrame()
+        for key, cells in dic.items():
+            temp_df[key] = self._assign_celltype_hierarchy_helper2(prob, cells)
+        return temp_df.sum(axis=1)
 
     def type_clustermap(
         self,

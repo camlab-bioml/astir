@@ -42,13 +42,16 @@ cell_types:
     - Her2
 
 hierarchy:
-  immune:
-    - B cells
-    - T cells
-    - macrophage
-  epithelial:
-    - epithelial(basal)
-    - epithelial(luminal)
+  epithelial_cells:
+  - epithelial(luminal)
+  - epithelial(basal)
+  # - epithelial(other)
+  immune cells:
+    non-lymphocytes:
+      - macrophage
+    lymphocytes:
+      - T cells
+      - B cells
 
 
 

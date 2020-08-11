@@ -428,11 +428,13 @@ class TestAstir(TestCase):
         self.a.fit_type(max_epochs=5, n_init=1, n_init_epochs=1)
         original_assignment = self.a.get_celltype_probabilities()
         hier_dict = self.a.get_hierarchy_dict()
-        expected_assignment = pd.DataFrame()
-        for key, cells in hier_dict.items():
-            expected_assignment[key] = original_assignment[cells].sum(axis=1)
-        actual_assignment = self.a.assign_celltype_hierarchy()
-        self.assertTrue((expected_assignment == actual_assignment).all().all())
+        # expected_assignment = pd.DataFrame()
+        # for key, cells in hier_dict.items():
+        #     expected_assignment[key] = original_assignment[cells].sum(axis=1)
+        actual_assignment = self.a.assign_celltype_hierarchy(depth=3)
+        # self.assertTrue((original_assignment == actual_assignment).all().all())
+        for cell in actual_assignment.columns:
+            self.assertTrue((actual_assignment[cell] == original_assignment[cell]).all())
 
     def test_hdf5_load(self):
         hdf5_summary = "celltype_summary.hdf5"
