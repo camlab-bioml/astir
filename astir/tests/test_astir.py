@@ -434,7 +434,9 @@ class TestAstir(TestCase):
         actual_assignment = self.a.assign_celltype_hierarchy(depth=3)
         # self.assertTrue((original_assignment == actual_assignment).all().all())
         for cell in actual_assignment.columns:
-            self.assertTrue((actual_assignment[cell] == original_assignment[cell]).all())
+            self.assertTrue(
+                (actual_assignment[cell] == original_assignment[cell]).all()
+            )
 
     def test_hdf5_load(self):
         hdf5_summary = "celltype_summary.hdf5"
