@@ -298,7 +298,7 @@ class CellStateModel(AstirModel):
         if self._dset is None:
             raise Exception("the dataset is not provided")
         if new_dset is None:
-            _, x_in, _ = self._dset[0 : len(self._dset)]  # should be the scaled
+            _, x_in, _ = self._dset[:]  # should be the scaled
             # one
         else:
             _, x_in, _ = new_dset[:]
