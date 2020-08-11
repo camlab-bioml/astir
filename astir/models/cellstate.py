@@ -225,9 +225,8 @@ class CellStateModel(AstirModel):
 
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
-            opt_params = list(self._recog.parameters()) + list(
-                self._variables.values()
-            )  # type: ignore
+            opt_params = list(self._recog.parameters())
+            opt_params += list(self._variables.values())  # type: ignore
             self._optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
         iterator = trange(
