@@ -94,9 +94,6 @@ class TestCodeSmells(unittest.TestCase):
 
             process = subprocess.Popen(["mypy", path,
                                         "--ignore-missing-imports",
-                                        "--no-strict-optional",
-                                        "--no-implicit-optional",
-                                        "--follow-imports=skip",
                                         "--no-site-packages"],
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE)
