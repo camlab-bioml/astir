@@ -191,5 +191,6 @@ class TestSCDataset(unittest.TestCase):
         comp.append(self.ds.get_sigma().dtype == torch.float32)
         self.assertTrue(all(comp))
 
+
 if __name__ == "__main__":
     unittest.main()

@@ -256,9 +256,9 @@ class CellStateModel(AstirModel):
 
             loss_detached = loss.cpu().detach().item()
 
-            self._losses = torch.cat((self._losses,
-                                      torch.tensor([loss_detached],
-                                                   dtype=self._dtype)))
+            self._losses = torch.cat(
+                (self._losses, torch.tensor([loss_detached], dtype=self._dtype))
+            )
 
             if len(self._losses) > delta_loss_batch:
                 curr_mean = torch.mean(self._losses[-delta_loss_batch:])
