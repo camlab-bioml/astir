@@ -73,7 +73,6 @@ class Astir:
         self._hierarchy_dict: Optional[Dict[str, List[str]]] = None
 
         type_dict, state_dict, self._hierarchy_dict = self._sanitize_dict(marker_dict)
-        print(self._hierarchy_dict)
         if isinstance(input_expr, tuple) and len(input_expr) == 2:
             self._type_dset, self._state_dset = input_expr[0], input_expr[1]
         else:
