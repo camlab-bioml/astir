@@ -64,15 +64,17 @@ class Astir:
 
         self._type_ast: Optional[CellTypeModel] = None
         self._state_ast: Optional[CellStateModel] = None
-        self._type_run_info: Optional[dict] = None
-        self._state_run_info: Optional[dict] = None
+        self._type_run_info: dict = {}
+        self._state_run_info: dict = {}
 
         self._type_dset: Optional[SCDataset] = None
         self._state_dset: Optional[SCDataset] = None
 
-        self._hierarchy_dict: Optional[SCDataset] = None
+        self._hierarchy_dict: Optional[Dict[str, List[str]]] = None
 
-        type_dict, state_dict, self._hierarchy_dict = self._sanitize_dict(marker_dict)
+        type_dict, state_dict, self._hierarchy_dict = self._sanitize_dict(
+            marker_dict)
+        print(self._hierarchy_dict)
         if isinstance(input_expr, tuple) and len(input_expr) == 2:
             self._type_dset, self._state_dset = input_expr[0], input_expr[1]
         else:
@@ -95,7 +97,7 @@ class Astir:
                     device=self._device
                 )
 
-    def _sanitize_dict(self, marker_dict: Dict[str, dict]) \
+    def _sanitize_dict(self, marker_dict: Optional[Dict[str, Dict[str, List[str]]]]) \
             -> Union[List[None], List[dict]]:
         """ Sanitizes the marker dictionary.
 
@@ -158,7 +160,7 @@ class Astir:
                 learning_rate,
                 batch_size,
                 delta_loss,
-                " " + str(i + 1) + "/" + str(n_init),
+                msg=" " + str(i + 1) + "/" + str(n_init),
             )
 
         losses = torch.tensor([m.get_losses()[-1] for m in type_models])
@@ -166,7 +168,7 @@ class Astir:
         best_ind = int(torch.argmin(losses).item())
         self._type_ast = type_models[best_ind]
         self._type_ast.fit(
-            max_epochs, learning_rate, batch_size, delta_loss, " (final)"
+            max_epochs, learning_rate, batch_size, delta_loss, msg=" (final)"
         )
 
         if not self._type_ast.is_converged():
@@ -465,7 +467,7 @@ class Astir:
         :raises Exception: raised when this function is celled before the model is trained.
         :return: `self._type_run_info`
         """
-        if self._type_run_info is None:
+        if self._type_run_info == {}:
             raise Exception("The type model has not been trained yet")
         return self._type_run_info
 
@@ -476,7 +478,7 @@ class Astir:
         :raises Exception: raised when this function is celled before the model is trained.
         :return: `self._state_run_info`
         """
-        if self._state_run_info is None:
+        if self._state_run_info == {}:
             raise Exception("The state model has not been trained yet")
         return self._state_run_info
 
@@ -552,9 +554,17 @@ class Astir:
 
         :return: the prediction of cell state activations
         """
+        if self._state_ast is None:
+            raise Exception("The state model has not been trained yet")
+
         if not self._state_ast.is_converged():
             msg = "The state model has not been trained for enough epochs yet"
             warnings.warn(msg)
+
+        if self._state_dset is None:
+            raise NotClassifiableError(
+                "Dataset or marker for cell state classification is not provided"
+            )
 
         g = self._state_ast.get_final_mu_z(dset).detach().cpu().numpy()
 
@@ -664,7 +674,7 @@ class Astir:
             l = len(self._type_dset)
         if self._state_dset is not None:
             msg += ", " + str(self._state_dset.get_n_classes()) + " cell states"
-            l = len(self._type_dset)
+            l = len(self._state_dset)
         if l != 0:
             msg += ", " + str(l) + " cells"
         return msg

@@ -281,15 +281,12 @@ class CellTypeModel(AstirModel):
         g = pd.DataFrame(self._recog.forward(exprs_X).detach().cpu().numpy())
         return g
 
-    def get_recognet(self) -> Optional[TypeRecognitionNet]:
+    def get_recognet(self) -> TypeRecognitionNet:
         """ Getter for the recognition net.
 
         :return: the trained recognition net
         """
-        if hasattr(self, '_recog'):
-            return self._recog
-        else:
-            return None
+        return self._recog
 
     def _most_likely_celltype(
         self, row: pd.DataFrame, threshold: float, cell_types: List[str]
