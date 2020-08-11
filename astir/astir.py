@@ -596,7 +596,7 @@ class Astir:
         self._assign_celltype_hierarchy_helper1(hier_df, prob, self._hierarchy_dict, depth)
         return hier_df
 
-    def _assign_celltype_hierarchy_helper1(self, hier_df: Union[pd.DataFrame, str], 
+    def _assign_celltype_hierarchy_helper1(self, hier_df: Union[pd.DataFrame, list], 
         prob: pd.DataFrame, dic: dict, depth: int=1) -> None:
         # if isinstance(dic, list):
         #     print(prob["epithelial(luminal)", "epithelial(basal)"])
