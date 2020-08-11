@@ -50,7 +50,7 @@ setuptools.setup(
         "nbsphinx_link",
         "tables",
         "typeguard",
-        "mypy"
+        "mypy",
     ],
     include_package_data=True,
     zip_safe=False,
