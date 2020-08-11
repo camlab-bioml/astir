@@ -8,7 +8,7 @@ from .celltype_recognet import TypeRecognitionNet
 import torch
 import seaborn as sns
 import re
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Optional, Generator, Union
 import warnings
 from tqdm import trange
 from torch.autograd import Variable
@@ -33,33 +33,21 @@ class CellTypeModel(AstirModel):
     """Class to perform statistical inference to assign cells to cell types.
 
     :param dset: the input gene expression dataframe
-    :type dset: SCDataset
     :param random_seed: the random seed for parameter initialization, defaults to 1234
-    :type random_seed: int, optional
-    :param dtype: the data type of parameters, should be the same as `dset`, defaults to 
+    :param dtype: the data type of parameters, should be the same as `dset`, defaults to
         torch.float64
-    :type dtype: torch.dtype, optional
     """
 
     def __init__(
         self,
-        dset: SCDataset = None,
+        dset: Optional[SCDataset] = None,
         random_seed: int = 1234,
         dtype: torch.dtype = torch.float64,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.device("cpu"),
     ) -> None:
         super().__init__(dset, random_seed, dtype, device)
 
-        self.losses = None  # losses after optimization
-        self.cov_mat = None  # temporary -- remove
-        self._assignment = None
-
-        if dset is None:
-            self._recog = None
-        else:
-            self._recog = TypeRecognitionNet(
-                dset.get_n_classes(), dset.get_n_features()
-            ).to(self._device, dtype=dtype)
+        if dset is not None:
             self._param_init()
 
     def _param_init(self) -> None:
@@ -70,8 +58,12 @@ class CellTypeModel(AstirModel):
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
 
+        self._recog = TypeRecognitionNet(
+            self._dset.get_n_classes(), self._dset.get_n_features()
+        ).to(self._device, dtype=self._dtype)
+
         # Establish data
-        self._data = {
+        self._data: Dict[str, torch.Tensor] = {
             "log_alpha": torch.log(torch.ones(C + 1, dtype=self._dtype) / (C + 1)).to(
                 self._device
             ),
@@ -109,12 +101,16 @@ class CellTypeModel(AstirModel):
             1,
         )
         # Create trainable variables
-        self._variables = {}
+        self._variables: Dict[str, torch.Tensor] = {}
         for (n, v) in initializations.items():
             self._variables[n] = Variable(v.clone()).to(self._device)
             self._variables[n].requires_grad = True
 
-    def load_hdf5(self, hdf5_name) -> None:
+    def load_hdf5(self, hdf5_name: str) -> None:
+        """ Initializes Cell Type Model from a hdf5 file type
+
+        :param hdf5_name: file path
+        """
         self._assignment = pd.read_hdf(hdf5_name, "celltype_model/celltype_assignments")
         with h5py.File(hdf5_name, "r") as f:
             grp = f["celltype_model"]
@@ -147,21 +143,15 @@ class CellTypeModel(AstirModel):
             self._recog.load_state_dict(state_dict)
             self._recog.eval()
 
-    # @profile
-    ## Declare pytorch forward fn
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
     ) -> torch.Tensor:
-        """One forward pass.
+        """ One forward pass.
 
         :param Y: a sample from the dataset
-        :type Y: torch.Tensor
         :param X: normalized sample data
-        :type X: torch.Tensor
         :param design: the corresponding row of design matrix
-        :type design: torch.Tensor
         :return: the cost (elbo) of the current pass
-        :rtype: torch.Tensor
         """
         if self._dset is None:
             raise Exception("the dataset is not provided")
@@ -200,36 +190,25 @@ class CellTypeModel(AstirModel):
 
         return -elbo
 
-    # @profile
     def fit(
         self,
         max_epochs: int = 50,
         learning_rate: float = 1e-3,
         batch_size: int = 128,
         delta_loss: float = 1e-3,
+        delta_loss_batch: int = 10,
         msg: str = "",
     ) -> None:
-        for l in self.fit_yield_loss(
-            max_epochs, learning_rate, batch_size, delta_loss, msg
-        ):
-            pass
-
-    def fit_yield_loss(
-        self,
-        max_epochs: int = 50,
-        learning_rate: float = 1e-3,
-        batch_size: int = 128,
-        delta_loss: float = 1e-3,
-        msg: str = "",
-    ) -> None:
-        """ Runs train loops until the convergence reaches delta_loss for\ 
-            delta_loss_batch sizes or for max_epochs number of times
+        """ Runs train loops until the convergence reaches delta_loss for
+        delta_loss_batch sizes or for max_epochs number of times
 
         :param max_epochs: number of train loop iterations, defaults to 50
         :param learning_rate: the learning rate, defaults to 0.01
         :param batch_size: the batch size, defaults to 128
-        :param delta_loss: stops iteration once the loss rate reaches\ 
-            delta_loss, defaults to 0.001
+        :param delta_loss: stops iteration once the loss rate reaches
+        delta_loss, defaults to 0.001
+        :param delta_loss_batch: the batch size to consider delta loss,\
+            defaults to 10
         :param msg: iterator bar message, defaults to empty string
         """
         if self._dset is None:
@@ -240,8 +219,8 @@ class CellTypeModel(AstirModel):
         )
 
         # Run training loop
-        losses = []
-        per = 1
+        losses: List[torch.Tensor] = []
+        per = torch.tensor(1)
 
         # Construct optimizer
         opt_params = list(self._variables.values()) + list(self._recog.parameters())
@@ -273,8 +252,6 @@ class CellTypeModel(AstirModel):
             losses.append(loss)
             iterator.set_postfix_str("current loss: " + str(round(float(loss), 1)))
 
-            yield round(float(loss), 1)
-
             if per <= delta_loss:
                 self._is_converged = True
                 iterator.close()
@@ -287,7 +264,7 @@ class CellTypeModel(AstirModel):
         self._assignment.columns = self._dset.get_classes() + ["Other"]
         self._assignment.index = self._dset.get_cell_names()
 
-        if self._losses is None:
+        if self._losses.shape[0] == 0:
             self._losses = torch.tensor(losses)
         else:
             self._losses = torch.cat(
@@ -298,9 +275,7 @@ class CellTypeModel(AstirModel):
         """Feed `new_dset` to the recognition net to get a prediction.
 
         :param new_dset: the dataset to be predicted
-        :type new_dset: pd.DataFrame
         :return: the resulting cell type assignment
-        :rtype: np.array
         """
         _, exprs_X, _ = new_dset[:]
         g = pd.DataFrame(self._recog.forward(exprs_X).detach().cpu().numpy())
@@ -319,13 +294,9 @@ class CellTypeModel(AstirModel):
         """Given a row of the assignment matrix, return the most likely cell type
 
         :param row: the row of cell assignment matrix to be evaluated
-        :type row: pd.DataFrame
         :param threshold: the higher bound of the maximun probability to classify a cell as `Unknown`
-        :type threshold: float
         :param cell_types: the names of cell types, in the same order as the features of the row
-        :type cell_types: List[str]
         :return: the most likely cell type of this cell
-        :rtype: str
         """
         row = row.values
         max_prob = np.max(row)
@@ -335,14 +306,14 @@ class CellTypeModel(AstirModel):
 
         return cell_types[np.argmax(row)]
 
-    def get_celltypes(self, threshold=0.7) -> pd.DataFrame:
-        """
-        Get the most likely cell types
+    def get_celltypes(self, threshold: float = 0.7) -> pd.DataFrame:
+        """ Get the most likely cell types
 
         A cell is assigned to a cell type if the probability is greater than threshold.
         If no cell types have a probability higher than threshold, then "Unknown" is returned
 
-        :param threshold: the probability threshold above which a cell is assigned to a cell type
+        :param threshold: the probability threshold above which a cell is
+        assigned to a cell type, defaults to 0.7
         :return: a data frame with most likely cell types for each 
         """
         type_probability = self.get_assignment()
@@ -360,11 +331,22 @@ class CellTypeModel(AstirModel):
         return cell_type_assignments
 
     def _compare_marker_between_types(
-        self, curr_type, celltype_to_compare, marker, cell_types, alpha: float = 0.05
-    ):
-        """For a given cell type and two proteins, ensure marker
-        is expressed at higher level using t-test
+        self,
+        curr_type: str,
+        celltype_to_compare: str,
+        marker: str,
+        cell_types: List[str],
+        alpha: float = 0.05,
+    ) -> Optional[dict]:
+        """For two cell types and a protein, ensure marker
+        is expressed at higher level for curr_type than celltype_to_compare
 
+        :param curr_type: the cell type to assess
+        :param celltype_to_compare: all the cell types that shouldn't highly express this marker
+        :param marker: the marker protein for curr_type
+        :param cell_types: list of cell types assigned for cells
+        :param alpha:
+        :return:
         """
         if self._dset is None:
             raise Exception("the dataset is not provided")
@@ -373,12 +355,14 @@ class CellTypeModel(AstirModel):
         cells_x = np.array(cell_types) == curr_type
         cells_y = np.array(cell_types) == celltype_to_compare
 
+        # x - cells whose cell types' marker protein is marker
+        # y - cells whose cell types' marker protein is not marker
         x = self._dset.get_exprs().detach().cpu().numpy()[cells_x, current_marker_ind]
         y = self._dset.get_exprs().detach().cpu().numpy()[cells_y, current_marker_ind]
 
         stat = np.NaN
         pval = np.Inf
-        note = "Only 1 cell in a type: comparison not possible"
+        note: Optional[str] = "Only 1 cell in a type: comparison not possible"
 
         if len(x) > 1 and len(y) > 1:
             tt = stats.ttest_ind(x, y)
@@ -405,14 +389,13 @@ class CellTypeModel(AstirModel):
         self,
         plot_name: str = "celltype_protein_cluster.png",
         threshold: float = 0.7,
-        figsize: Tuple[float, float] = (7, 5),
+        figsize: Tuple[float, float] = (7.0, 5.0),
     ) -> None:
         """Save the heatmap of protein content in cells with cell types labeled.
 
         :param plot_name: name of the plot, extension(e.g. .png or .jpg) is needed, defaults to "celltype_protein_cluster.png"
-        :type plot_name: str, optional
         :param threshold: the probability threshold above which a cell is assigned to a cell type, defaults to 0.7
-        :type threshold: float, optional
+        :param figsize: the size of the figure, defaults to (7.0, 5.0)
         """
         if self._dset is None:
             raise Exception("the dataset is not provided")

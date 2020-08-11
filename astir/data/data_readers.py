@@ -5,16 +5,13 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
 
 import yaml
-import os, sys
+import os
 import loompy
 import anndata
 
 import numpy as np
 import pandas as pd
-import subprocess
 
-# import FlowCytometryTools
-# from FlowCytometryTools import FCMeasurement
 from sklearn.preprocessing import OneHotEncoder
 import torch
 
@@ -22,11 +19,11 @@ import torch
 def from_csv_yaml(
     csv_input: str,
     marker_yaml: str,
-    design_csv=None,
-    random_seed=1234,
-    dtype=torch.float64,
+    design_csv: str = None,
+    random_seed: int = 1234,
+    dtype: torch.dtype = torch.float64,
 ):
-    """Create an Astir object from an expression CSV and marker YAML
+    """ Create an Astir object from an expression CSV and marker YAML
 
     :param csv_input: Path to input csv containing expression for cells (rows) by proteins (columns). First column is 
         cell identifier, and additional column names are gene identifiers.
@@ -34,6 +31,9 @@ def from_csv_yaml(
         entries. See documention.
     :param design_csv: Path to design matrix as a CSV. Rows should be cells, and columns covariates. First column is cell 
         identifier, and additional column names are covariate identifiers.
+    :param random_seed: The random seed to be used to initialize variables,
+        defaults to 1234
+    :param dtype: datatype of the model parameters, defaults to torch.float64
     """
     df_gex = pd.read_csv(csv_input, index_col=0)
 
@@ -48,7 +48,10 @@ def from_csv_yaml(
 
 
 def from_csv_dir_yaml(
-    input_dir: str, marker_yaml: str, random_seed=1234, dtype=torch.float64,
+    input_dir: str,
+    marker_yaml: str,
+    random_seed: int = 1234,
+    dtype: torch.dtype = torch.float64,
 ):
     """Create an Astir object a directory containing multiple csv files
 
@@ -57,7 +60,10 @@ def from_csv_dir_yaml(
     :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state      
         entries. See documention.
     :param design_csv: Path to design matrix as a CSV. Rows should be cells, and columns covariates. First column is cell 
-        identifier, and additional column names are covariate identifiers.
+        identifier, and additional column names are covariate identifiers
+    :param random_seed: The random seed to be used to initialize variables,
+        defaults to 1234
+    :param dtype: datatype of the model parameters, defaults to torch.float64
     """
     # TODO: add text explaining concatenation
     # Parse the input directory
@@ -95,21 +101,25 @@ def from_loompy_yaml(
     cell_name_attr: str = "cell_name",
     batch_name_attr: str = "batch",
     random_seed: int = 1234,
-    dtype=torch.float64,
+    dtype: torch.dtype = torch.float64,
 ):
-    """Create an Astir object from a loom file and a marker yaml
+    """ Create an Astir object from a loom file and a marker yaml
 
     :param loom_file: Path to a loom file, where rows correspond to proteins and columns to cells
     :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state      
         entries. See documention.
     :param protein_name_attr: The attribute (key) in the row attributes that identifies the protein names 
-        (required to match with the marker gene information)
-    :param cell_name_attr: The attribute (key) in the column attributes that identifies the name of each cell
+        (required to match with the marker gene information), defaults to
+        protein
+    :param cell_name_attr: The attribute (key) in the column attributes that
+    identifies the name of each cell, defaults to cell_name
     :param batch_name_attr: The attribute (key) in the column attributes that identifies the batch. A design matrix
-        will be built using this (if present) using a one-hot encoding to control for batch.
-    :param random_seed: The random seed to be used to initialize variables
-
-    :returns: An object of class `astir_bash.py.Astir` using data imported from the loom files
+        will be built using this (if present) using a one-hot encoding to
+        control for batch, defaults to batch
+    :param random_seed: The random seed to be used to initialize variables,
+    defaults to 1234
+    :param dtype: datatype of the model parameters, defaults to torch.float64
+    :return: An object of class `astir_bash.py.Astir` using data imported from the loom files
     """
     # TODO: This function is memory inefficient and goes against the philosophy of loom files. Should be improved
     batch_list = None
@@ -144,9 +154,10 @@ def from_anndata_yaml(
     cell_name: str = None,
     batch_name: str = "batch",
     random_seed: int = 1234,
-    dtype=torch.float64,
+    dtype: torch.dtype = torch.float64,
 ):
-    """Create an Astir object from an :class:`anndata.Anndata` file and a marker yaml
+    """ Create an Astir object from an :class:`anndata.Anndata` file and a
+    marker yaml
 
     :param anndata_file: Path to an :class:`anndata.Anndata` `h5py` file
     :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state      
@@ -154,10 +165,12 @@ def from_anndata_yaml(
     :param protein_name: The column of `adata.var` containing protein names. If this is none, defaults to `adata.var_names`
     :param cell_name:  The column of `adata.obs` containing cell names. If this is none, defaults to `adata.obs_names`
     :param batch_name: The column of `adata.obs` containing batch names. A design matrix
-        will be built using this (if present) using a one-hot encoding to control for batch.
-    :param random_seed: The random seed to be used to initialize variables
-
-    :returns: An object of class `astir_bash.py.Astir` using data imported from the loom files
+        will be built using this (if present) using a one-hot encoding to
+        control for batch, defaults to 'batch'
+    :param random_seed: The random seed to be used to initialize variables,
+    defaults to 1234
+    :param dtype: datatype of the model parameters, defaults to torch.float64
+    :return: An object of class `astir_bash.py.Astir` using data imported from the loom files
     """
     # TODO: This function is memory inefficient and goes against the philosophy of loom files. Should be improved
     batch_list = None
@@ -195,22 +208,3 @@ def from_anndata_yaml(
     from astir.astir import Astir
 
     return Astir(df_gex, marker_dict, design, random_seed, dtype)
-
-
-# def from_fcs_yaml(
-#     fcs_file: str, marker_yaml: str, random_seed: int = 1234, dtype=torch.float64,
-# ):
-#     expr_fcs = FCMeasurement(ID="astir_data", datafile=fcs_file)
-#     expr_df = expr_fcs.data
-
-#     with open(marker_yaml, "r") as stream:
-#         marker_dict = yaml.safe_load(stream)
-
-#     from astir.astir import Astir
-
-#     return Astir(expr_df, marker_dict, random_seed, dtype)
-
-
-# def from_rds_csv(in_rds: str, out_csv: str, assay: str="logcounts",
-#     design_col: str="PCSI", design_csv: str="design.csv") -> None:
-#     cmd = ["Rscript", "rds_reader.R", ]

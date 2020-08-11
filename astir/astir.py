@@ -5,7 +5,7 @@
 # cmd+P to go to file
 import os
 import re
-from typing import Tuple, List, Dict, Union
+from typing import Tuple, List, Dict, Union, Generator, Optional
 import warnings
 
 import torch
@@ -43,8 +43,8 @@ class Astir:
             Tuple[np.array, List[str], List[str]],
             Tuple[SCDataset, SCDataset],
         ] = None,
-        marker_dict: Dict[str, Dict[str, List[str]]] = None,
-        design: Union[pd.DataFrame, np.array] = None,
+        marker_dict: Optional[Dict[str, Dict[str, List[str]]]] = None,
+        design: Union[pd.DataFrame, np.array, None] = None,
         random_seed: int = 1234,
         dtype: torch.dtype = torch.float64,
     ) -> None:
@@ -62,11 +62,15 @@ class Astir:
 
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self._type_ast, self._state_ast = None, None
-        self._type_run_info, self._state_run_info = None, None
+        self._type_ast: Optional[CellTypeModel] = None
+        self._state_ast: Optional[CellStateModel] = None
+        self._type_run_info: dict = {}
+        self._state_run_info: dict = {}
 
-        self._type_dset = None
-        self._state_dset = None
+        self._type_dset: Optional[SCDataset] = None
+        self._state_dset: Optional[SCDataset] = None
+
+        self._hierarchy_dict: Optional[Dict[str, List[str]]] = None
 
         type_dict, state_dict, self._hierarchy_dict = self._sanitize_dict(marker_dict)
         if isinstance(input_expr, tuple) and len(input_expr) == 2:
@@ -79,7 +83,7 @@ class Astir:
                     design=design,
                     include_other_column=True,
                     dtype=self._dtype,
-                    device=self._device
+                    device=self._device,
                 )
             if state_dict is not None:
                 self._state_dset = SCDataset(
@@ -88,21 +92,19 @@ class Astir:
                     design=design,
                     include_other_column=False,
                     dtype=self._dtype,
-                    device=self._device
+                    device=self._device,
                 )
 
-    def _sanitize_dict(self, marker_dict: Dict[str, dict]) -> Tuple[dict, dict]:
+    def _sanitize_dict(
+        self, marker_dict: Optional[Dict[str, Dict[str, List[str]]]]
+    ) -> Union[List[None], List[dict]]:
         """ Sanitizes the marker dictionary.
 
         :param marker_dict: dictionary read from the yaml file
-        :type marker_dict: Dict[str, dict]
-
         :raises NotClassifiableError: raized when the marker dictionary doesn't
              have required format
-
         :return: dictionaries, the first is the cell type dict, the second is the cell state
             dict and the third is the hierarchy dict.
-        :rtype: Tuple[dict, dict, dict]
         """
         dics = [None, None, None]
         if marker_dict is not None:
@@ -123,7 +125,6 @@ class Astir:
 
         return dics
 
-    # @profile
     def fit_type(
         self,
         max_epochs: int = 50,
@@ -133,21 +134,7 @@ class Astir:
         n_init: int = 5,
         n_init_epochs: int = 5,
     ) -> None:
-        for l in self.fit_type_yield_loss(
-            max_epochs, learning_rate, batch_size, delta_loss, n_init, n_init_epochs
-        ):
-            pass
-
-    def fit_type_yield_loss(
-        self,
-        max_epochs: int = 50,
-        learning_rate: float = 1e-3,
-        batch_size: int = 128,
-        delta_loss: float = 1e-3,
-        n_init: int = 5,
-        n_init_epochs: int = 5,
-    ) -> None:
-        """Run Variational Bayes to infer cell types
+        """ Run Variational Bayes to infer cell types
 
         :param max_epochs: maximum number of epochs to train
         :param learning_rate: ADAM optimizer learning rate
@@ -172,17 +159,16 @@ class Astir:
                 learning_rate,
                 batch_size,
                 delta_loss,
-                " " + str(i + 1) + "/" + str(n_init),
+                msg=" " + str(i + 1) + "/" + str(n_init),
             )
 
         losses = torch.tensor([m.get_losses()[-1] for m in type_models])
 
-        best_ind = torch.argmin(losses)
+        best_ind = int(torch.argmin(losses).item())
         self._type_ast = type_models[best_ind]
-        for loss in self._type_ast.fit_yield_loss(
-            max_epochs, learning_rate, batch_size, delta_loss, " (final)"
-        ):
-            yield loss
+        self._type_ast.fit(
+            max_epochs, learning_rate, batch_size, delta_loss, msg=" (final)"
+        )
 
         if not self._type_ast.is_converged():
             msg = (
@@ -199,38 +185,9 @@ class Astir:
             "n_init": n_init,
             "n_init_epochs": n_init_epochs,
         }
-
-        # torch.save(self._type_ast.get_recognet().state_dict(), "statedict.pt")
+        return None
 
     def fit_state(
-        self,
-        max_epochs: int = 50,
-        learning_rate: float = 1e-3,
-        batch_size: int = 128,
-        delta_loss: float = 1e-3,
-        n_init: int = 5,
-        n_init_epochs: int = 5,
-        delta_loss_batch: int = 10,
-        const: int = 2,
-        dropout_rate: float = 0,
-        batch_norm: bool = False,
-    ) -> None:
-        for l in self.fit_state_yield_loss(
-            max_epochs=max_epochs,
-            learning_rate=learning_rate,
-            batch_size=batch_size,
-            delta_loss=delta_loss,
-            n_init=n_init,
-            n_init_epochs=n_init_epochs,
-            delta_loss_batch=delta_loss_batch,
-            const=const,
-            dropout_rate=dropout_rate,
-            batch_norm=batch_norm,
-        ):
-            pass
-
-    # @profile
-    def fit_state_yield_loss(
         self,
         max_epochs: int = 50,
         learning_rate: float = 1e-3,
@@ -262,9 +219,7 @@ class Astir:
         cellstate_losses = []
 
         if delta_loss_batch >= max_epochs:
-            warnings.warn(
-                "Delta loss batch size is greater than the number " "of epochs"
-            )
+            warnings.warn("Delta loss batch size is greater than the number of epochs")
 
         if n_init_epochs > max_epochs:
             warnings.warn(
@@ -297,7 +252,6 @@ class Astir:
             cellstate_losses.append(loss)
             cellstate_models.append(model)
 
-        # print(cellstate_losses[0][-delta_loss_batch:])
         last_delta_losses_mean = np.array(
             [
                 float(torch.mean(losses[-delta_loss_batch:]))
@@ -308,15 +262,14 @@ class Astir:
         best_model_index = int(np.argmin(last_delta_losses_mean))
         self._state_ast = cellstate_models[best_model_index]
 
-        for l in self._state_ast.fit_yield_loss(
+        self._state_ast.fit(
             max_epochs=max_epochs,
             learning_rate=learning_rate,
             batch_size=batch_size,
             delta_loss=delta_loss,
             delta_loss_batch=delta_loss_batch,
             msg=" (final)",
-        ):
-            yield l
+        )
 
         # Warns the user if the model has not converged
         if not self._state_ast.is_converged():
@@ -411,6 +364,10 @@ class Astir:
             )
 
     def load_model(self, hdf5_name: str) -> None:
+        """ Load model from hdf5 file
+
+        :param hdf5_name: the full path to file
+        """
         has_type = False
         has_state = False
         with h5py.File(hdf5_name, "r") as f:
@@ -453,74 +410,72 @@ class Astir:
         if has_state:
             self._state_ast = CellStateModel(
                 dset=self._type_dset,
-                dtype=self._dtype,
+                const=const,
+                dropout_rate=dropout_rate,
+                batch_norm=batch_norm,
                 random_seed=np.random.randint(9999),
+                dtype=self._dtype,
+                device=self._device,
             )
-            self._state_ast.load_hdf5(hdf5_name, const, dropout_rate, batch_norm)
+            self._state_ast.load_hdf5(hdf5_name)
 
-    def get_type_dataset(self):
-        """Get the `SCDataset` for cell type training.
+    def get_type_dataset(self) -> SCDataset:
+        """ Get the `SCDataset` for cell type training.
 
         :return: `self._type_dset`
-        :rtype: SCDataset
         """
         if self._type_dset is None:
             raise Exception("the type dataset is not provided")
         return self._type_dset
 
-    def get_state_dataset(self):
+    def get_state_dataset(self) -> SCDataset:
         """Get the `SCDataset` for cell state training.
 
         :return: `self._state_dset`
-        :rtype: SCDataset
         """
         if self._state_dset is None:
             raise Exception("the state dataset is not provided")
         return self._state_dset
 
-    def get_type_model(self):
+    def get_type_model(self) -> CellTypeModel:
         """Get the trained `CellTypeModel`.
 
         :raises Exception: raised when this function is called before the model is trained.
         :return: `self._type_ast`
-        :rtype: CellTypeModel
         """
         if self._type_ast is None:
             raise Exception("The type model has not been trained yet")
         return self._type_ast
 
-    def get_state_model(self):
+    def get_state_model(self) -> CellStateModel:
         """Get the trained `CellStateModel`.
 
         :raises Exception: raised when this function is celled before the model is trained.
         :return: `self._state_ast`
-        :rtype: CellStateModel
         """
         if self._state_ast is None:
             raise Exception("The state model has not been trained yet")
         return self._state_ast
 
-    def get_type_run_info(self):
+    def get_type_run_info(self) -> Dict[str, Union[int, float]]:
         """Get the run information (i.e. `max_epochs`, `learning_rate`,
             `batch_size`, `delta_loss`, `n_init`, `n_init_epochs`) of the cell type training.
 
         :raises Exception: raised when this function is celled before the model is trained.
         :return: `self._type_run_info`
-        :rtype: Dict[str, Optional[int, float]]
         """
-        if self._type_run_info is None:
+        if self._type_run_info == {}:
             raise Exception("The type model has not been trained yet")
         return self._type_run_info
 
-    def get_state_run_info(self):
+    def get_state_run_info(self) -> Dict[str, Union[int, float]]:
         """Get the run information (i.e. `max_epochs`, `learning_rate`, `batch_size`,
             `delta_loss`, `n_init`, `n_init_epochs`, `delta_loss_batch`) of the cell state training.
 
         :raises Exception: raised when this function is celled before the model is trained.
         :return: `self._state_run_info`
-        :rtype: Dict[str, Optional[int, float]]
         """
-        if self._state_run_info is None:
+        if self._state_run_info == {}:
             raise Exception("The state model has not been trained yet")
         return self._state_run_info
 
@@ -552,7 +507,7 @@ class Astir:
 
         return assign_rescale
 
-    def get_celltypes(self, threshold=0.7) -> pd.DataFrame:
+    def get_celltypes(self, threshold: float = 0.7) -> pd.DataFrame:
         """
         Get the most likely cell types
 
@@ -596,9 +551,17 @@ class Astir:
 
         :return: the prediction of cell state activations
         """
+        if self._state_ast is None:
+            raise Exception("The state model has not been trained yet")
+
         if not self._state_ast.is_converged():
             msg = "The state model has not been trained for enough epochs yet"
             warnings.warn(msg)
+
+        if self._state_dset is None:
+            raise NotClassifiableError(
+                "Dataset or marker for cell state classification is not provided"
+            )
 
         g = self._state_ast.get_final_mu_z(dset).detach().cpu().numpy()
 
@@ -724,6 +687,8 @@ class Astir:
         self.get_cellstates().to_csv(output_csv)
 
     def __str__(self) -> str:
+        """ String representation of Astir object
+        """
         msg = "Astir object"
         l = 0
         if self._type_dset is not None:
@@ -731,7 +696,7 @@ class Astir:
             l = len(self._type_dset)
         if self._state_dset is not None:
             msg += ", " + str(self._state_dset.get_n_classes()) + " cell states"
-            l = len(self._type_dset)
+            l = len(self._state_dset)
         if l != 0:
             msg += ", " + str(l) + " cells"
         return msg

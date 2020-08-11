@@ -279,7 +279,7 @@ class TestAstir(TestCase):
             marker_dict=self.marker_dict["cell_states"],
             design=None,
             include_other_column=False,
-            device=self._device
+            device=self._device,
         )
 
         self.a.fit_state(max_epochs=50, n_init=1)

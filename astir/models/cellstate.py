@@ -1,18 +1,15 @@
 """
 Cell State Model
 """
-from typing import Tuple, List, Dict, Union
+from typing import Tuple, List, Dict, Union, Generator, Optional
 import warnings
 import torch
-import torch.nn as nn
 import numpy as np
 import pandas as pd
-import yaml
 from .abstract import AstirModel
 from astir.data import SCDataset
 from .cellstate_recognet import StateRecognitionNet
 from tqdm import trange
-from torch.autograd import Variable
 from torch.utils.data import DataLoader
 import h5py
 from collections import OrderedDict
@@ -22,10 +19,16 @@ class CellStateModel(AstirModel):
     """Class to perform statistical inference to on the activation
         of states (pathways) across cells
 
-    :param df_gex: the input gene expression dataframe
-    :param marker_dict: the gene marker dictionary
-    :param random_seed: seed number to reproduce results, defaults to 1234
-    :param dtype: torch datatype to use in the model
+    :param dset: the input gene expression dataset, defaults to None
+    :param const: See parameter ``const`` in
+        :func:`astir.models.StateRecognitionNet`, defaults to 2
+    :param dropout_rate: See parameter ``dropout_rate`` in
+        :func:`astir.models.StateRecognitionNet`, defaults to 0
+    :param batch_norm: See parameter ``batch_norm`` in
+        :func:`astir.models.StateRecognitionNet`, defaults to False
+    :param random_seed: the random seed number to reproduce results, defaults to 42
+    :param dtype: torch datatype to use in the model, defaults to torch.float64
+    :param device: torch.device's cpu or gpu, defaults to torch.device("cpu")
     """
 
     def __init__(
@@ -36,29 +39,24 @@ class CellStateModel(AstirModel):
         batch_norm: bool = False,
         random_seed: int = 42,
         dtype: torch.dtype = torch.float64,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.device("cpu"),
     ) -> None:
         super().__init__(dset, random_seed, dtype, device)
 
         # Setting random seeds
         self.random_seed = random_seed
         torch.manual_seed(self.random_seed)
-        torch.cuda.manual_seed_all(self.random_seed)
-        torch.cuda.manual_seed(self.random_seed)
         np.random.seed(self.random_seed)
 
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
-
-        self._optimizer = None
-        self._losses = torch.empty(0, dtype=self._dtype)
+        self._optimizer: Optional[torch.optim.Adam] = None
+        self.const, self.dropout_rate, self.batch_norm = const, dropout_rate, batch_norm
         if self._dset is not None:
-            self._param_init(const, dropout_rate, batch_norm)
+            self._param_init()
 
         # Convergence flag
         self._is_converged = False
 
-    def _param_init(self, const, dropout_rate, batch_norm) -> None:
+    def _param_init(self) -> None:
         """ Initializes sets of parameters
         """
         if self._dset is None:
@@ -76,7 +74,7 @@ class CellStateModel(AstirModel):
         d = torch.distributions.Uniform(
             torch.tensor(0.0, dtype=self._dtype), torch.tensor(1.5, dtype=self._dtype)
         )
-        initializations["log_w"] = torch.log(d.sample((C, self._dset.get_n_features())))
+        initializations["log_w"] = torch.log(d.sample((C, G)))
 
         self._variables = {
             n: i.to(self._device).detach().clone().requires_grad_()
@@ -88,10 +86,18 @@ class CellStateModel(AstirModel):
         }
 
         self._recog = StateRecognitionNet(
-            C, G, const=const, dropout_rate=dropout_rate, batch_norm=batch_norm
+            C,
+            G,
+            const=self.const,
+            dropout_rate=self.dropout_rate,
+            batch_norm=self.batch_norm,
         ).to(device=self._device, dtype=self._dtype)
 
-    def load_hdf5(self, hdf5_name, const, dropout_rate, batch_norm):
+    def load_hdf5(self, hdf5_name: str) -> None:
+        """ Initializes Cell State Model from a hdf5 file type
+
+        :param hdf5_name: file path
+        """
         self._assignment = pd.read_hdf(
             hdf5_name, "cellstate_model/cellstate_assignments"
         )
@@ -125,9 +131,9 @@ class CellStateModel(AstirModel):
             self._recog = StateRecognitionNet(
                 hidden3_mu_W.shape[0],
                 hidden1_W.shape[1],
-                const=const,
-                dropout_rate=dropout_rate,
-                batch_norm=batch_norm,
+                const=self.const,
+                dropout_rate=self.dropout_rate,
+                batch_norm=self.batch_norm,
             ).to(device=self._device, dtype=self._dtype)
             self._recog.load_state_dict(state_dict)
             self._recog.eval()
@@ -145,7 +151,6 @@ class CellStateModel(AstirModel):
         :param std_z: the predicted standard deviation of z
         :param z_sample: the sampled z values
         :param y_in: the input data
-
         :return: the loss
         """
         S = y_in.shape[0]
@@ -172,12 +177,14 @@ class CellStateModel(AstirModel):
         return loss
 
     def _forward(
-        self, Y: torch.Tensor
+        self,
+        Y: Optional[torch.Tensor],
+        X: Optional[torch.Tensor] = None,
+        design: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """ One forward pass
 
         :param Y: dataset to do forward pass on
-
         :return: mu_z, std_z, z_sample
         """
         mu_z, std_z = self._recog(Y)
@@ -196,22 +203,7 @@ class CellStateModel(AstirModel):
         delta_loss: float = 1e-3,
         delta_loss_batch: int = 10,
         msg: str = "",
-    ) -> List[float]:
-        for l in self.fit_yield_loss(
-            max_epochs, learning_rate, batch_size, delta_loss, delta_loss_batch, msg,
-        ):
-            pass
-
-    # @profile
-    def fit_yield_loss(
-        self,
-        max_epochs: int = 50,
-        learning_rate: float = 1e-3,
-        batch_size: int = 128,
-        delta_loss: float = 1e-3,
-        delta_loss_batch: int = 10,
-        msg: str = "",
-    ) -> List[float]:
+    ) -> None:
         """ Runs train loops until the convergence reaches delta_loss for\
             delta_loss_batch sizes or for max_epochs number of times
 
@@ -226,26 +218,16 @@ class CellStateModel(AstirModel):
         """
         if self._dset is None:
             raise Exception("the dataset is not provided")
-        losses = []
 
         # Returns early if the model has already converged
         if self._is_converged:
-            return losses
-
-        if delta_loss_batch >= max_epochs:
-            warnings.warn("Delta loss batch size is greater than the number of epochs")
+            return
 
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
-            opt_params = list(self._recog.parameters()) + list(self._variables.values())
+            opt_params = list(self._recog.parameters())
+            opt_params += list(self._variables.values())  # type: ignore
             self._optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
-
-        if self._losses.shape[0] >= delta_loss_batch:
-            prev_mean = torch.mean(self._losses[-delta_loss_batch:])
-        else:
-            prev_mean = None
-
-        delta_cond_met = False
 
         iterator = trange(
             max_epochs,
@@ -257,56 +239,41 @@ class CellStateModel(AstirModel):
             self._dset, batch_size=min(batch_size, len(self._dset))
         )
         for ep in iterator:
-            # for ep in range(max_epochs):
             for i, (y_in, x_in, _) in enumerate(train_iterator):
                 self._optimizer.zero_grad()
 
-                mu_z, std_z, z_samples = self._forward(x_in)
+                mu_z, std_z, z_samples = self._forward(
+                    x_in.type(self._dtype).to(self._device)
+                )
 
-                loss = self._loss_fn(mu_z, std_z, z_samples, x_in)
+                loss = self._loss_fn(
+                    mu_z, std_z, z_samples, x_in.type(self._dtype).to(self._device)
+                )
 
                 loss.backward()
 
                 self._optimizer.step()
 
-            losses.append(loss.cpu().detach().item())
+            loss_detached = loss.cpu().detach().item()
 
-            start_index = ep - delta_loss_batch + 1
-            end_index = start_index + delta_loss_batch
-            if start_index >= 0:
-                curr_mean = sum(losses[start_index:end_index]) / len(
-                    losses[start_index:end_index]
-                )
-            elif self._losses.shape[0] >= -start_index:
-                last_ten_losses = torch.cat(
-                    (
-                        self._losses[start_index:],
-                        torch.tensor(losses[:end_index], dtype=torch.float64),
-                    )
-                )
-                curr_mean = torch.mean(last_ten_losses).item()
-            else:
-                curr_mean = None
+            self._losses = torch.cat(
+                (self._losses, torch.tensor([loss_detached], dtype=self._dtype))
+            )
 
-            if prev_mean is not None:
+            if len(self._losses) > delta_loss_batch:
+                curr_mean = torch.mean(self._losses[-delta_loss_batch:])
+                prev_mean = torch.mean(self._losses[-delta_loss_batch - 1 : -1])
                 curr_delta_loss = (prev_mean - curr_mean) / prev_mean
-                delta_cond_met = 0 <= curr_delta_loss < delta_loss
-            iterator.set_postfix_str("current loss: " + str(round(losses[ep], 1)))
-            yield round(losses[ep], 1)
+                delta_cond_met = 0 <= curr_delta_loss.item() < delta_loss
+            else:
+                delta_cond_met = False
 
-            prev_mean = curr_mean
+            iterator.set_postfix_str("current loss: " + str(round(loss_detached, 1)))
+
             if delta_cond_met:
-                losses = losses[0 : ep + 1]
                 self._is_converged = True
                 iterator.close()
                 break
-
-        if self._losses is None:
-            self._losses = torch.tensor(losses, dtype=self._dtype)
-        else:
-            self._losses = torch.cat(
-                (self._losses, torch.tensor(losses, dtype=self._dtype))
-            )
 
         g = self.get_final_mu_z().detach().cpu().numpy()
         self._assignment = pd.DataFrame(g)
@@ -316,29 +283,39 @@ class CellStateModel(AstirModel):
     def get_recognet(self) -> StateRecognitionNet:
         """ Getter for the recognition net
 
-        :return: the trained recognition net
+        :return: the recognition net
         """
         return self._recog
 
-    def get_final_mu_z(self, new_dset: SCDataset = None) -> torch.Tensor:
+    def get_final_mu_z(self, new_dset: Optional[SCDataset] = None) -> torch.Tensor:
         """ Returns the mean of the predicted z values for each core
 
         :param new_dset: returns the predicted z values of this dataset on
-            the existing model. If None, it predicts using the existing dataset
-
+            the existing model. If None, it predicts using the existing
+            dataset, defaults to None
         :return: the mean of the predicted z values for each core
         """
         if self._dset is None:
             raise Exception("the dataset is not provided")
         if new_dset is None:
-            _, x_in, _ = self._dset[:]  # should be the scaled one
+            _, x_in, _ = self._dset[:]  # should be the scaled
+            # one
         else:
             _, x_in, _ = new_dset[:]
-        final_mu_z, _, _ = self._forward(x_in)
+        final_mu_z, _, _ = self._forward(x_in.type(self._dtype).to(self._device))
 
         return final_mu_z
 
     def get_correlations(self) -> np.array:
+        """ Returns a C (# of pathways) X G (# of proteins) matrix
+        where each element represents the correlation value of the pathway
+        and the protein
+
+        :return: matrix of correlation between all pathway and protein pairs.
+        """
+        if self._dset is None:
+            raise Exception("No dataset input to the model")
+
         state_assignment = self.get_final_mu_z().detach().cpu().numpy()
         y_in = self._dset.get_exprs()
 
@@ -357,9 +334,9 @@ class CellStateModel(AstirModel):
         return corr_mat
 
     def diagnostics(self) -> pd.DataFrame:
-        """ Run diagnostics on cell state assignments
+        """ Run diagnostics on cell type assignments
 
-        :return: diagnostics
+        See :meth:`astir.Astir.diagnostics_cellstate` for full documentation
         """
         if self._dset is None:
             raise Exception("the dataset is not provided")

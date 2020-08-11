@@ -36,7 +36,7 @@ class SCDataset(Dataset):
         include_other_column: bool,
         design: Optional[Union[np.array, pd.DataFrame]] = None,
         dtype: torch.dtype = torch.float64,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.device("cpu"),
     ) -> None:
         """Initialize an SCDataset object.
         """
@@ -94,7 +94,7 @@ class SCDataset(Dataset):
                 + "the classification of cell type/state."
             )
 
-    def _process_tp_input(self, in_data: Union[torch.tensor, np.array]) -> torch.Tensor:
+    def _process_tp_input(self, in_data: Union[torch.Tensor, np.array]) -> torch.Tensor:
         """Process the input as Tuple[np.array, np.array, np.array] and convert it 
             to torch.Tensor.
 
@@ -141,23 +141,34 @@ class SCDataset(Dataset):
         return marker_mat
 
     def __len__(self) -> int:
+        """ Length of the input file
+
+        :return: total number of cells
+        """
         # N
         return self._exprs.shape[0]
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def __getitem__(
+        self, idx: Union[slice, int]
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """ Returns the protein expression of the indexed cell on the SCDataset
+        object
+
+        :param idx: the index of the cell
+        :return: raw protein expression, normalized protein expression,
+        sanitized design matrix of the cell at index
+        """
         y = self._exprs[idx, :]
         x = (y - self._exprs_mean) / self._exprs_std
         return y, x, self._design[idx, :]
 
-    def _fix_design(self, design: Union[np.array, pd.DataFrame]) -> torch.tensor:
-        """Sanitize the design matrix.
+    def _fix_design(self, design: Union[np.array, pd.DataFrame]) -> torch.Tensor:
+        """ Sanitize the design matrix.
 
         :param design: the unsanitized design matrix
-        :type design: Union[np.array, pd.DataFrame]
-        :raises NotClassifiableError: raised when the design matrix has 
+        :raises NotClassifiableError: raised when the design matrix has
             different number of rows from the expression data
         :return: the sanitized design matrix
-        :rtype: torch.tensor
         """
         d = None
         if design is None:
@@ -176,16 +187,16 @@ class SCDataset(Dataset):
             )
         return d
 
-    def rescale(self):
+    def rescale(self) -> None:
         """Normalize the expression data.
         """
         self._exprs = self._exprs / (self.get_sigma())
 
-    def get_dtype(self) -> str:
+    def get_dtype(self) -> torch.dtype:
         """Get the dtype of the `SCDataset`.
 
         :return: `self._dtype`
-        :rtype: str
+        :rtype: torch.dtype
         """
         return self._dtype
 
@@ -213,6 +224,10 @@ class SCDataset(Dataset):
         return self._exprs_mean
 
     def get_sigma(self) -> torch.Tensor:
+        """ Get the standard deviation of each protein
+
+        :return: standard deviation of each protein
+        """
         return self._exprs_std
 
     def get_n_classes(self) -> int:
@@ -265,13 +280,22 @@ class SCDataset(Dataset):
         return self._design
 
     def normalize(
-        self, percentile_lower: float = 0, percentile_upper: float = 99.9, cofactor=5.0
+        self,
+        percentile_lower: float = 0,
+        percentile_upper: float = 99.9,
+        cofactor: float = 5.0,
     ) -> None:
-        """Normalize the expression data
+        """ Normalize the expression data
 
         This performs a two-step normalization:
         1. A `log(1+x)` transformation to the data
         2. Winsorizes to (`percentile_lower`, `percentile_upper`)
+
+        :param percentile_lower: the lower bound percentile for
+        winsorization, defaults to 0
+        :param percentil_upper: the upper bound percentile for winsorization,
+        defaults to 99.9
+        :param cofactor: a cofactor constant, defaults to 5.0
         """
 
         with torch.no_grad():

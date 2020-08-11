@@ -44,12 +44,11 @@ class TestCellStateModel(TestCase):
             marker_dict=state_dict,
             design=None,
             dtype=torch.float32,
-            device=self._device
+            device=self._device,
         )
 
         self.model = CellStateModel(
-            dset=self._dset, random_seed=42, dtype=torch.float32,
-            device=self._device
+            dset=self._dset, random_seed=42, dtype=torch.float32, device=self._device
         )
 
         self.model.fit(max_epochs=1)
