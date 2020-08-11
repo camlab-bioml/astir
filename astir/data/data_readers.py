@@ -48,8 +48,10 @@ def from_csv_yaml(
 
 
 def from_csv_dir_yaml(
-    input_dir: str, marker_yaml: str, random_seed: int = 1234,
-        dtype: torch.dtype = torch.float64,
+    input_dir: str,
+    marker_yaml: str,
+    random_seed: int = 1234,
+    dtype: torch.dtype = torch.float64,
 ):
     """Create an Astir object a directory containing multiple csv files
 

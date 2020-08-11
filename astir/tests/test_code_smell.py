@@ -8,23 +8,37 @@ its superclass
 import unittest
 
 from astir import Astir
-from astir.models import CellStateModel, CellTypeModel, StateRecognitionNet, \
-    TypeRecognitionNet, AstirModel
+from astir.models import (
+    CellStateModel,
+    CellTypeModel,
+    StateRecognitionNet,
+    TypeRecognitionNet,
+    AstirModel,
+)
 from astir.data import SCDataset
 
 
 class TestCodeSmells(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestCodeSmells, self).__init__(*args, **kwargs)
-        self.classes = [Astir, CellStateModel, CellTypeModel,
-                        StateRecognitionNet, TypeRecognitionNet, AstirModel,
-                        SCDataset]
-        self.class_paths = ["astir/astir.py", "astir/models/cellstate.py",
-                            "astir/models/celltype.py",
-                            "astir/models/cellstate_recognet.py",
-                            "astir/models/celltype_recognet.py",
-                            "astir/models/abstract.py",
-                            "astir/data/scdataset.py"]
+        self.classes = [
+            Astir,
+            CellStateModel,
+            CellTypeModel,
+            StateRecognitionNet,
+            TypeRecognitionNet,
+            AstirModel,
+            SCDataset,
+        ]
+        self.class_paths = [
+            "astir/astir.py",
+            "astir/models/cellstate.py",
+            "astir/models/celltype.py",
+            "astir/models/cellstate_recognet.py",
+            "astir/models/celltype_recognet.py",
+            "astir/models/abstract.py",
+            "astir/data/scdataset.py",
+        ]
 
     def test_docstrings_exists_all_methods(self):
         for cl in self.classes:
@@ -73,13 +87,15 @@ class TestCodeSmells(unittest.TestCase):
                 if len(params) != len(type_hints):
                     no_type_hint.append(key)
 
-            err_msg_type_hint = "{} is missing type hints for methods: " \
-                                "".format(cl_name)
+            err_msg_type_hint = "{} is missing type hints for methods: " "".format(
+                cl_name
+            )
             for method in no_type_hint:
                 err_msg_type_hint += method + ", "
 
-            err_msg_return_hint = "{} is missing return hints for " \
-                                  "methods: ".format(cl_name)
+            err_msg_return_hint = "{} is missing return hints for " "methods: ".format(
+                cl_name
+            )
             for method in no_return_hint:
                 err_msg_return_hint += method + ", "
             self.assertTrue(no_type_hint == [], err_msg_type_hint[:-2])
@@ -92,11 +108,11 @@ class TestCodeSmells(unittest.TestCase):
             root_dir = rootpath.detect()
             path = os.path.join(root_dir, cl_path)
 
-            process = subprocess.Popen(["mypy", path,
-                                        "--ignore-missing-imports",
-                                        "--no-site-packages"],
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
+            process = subprocess.Popen(
+                ["mypy", path, "--ignore-missing-imports", "--no-site-packages"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
 
             stdout, stderr = process.communicate()
             stdout = stdout.decode("utf-8")
@@ -108,16 +124,24 @@ class TestCodeSmells(unittest.TestCase):
                 if line.__contains__("error:"):
                     errors.append(line)
 
-            self.assertTrue(errors == [], "Following errors were produced by "
-                                          "MyPy: \n{}".format("\n".join(errors)))
-            self.assertTrue(stderr == "",
-                            "Following error were produced by MyPy: {}".format(
-                                 stderr))
+            self.assertTrue(
+                errors == [],
+                "Following errors were produced by "
+                "MyPy: \n{}".format("\n".join(errors)),
+            )
+            self.assertTrue(
+                stderr == "", "Following error were produced by MyPy: {}".format(stderr)
+            )
 
     def test_data_reader_code_smell(self):
         from typing import get_type_hints
         from inspect import signature
-        from astir.data.data_readers import from_csv_yaml, from_csv_dir_yaml, from_loompy_yaml, from_anndata_yaml
+        from astir.data.data_readers import (
+            from_csv_yaml,
+            from_csv_dir_yaml,
+            from_loompy_yaml,
+            from_anndata_yaml,
+        )
 
         funcs = [from_csv_yaml, from_csv_dir_yaml, from_loompy_yaml, from_anndata_yaml]
 
@@ -132,17 +156,21 @@ class TestCodeSmells(unittest.TestCase):
             param_diff = list(set(all_params) - set(param_with_hints))
 
             for param in param_diff:
-                param_msgs.append("astir.data.data_readers.{} needs type hint "
-                            "for parameter {}".format(func.__name__, param))
+                param_msgs.append(
+                    "astir.data.data_readers.{} needs type hint "
+                    "for parameter {}".format(func.__name__, param)
+                )
 
             # Docstring test
             if func.__doc__ is None:
-                docstring_msgs.append("astir.data.data_readers.{} needs a "
-                                      "docstring".format(func.__name__))
+                docstring_msgs.append(
+                    "astir.data.data_readers.{} needs a "
+                    "docstring".format(func.__name__)
+                )
 
         self.assertTrue(param_msgs == [], "\n".join(param_msgs))
         self.assertTrue(docstring_msgs == [], "\n".join(docstring_msgs))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

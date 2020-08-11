@@ -36,7 +36,7 @@ class SCDataset(Dataset):
         include_other_column: bool,
         design: Optional[Union[np.array, pd.DataFrame]] = None,
         dtype: torch.dtype = torch.float64,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.device("cpu"),
     ) -> None:
         """Initialize an SCDataset object.
         """
@@ -94,8 +94,7 @@ class SCDataset(Dataset):
                 + "the classification of cell type/state."
             )
 
-    def _process_tp_input(self, in_data: Union[torch.Tensor, np.array]) -> \
-            torch.Tensor:
+    def _process_tp_input(self, in_data: Union[torch.Tensor, np.array]) -> torch.Tensor:
         """Process the input as Tuple[np.array, np.array, np.array] and convert it 
             to torch.Tensor.
 
@@ -149,8 +148,9 @@ class SCDataset(Dataset):
         # N
         return self._exprs.shape[0]
 
-    def __getitem__(self, idx: Union[slice, int]) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def __getitem__(
+        self, idx: Union[slice, int]
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """ Returns the protein expression of the indexed cell on the SCDataset
         object
 
@@ -162,8 +162,7 @@ class SCDataset(Dataset):
         x = (y - self._exprs_mean) / self._exprs_std
         return y, x, self._design[idx, :]
 
-    def _fix_design(self, design: Union[np.array, pd.DataFrame]) -> \
-            torch.Tensor:
+    def _fix_design(self, design: Union[np.array, pd.DataFrame]) -> torch.Tensor:
         """ Sanitize the design matrix.
 
         :param design: the unsanitized design matrix
@@ -281,8 +280,10 @@ class SCDataset(Dataset):
         return self._design
 
     def normalize(
-        self, percentile_lower: float = 0, percentile_upper: float = 99.9,
-            cofactor: float = 5.0
+        self,
+        percentile_lower: float = 0,
+        percentile_upper: float = 99.9,
+        cofactor: float = 5.0,
     ) -> None:
         """ Normalize the expression data
 

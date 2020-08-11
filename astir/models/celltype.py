@@ -43,7 +43,7 @@ class CellTypeModel(AstirModel):
         dset: Optional[SCDataset] = None,
         random_seed: int = 1234,
         dtype: torch.dtype = torch.float64,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.device("cpu"),
     ) -> None:
         super().__init__(dset, random_seed, dtype, device)
 
@@ -331,11 +331,12 @@ class CellTypeModel(AstirModel):
         return cell_type_assignments
 
     def _compare_marker_between_types(
-        self, curr_type: str,
-            celltype_to_compare: str,
-            marker: str,
-            cell_types: List[str],
-            alpha: float = 0.05
+        self,
+        curr_type: str,
+        celltype_to_compare: str,
+        marker: str,
+        cell_types: List[str],
+        alpha: float = 0.05,
     ) -> Optional[dict]:
         """For two cell types and a protein, ensure marker
         is expressed at higher level for curr_type than celltype_to_compare

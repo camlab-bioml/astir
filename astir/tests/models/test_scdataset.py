@@ -49,7 +49,7 @@ class TestSCDataset(unittest.TestCase):
             marker_dict=self.state_markers,
             design=None,
             dtype=torch.float32,
-            device=self._device
+            device=self._device,
         )
 
     def _expr_input_tuple(self):
@@ -74,15 +74,7 @@ class TestSCDataset(unittest.TestCase):
         self.assertEqual(expected_gene_names, actual_gene_names)
 
     def test_len_constant_N(self):
-
         self.assertEqual(self.expr.shape[0], len(self.ds))
-
-    # def test_get_item(self):
-    #     self._init_scdataset_cellstate_no_design()
-    #     print(self.expr)
-    #     if len(self.ds) > 0:
-    #         x, y, z = self.ds[0]
-    #         print(x)
 
     def test_get_classes(self):
         """ Testing if _classes field is declared correctly
@@ -140,7 +132,7 @@ class TestSCDataset(unittest.TestCase):
             marker_dict=self.type_markers,
             design=None,
             dtype=torch.float32,
-            device=self._device
+            device=self._device,
         )
 
         G = self.ds.get_n_features()
@@ -179,7 +171,7 @@ class TestSCDataset(unittest.TestCase):
             marker_dict=self.state_markers,
             design=self.design,
             dtype=torch.float64,
-            device=self._device
+            device=self._device,
         )
 
         expected_design = torch.from_numpy(self.design).to(
@@ -198,17 +190,6 @@ class TestSCDataset(unittest.TestCase):
         comp.append(self.ds.get_mu().dtype == torch.float32)
         comp.append(self.ds.get_sigma().dtype == torch.float32)
         self.assertTrue(all(comp))
-
-    # # To implement: but not significant
-    # def test_mu(self):
-    #     pass
-    #
-    # def test_sigma(self):
-    #     pass
-    #
-    # def test_rescale(self):
-    #     pass
-
 
 if __name__ == "__main__":
     unittest.main()

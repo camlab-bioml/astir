@@ -13,8 +13,13 @@ class AstirModel:
         `CellTypeModel` and `CellStateModel` and is not supposed to be instantiated.
     """
 
-    def __init__(self, dset: Optional[SCDataset], random_seed: int, dtype:
-    torch.dtype, device: torch.device = torch.device("cpu")) -> None:
+    def __init__(
+        self,
+        dset: Optional[SCDataset],
+        random_seed: int,
+        dtype: torch.dtype,
+        device: torch.device = torch.device("cpu"),
+    ) -> None:
 
         if not isinstance(random_seed, int):
             raise NotClassifiableError("Random seed is expected to be an integer.")

@@ -39,7 +39,7 @@ class CellStateModel(AstirModel):
         batch_norm: bool = False,
         random_seed: int = 42,
         dtype: torch.dtype = torch.float64,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.device("cpu"),
     ) -> None:
         super().__init__(dset, random_seed, dtype, device)
 
@@ -49,8 +49,7 @@ class CellStateModel(AstirModel):
         np.random.seed(self.random_seed)
 
         self._optimizer: Optional[torch.optim.Adam] = None
-        self.const, self.dropout_rate, self.batch_norm = const, dropout_rate,\
-                                                         batch_norm
+        self.const, self.dropout_rate, self.batch_norm = const, dropout_rate, batch_norm
         if self._dset is not None:
             self._param_init()
 
@@ -87,8 +86,11 @@ class CellStateModel(AstirModel):
         }
 
         self._recog = StateRecognitionNet(
-            C, G, const=self.const, dropout_rate=self.dropout_rate,
-            batch_norm=self.batch_norm
+            C,
+            G,
+            const=self.const,
+            dropout_rate=self.dropout_rate,
+            batch_norm=self.batch_norm,
         ).to(device=self._device, dtype=self._dtype)
 
     def load_hdf5(self, hdf5_name: str) -> None:
@@ -178,7 +180,7 @@ class CellStateModel(AstirModel):
         self,
         Y: Optional[torch.Tensor],
         X: Optional[torch.Tensor] = None,
-        design: Optional[torch.Tensor] = None
+        design: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """ One forward pass
 
@@ -223,8 +225,9 @@ class CellStateModel(AstirModel):
 
         # Create an optimizer if there is no optimizer
         if self._optimizer is None:
-            opt_params = list(self._recog.parameters()) +\
-                         list(self._variables.values()) # type: ignore
+            opt_params = list(self._recog.parameters()) + list(
+                self._variables.values()
+            )  # type: ignore
             self._optimizer = torch.optim.Adam(opt_params, lr=learning_rate)
 
         iterator = trange(
@@ -240,11 +243,13 @@ class CellStateModel(AstirModel):
             for i, (y_in, x_in, _) in enumerate(train_iterator):
                 self._optimizer.zero_grad()
 
-                mu_z, std_z, z_samples = self._forward(x_in.type(
-                    self._dtype).to(self._device))
+                mu_z, std_z, z_samples = self._forward(
+                    x_in.type(self._dtype).to(self._device)
+                )
 
-                loss = self._loss_fn(mu_z, std_z, z_samples, x_in.type(
-                    self._dtype).to(self._device))
+                loss = self._loss_fn(
+                    mu_z, std_z, z_samples, x_in.type(self._dtype).to(self._device)
+                )
 
                 loss.backward()
 
@@ -252,12 +257,11 @@ class CellStateModel(AstirModel):
 
             loss_detached = loss.cpu().detach().item()
 
-            self._losses = torch.cat((self._losses,
-                                      torch.tensor([loss_detached])))
+            self._losses = torch.cat((self._losses, torch.tensor([loss_detached])))
 
             if len(self._losses) > delta_loss_batch:
                 curr_mean = torch.mean(self._losses[-delta_loss_batch:])
-                prev_mean = torch.mean(self._losses[-delta_loss_batch-1:-1])
+                prev_mean = torch.mean(self._losses[-delta_loss_batch - 1 : -1])
                 curr_delta_loss = (prev_mean - curr_mean) / prev_mean
                 delta_cond_met = 0 <= curr_delta_loss.item() < delta_loss
             else:
@@ -282,8 +286,7 @@ class CellStateModel(AstirModel):
         """
         return self._recog
 
-    def get_final_mu_z(self, new_dset: Optional[SCDataset] = None) -> \
-            torch.Tensor:
+    def get_final_mu_z(self, new_dset: Optional[SCDataset] = None) -> torch.Tensor:
         """ Returns the mean of the predicted z values for each core
 
         :param new_dset: returns the predicted z values of this dataset on
@@ -294,12 +297,11 @@ class CellStateModel(AstirModel):
         if self._dset is None:
             raise Exception("the dataset is not provided")
         if new_dset is None:
-            _, x_in, _ = self._dset[0:len(self._dset)]  # should be the scaled
+            _, x_in, _ = self._dset[0 : len(self._dset)]  # should be the scaled
             # one
         else:
             _, x_in, _ = new_dset[:]
-        final_mu_z, _, _ = self._forward(x_in.type(
-                    self._dtype).to(self._device))
+        final_mu_z, _, _ = self._forward(x_in.type(self._dtype).to(self._device))
 
         return final_mu_z
 

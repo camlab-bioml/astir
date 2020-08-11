@@ -72,8 +72,7 @@ class Astir:
 
         self._hierarchy_dict: Optional[Dict[str, List[str]]] = None
 
-        type_dict, state_dict, self._hierarchy_dict = self._sanitize_dict(
-            marker_dict)
+        type_dict, state_dict, self._hierarchy_dict = self._sanitize_dict(marker_dict)
         print(self._hierarchy_dict)
         if isinstance(input_expr, tuple) and len(input_expr) == 2:
             self._type_dset, self._state_dset = input_expr[0], input_expr[1]
@@ -85,7 +84,7 @@ class Astir:
                     design=design,
                     include_other_column=True,
                     dtype=self._dtype,
-                    device=self._device
+                    device=self._device,
                 )
             if state_dict is not None:
                 self._state_dset = SCDataset(
@@ -94,11 +93,12 @@ class Astir:
                     design=design,
                     include_other_column=False,
                     dtype=self._dtype,
-                    device=self._device
+                    device=self._device,
                 )
 
-    def _sanitize_dict(self, marker_dict: Optional[Dict[str, Dict[str, List[str]]]]) \
-            -> Union[List[None], List[dict]]:
+    def _sanitize_dict(
+        self, marker_dict: Optional[Dict[str, Dict[str, List[str]]]]
+    ) -> Union[List[None], List[dict]]:
         """ Sanitizes the marker dictionary.
 
         :param marker_dict: dictionary read from the yaml file
@@ -220,9 +220,7 @@ class Astir:
         cellstate_losses = []
 
         if delta_loss_batch >= max_epochs:
-            warnings.warn(
-                "Delta loss batch size is greater than the number of epochs"
-            )
+            warnings.warn("Delta loss batch size is greater than the number of epochs")
 
         if n_init_epochs > max_epochs:
             warnings.warn(
