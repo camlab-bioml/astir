@@ -10,7 +10,7 @@ setuptools.setup(
     author_email="jhou@lunenfeld.ca",
     description=" ",
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    # long_description_content_type="text/markdown",
     url="https://github.com/camlab-bioml/astir",
     packages=["astir"],
     classifiers=[
