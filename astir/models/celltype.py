@@ -200,13 +200,13 @@ class CellTypeModel(AstirModel):
         msg: str = "",
     ) -> None:
         """ Runs train loops until the convergence reaches delta_loss for
-        delta_loss_batch sizes or for max_epochs number of times
+            delta_loss_batch sizes or for max_epochs number of times
 
         :param max_epochs: number of train loop iterations, defaults to 50
         :param learning_rate: the learning rate, defaults to 0.01
         :param batch_size: the batch size, defaults to 128
         :param delta_loss: stops iteration once the loss rate reaches
-        delta_loss, defaults to 0.001
+            delta_loss, defaults to 0.001
         :param delta_loss_batch: the batch size to consider delta loss,\
             defaults to 10
         :param msg: iterator bar message, defaults to empty string
@@ -306,17 +306,22 @@ class CellTypeModel(AstirModel):
 
         return cell_types[np.argmax(row)]
 
-    def get_celltypes(self, threshold: float = 0.7) -> pd.DataFrame:
+    def get_celltypes(
+        self, threshold: float = 0.7, prob_assign: Optional[pd.DataFrame] = None
+    ) -> pd.DataFrame:
         """ Get the most likely cell types
 
         A cell is assigned to a cell type if the probability is greater than threshold.
-        If no cell types have a probability higher than threshold, then "Unknown" is returned
+        If no cell types have a probability higher than threshold, then "Unknown" is returned.
 
         :param threshold: the probability threshold above which a cell is
-        assigned to a cell type, defaults to 0.7
+            assigned to a cell type, defaults to 0.7
         :return: a data frame with most likely cell types for each 
         """
-        type_probability = self.get_assignment()
+        if prob_assign is None:
+            type_probability = self.get_assignment()
+        else:
+            type_probability = prob_assign
         cell_types = list(type_probability.columns)
 
         cell_type_assignments = type_probability.apply(
@@ -390,6 +395,7 @@ class CellTypeModel(AstirModel):
         plot_name: str = "celltype_protein_cluster.png",
         threshold: float = 0.7,
         figsize: Tuple[float, float] = (7.0, 5.0),
+        prob_assign: Optional[pd.DataFrame] = None,
     ) -> None:
         """Save the heatmap of protein content in cells with cell types labeled.
 
@@ -406,7 +412,9 @@ class CellTypeModel(AstirModel):
                 expr_df[feature].values.reshape((expr_df[feature].shape[0], 1))
             )
 
-        expr_df["cell_type"] = self.get_celltypes(threshold=threshold)
+        expr_df["cell_type"] = self.get_celltypes(
+            threshold=threshold, prob_assign=prob_assign
+        )
         expr_df = expr_df.sort_values(by=["cell_type"])
         types = expr_df.pop("cell_type")
         types_uni = types.unique()

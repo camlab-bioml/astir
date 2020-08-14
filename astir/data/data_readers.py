@@ -112,12 +112,12 @@ def from_loompy_yaml(
         (required to match with the marker gene information), defaults to
         protein
     :param cell_name_attr: The attribute (key) in the column attributes that
-    identifies the name of each cell, defaults to cell_name
+        identifies the name of each cell, defaults to cell_name
     :param batch_name_attr: The attribute (key) in the column attributes that identifies the batch. A design matrix
         will be built using this (if present) using a one-hot encoding to
         control for batch, defaults to batch
     :param random_seed: The random seed to be used to initialize variables,
-    defaults to 1234
+        defaults to 1234
     :param dtype: datatype of the model parameters, defaults to torch.float64
     :return: An object of class `astir_bash.py.Astir` using data imported from the loom files
     """
@@ -157,7 +157,7 @@ def from_anndata_yaml(
     dtype: torch.dtype = torch.float64,
 ):
     """ Create an Astir object from an :class:`anndata.Anndata` file and a
-    marker yaml
+        marker yaml
 
     :param anndata_file: Path to an :class:`anndata.Anndata` `h5py` file
     :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state      
@@ -168,7 +168,7 @@ def from_anndata_yaml(
         will be built using this (if present) using a one-hot encoding to
         control for batch, defaults to 'batch'
     :param random_seed: The random seed to be used to initialize variables,
-    defaults to 1234
+        defaults to 1234
     :param dtype: datatype of the model parameters, defaults to torch.float64
     :return: An object of class `astir_bash.py.Astir` using data imported from the loom files
     """

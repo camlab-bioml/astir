@@ -5,19 +5,19 @@
 # cmd+P to go to file
 import os
 import re
-from typing import Tuple, List, Dict, Union, Generator, Optional
 import warnings
+from typing import Dict, Generator, List, Optional, Tuple, Union
 
-import torch
-import pandas as pd
-import numpy as np
 import h5py
-from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import torch
+from sklearn.preprocessing import StandardScaler
 
-from .models.celltype import CellTypeModel
-from .models.cellstate import CellStateModel
 from .data.scdataset import SCDataset
+from .models.cellstate import CellStateModel
+from .models.celltype import CellTypeModel
 
 
 class Astir:
@@ -578,9 +578,11 @@ class Astir:
         return assign_rescale
 
     def assign_celltype_hierarchy(self, depth: int = 1) -> pd.DataFrame:
-        """Get cell type assignment at a higher hierarchy according to the hierarchy provided
+        """Get cell type assignment at a specified higher hierarchy according to the hierarchy provided
             in the dictionary.
 
+        :param depth: the depth of hierarchy to assign probability to, defaults to 1
+        :type depth: int, optional 
         :raises Exception: raised when the dictionary for hierarchical structure is not provided
             or the model hasn't been trained.
         :return: probability assignment of cell type at a superstructure
@@ -637,6 +639,7 @@ class Astir:
         plot_name: str = "celltype_protein_cluster.png",
         threshold: float = 0.7,
         figsize: Tuple[float, float] = (7, 5),
+        prob_assign: Optional[pd.DataFrame] = None,
     ) -> None:
         """Save the heatmap of protein content in cells with cell types labeled.
 
@@ -647,7 +650,7 @@ class Astir:
         """
         if self._type_ast is None:
             raise Exception("The type model has not been trained yet")
-        self._type_ast.plot_clustermap(plot_name, threshold, figsize)
+        self._type_ast.plot_clustermap(plot_name, threshold, figsize, prob_assign)
 
     def get_hierarchy_dict(self) -> Dict[str, List[str]]:
         """Get the dictionary for cell type hierarchical structure.
