@@ -5,14 +5,14 @@ with open("README.rst", "r") as fh:
 
 setuptools.setup(
     name="astir",
-    version="0.0.2",
+    version="0.0.9",
     author="Jinyu Hou, Sunyun Lee, Michael Geuenich, Kieran Campbell",
     author_email="jhou@lunenfeld.ca",
     description=" ",
     long_description=long_description,
     # long_description_content_type="text/markdown",
     url="https://github.com/camlab-bioml/astir",
-    packages=["astir"],
+    packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",

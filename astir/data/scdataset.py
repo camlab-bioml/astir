@@ -49,7 +49,7 @@ class SCDataset(Dataset):
 
         self._device = device
         ## sanitize features
-        if len(self._classes) <= 1:
+        if len(self._classes) <= 1 and include_other_column:
             raise NotClassifiableError(
                 "Classification failed. There "
                 + "should be at least two cell classes to classify the data into."
@@ -292,9 +292,9 @@ class SCDataset(Dataset):
         2. Winsorizes to (`percentile_lower`, `percentile_upper`)
 
         :param percentile_lower: the lower bound percentile for
-        winsorization, defaults to 0
+            winsorization, defaults to 0
         :param percentil_upper: the upper bound percentile for winsorization,
-        defaults to 99.9
+            defaults to 99.9
         :param cofactor: a cofactor constant, defaults to 5.0
         """
 

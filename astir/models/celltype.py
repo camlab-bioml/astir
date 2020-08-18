@@ -206,8 +206,8 @@ class CellTypeModel(AstirModel):
         :param learning_rate: the learning rate, defaults to 0.01
         :param batch_size: the batch size, defaults to 128
         :param delta_loss: stops iteration once the loss rate reaches
-        delta_loss, defaults to 0.001
-        :param delta_loss_batch: the batch size to consider delta loss,\
+            delta_loss, defaults to 0.001
+        :param delta_loss_batch: the batch size to consider delta loss,
             defaults to 10
         :param msg: iterator bar message, defaults to empty string
         """
@@ -307,13 +307,12 @@ class CellTypeModel(AstirModel):
         return cell_types[np.argmax(row)]
 
     def get_celltypes(self, threshold: float = 0.7) -> pd.DataFrame:
-        """ Get the most likely cell types
-
-        A cell is assigned to a cell type if the probability is greater than threshold.
-        If no cell types have a probability higher than threshold, then "Unknown" is returned
+        """ Get the most likely cell types. A cell is assigned to a cell type
+        if the probability is greater than threshold. If no cell types have a
+        probability higher than threshold, then "Unknown" is returned
 
         :param threshold: the probability threshold above which a cell is
-        assigned to a cell type, defaults to 0.7
+            assigned to a cell type, defaults to 0.7
         :return: a data frame with most likely cell types for each 
         """
         type_probability = self.get_assignment()

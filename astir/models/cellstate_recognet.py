@@ -18,8 +18,8 @@ class StateRecognitionNet(nn.Module):
     normal layers after each activation output layers and dropout
     activation units
 
-    :param C: number of classes
-    :param G: number of proteins
+    :param C: the number of pathways
+    :param G: the number of proteins
     :param const: the size of the hidden layers are const times proportional
         to C, defaults to 2
     :param dropout_rate: the dropout rate, defaults to 0
