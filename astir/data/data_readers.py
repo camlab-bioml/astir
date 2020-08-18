@@ -157,7 +157,7 @@ def from_anndata_yaml(
     dtype: torch.dtype = torch.float64,
 ):
     """ Create an Astir object from an :class:`anndata.Anndata` file and a
-    marker yaml
+        marker yaml
 
     :param anndata_file: Path to an :class:`anndata.Anndata` `h5py` file
     :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state      

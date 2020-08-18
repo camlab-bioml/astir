@@ -306,16 +306,22 @@ class CellTypeModel(AstirModel):
 
         return cell_types[np.argmax(row)]
 
-    def get_celltypes(self, threshold: float = 0.7) -> pd.DataFrame:
-        """ Get the most likely cell types. A cell is assigned to a cell type
-        if the probability is greater than threshold. If no cell types have a
-        probability higher than threshold, then "Unknown" is returned
+    def get_celltypes(
+        self, threshold: float = 0.7, prob_assign: Optional[pd.DataFrame] = None
+    ) -> pd.DataFrame:
+        """ Get the most likely cell types
+
+        A cell is assigned to a cell type if the probability is greater than threshold.
+        If no cell types have a probability higher than threshold, then "Unknown" is returned.
 
         :param threshold: the probability threshold above which a cell is
             assigned to a cell type, defaults to 0.7
         :return: a data frame with most likely cell types for each 
         """
-        type_probability = self.get_assignment()
+        if prob_assign is None:
+            type_probability = self.get_assignment()
+        else:
+            type_probability = prob_assign
         cell_types = list(type_probability.columns)
 
         cell_type_assignments = type_probability.apply(
@@ -389,6 +395,7 @@ class CellTypeModel(AstirModel):
         plot_name: str = "celltype_protein_cluster.png",
         threshold: float = 0.7,
         figsize: Tuple[float, float] = (7.0, 5.0),
+        prob_assign: Optional[pd.DataFrame] = None,
     ) -> None:
         """Save the heatmap of protein content in cells with cell types labeled.
 
@@ -405,7 +412,9 @@ class CellTypeModel(AstirModel):
                 expr_df[feature].values.reshape((expr_df[feature].shape[0], 1))
             )
 
-        expr_df["cell_type"] = self.get_celltypes(threshold=threshold)
+        expr_df["cell_type"] = self.get_celltypes(
+            threshold=threshold, prob_assign=prob_assign
+        )
         expr_df = expr_df.sort_values(by=["cell_type"])
         types = expr_df.pop("cell_type")
         types_uni = types.unique()
