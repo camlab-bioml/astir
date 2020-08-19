@@ -21,11 +21,11 @@ tbb
 FlowCytometryTools
 fastcluster
 sphinx
-sphinx_autodoc_typehints
-sphinx_rtd_theme
+sphinx-autodoc-typehints
+sphinx-rtd-theme
 autodocsumm
 nbsphinx
-nbsphinx_link
+nbsphinx-link
 tables
 typeguard
 mypy
