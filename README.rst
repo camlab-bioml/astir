@@ -2,7 +2,7 @@
 astir - Automated single-cell pathology
 ========================================
 
-|Build Status| |PyPI| |Code Style|
+|PyPI| |Code Style|
 
 .. |Build Status| image:: https://img.shields.io/badge/CI%20(pip)-passing-dark%20green
     :target: https://docs.travis-ci.com/
