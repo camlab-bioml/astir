@@ -32,7 +32,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
-    "sphinx_autodoc_typehints",
+    "sphinx.ext.autodoc.typehints",
     "sphinx.ext.mathjax",
     "sphinx_rtd_theme",
     "sphinx.ext.intersphinx",
@@ -41,7 +41,6 @@ extensions = [
     "nbsphinx_link",
 ]
 
-autodoc_mock_imports = ["sphinx_autodoc_typehints"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
