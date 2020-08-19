@@ -52,6 +52,10 @@ setuptools.setup(
         "typeguard",
         "mypy",
     ],
+    project_urls={
+        "Documentation": "https://astir.readthedocs.io/en/latest/",
+        "Source Code": "https://github.com/camlab-bioml",
+    },
     include_package_data=True,
     zip_safe=False,
     test_suite="nose.collector",

@@ -24,5 +24,7 @@ Clone this repo and run
 
 .. code::
 
-    pip3 install -e .
+    git clone https://github.com/camlab-bioml/astir.git
+    cd astir
+    pip install -e .
 
