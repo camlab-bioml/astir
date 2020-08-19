@@ -42,7 +42,7 @@ setuptools.setup(
         "h5py",
         "FlowCytometryTools",
         "fastcluster",
-        "sphinx==1.7.0",
+        "sphinx",
         "sphinx-autodoc-typehints",
         "sphinx-rtd-theme",
         "autodocsumm",
