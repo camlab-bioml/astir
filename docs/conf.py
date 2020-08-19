@@ -32,6 +32,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
+    "sphinx.util.inspect",
     "sphinx_autodoc_typehints",
     "sphinx.ext.mathjax",
     "sphinx_rtd_theme",
