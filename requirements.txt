@@ -20,7 +20,7 @@ h5py
 tbb
 FlowCytometryTools
 fastcluster
-sphinx
+sphinx==1.7.0
 sphinx-autodoc-typehints
 sphinx-rtd-theme
 autodocsumm
