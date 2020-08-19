@@ -20,13 +20,12 @@ h5py
 tbb
 FlowCytometryTools
 fastcluster
-sphinx
+sphinx>=3.0
 sphinx-autodoc-typehints
-sphinx-rtd-theme
+sphinx_rtd_theme>=0.3.1
 autodocsumm
 nbsphinx
 nbsphinx-link
 tables
 typeguard
 mypy
-
