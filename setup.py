@@ -5,7 +5,7 @@ with open("README.rst", "r") as fh:
 
 setuptools.setup(
     name="astir",
-    version="0.0.9",
+    version="0.0.11",
     author="Jinyu Hou, Sunyun Lee, Michael Geuenich, Kieran Campbell",
     author_email="jhou@lunenfeld.ca",
     description=" ",
@@ -54,7 +54,7 @@ setuptools.setup(
     ],
     project_urls={
         "Documentation": "https://astir.readthedocs.io/en/latest/",
-        "Source Code": "https://github.com/camlab-bioml",
+        "Source Code": "https://github.com/camlab-bioml/astir",
     },
     include_package_data=True,
     zip_safe=False,

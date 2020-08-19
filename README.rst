@@ -1,6 +1,6 @@
-========================================
-astir - Automated single-cell pathology
-========================================
+===================================================================================
+astir - Automated cell identity from single-cell multiplexed imaging and proteomics
+===================================================================================
 
 |Build Status| |PyPI| |Code Style|
 
