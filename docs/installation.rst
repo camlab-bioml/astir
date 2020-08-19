@@ -4,7 +4,8 @@ Installation
 Prerequisites
 ~~~~~~~~~~~~~~
 
-Install python 3.7, pytorch
+Install python 3.7
+Astir uses python 3.*
 
 
 Astir installation
@@ -14,7 +15,7 @@ PyPI
 
 .. code::
 
-    pip install astir
+    pip3 install astir
 
 
 Dev
@@ -23,5 +24,5 @@ Clone this repo and run
 
 .. code::
 
-    pip install -e .
+    pip3 install -e .
 
