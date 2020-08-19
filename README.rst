@@ -21,7 +21,7 @@ astir - Automated single-cell pathology
 Getting started
 ---------------------
 
-See the full `documentation <https://astir.readthedocs.io/en/latest/index.html>`_ and check out the `tutorials <https://astir.readthedocs.io/en/latest/tutorials/index.html>`_.
+See the full `documentation <https://astir.readthedocs.io/en/latest>`_ and check out the `tutorials <https://astir.readthedocs.io/en/latest/tutorials/index.html>`_.
 
 
 Authors
