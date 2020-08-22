@@ -8,14 +8,14 @@ its superclass
 import unittest
 
 from astir import Astir
+from astir.data import SCDataset
 from astir.models import (
+    AstirModel,
     CellStateModel,
     CellTypeModel,
     StateRecognitionNet,
     TypeRecognitionNet,
-    AstirModel,
 )
-from astir.data import SCDataset
 
 
 class TestCodeSmells(unittest.TestCase):

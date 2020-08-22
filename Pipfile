@@ -1,0 +1,48 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+sphinx = "*"
+sphinx-autodoc-typehints = "*"
+sphinx-rtd-theme = "*"
+autodocsumm = "*"
+nbsphinx = "*"
+nbsphinx-link = "*"
+pytest = "*"
+rinohtype = "*"
+black = "*"
+pytest-cov = "*"
+mypy = "*"
+isort = "*"
+
+[packages]
+torch = "*"
+pandas = "*"
+numpy = "*"
+nbformat = "*"
+pyyaml = "*"
+sklearn = "*"
+argparse = "*"
+matplotlib = "*"
+loompy = "*"
+tqdm = "*"
+anndata = "*"
+rootpath = "*"
+nbconvert = "*"
+seaborn = "*"
+jupyter_client = "*"
+ipykernel = "*"
+ipython = "*"
+h5py = "*"
+tbb = "*"
+FlowCytometryTools = "*"
+fastcluster = "*"
+tables = "*"
+typeguard = "*"
+
+
+
+[requires]
+python_version = "3.8"

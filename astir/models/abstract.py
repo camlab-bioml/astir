@@ -1,9 +1,9 @@
-from typing import Tuple, List, Dict, Optional, Union
 import warnings
+from typing import Dict, List, Optional, Tuple, Union
 
-import torch
 import numpy as np
 import pandas as pd
+import torch
 
 from astir.data import SCDataset
 

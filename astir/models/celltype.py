@@ -2,31 +2,34 @@
 Cell Type Model
 """
 
-from .abstract import AstirModel
-from astir.data import SCDataset
-from .celltype_recognet import TypeRecognitionNet
-import torch
-import seaborn as sns
 import re
-from typing import Tuple, List, Dict, Optional, Generator, Union
 import warnings
-from tqdm import trange
+from collections import OrderedDict
+from typing import Dict, Generator, List, Optional, Tuple, Union
+
+import h5py
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from scipy import stats
+from sklearn.preprocessing import StandardScaler
 from torch.autograd import Variable
 from torch.distributions import (
+    LowRankMultivariateNormal,
+    MultivariateNormal,
     Normal,
     StudentT,
-    MultivariateNormal,
-    LowRankMultivariateNormal,
 )
-import torch.nn.functional as F
-import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
-import pandas as pd
-import numpy as np
-from sklearn.preprocessing import StandardScaler
-from scipy import stats
-from collections import OrderedDict
-import h5py
+from torch.utils.data import DataLoader, Dataset
+from tqdm import trange
+
+from astir.data import SCDataset
+
+from .abstract import AstirModel
+from .celltype_recognet import TypeRecognitionNet
 
 
 class CellTypeModel(AstirModel):

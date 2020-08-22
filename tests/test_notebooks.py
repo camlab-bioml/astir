@@ -1,9 +1,9 @@
-import unittest
 import os
-import nbformat
-import rootpath
+import unittest
 import warnings
 
+import nbformat
+import rootpath
 from nbconvert.preprocessors import ExecutePreprocessor
 
 

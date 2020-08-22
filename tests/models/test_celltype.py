@@ -1,15 +1,13 @@
+import os
 import warnings
 from unittest import TestCase
+
 import pandas as pd
-import os
+import torch
 import yaml
-import torch
 
-import torch
-
+from astir.data import SCDataset, from_csv_yaml
 from astir.models import CellTypeModel
-from astir.data import from_csv_yaml
-from astir.data import SCDataset
 
 
 class TestCellTypeModel(TestCase):

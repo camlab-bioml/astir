@@ -6,7 +6,7 @@
 import os
 import re
 import warnings
-from typing import Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 
 import h5py
 import matplotlib.pyplot as plt
@@ -112,7 +112,7 @@ class Astir:
             cs = re.compile("cell[^a-zA-Z0-9]*state", re.IGNORECASE)
             h = re.compile(".*hierarch.*", re.IGNORECASE)
 
-            def interpret(key, dic):
+            def interpret(key: str, dic: Any) -> None:
                 if ct.match(key):
                     dics[0] = dic
                 elif cs.match(key):

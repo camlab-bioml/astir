@@ -58,7 +58,7 @@ setuptools.setup(
     },
     include_package_data=True,
     zip_safe=False,
-    test_suite="nose.collector",
-    test_require=["nose"],
+    # test_suite="nose.collector",
+    # test_require=["nose"],
     scripts=["bin/astir"],
 )

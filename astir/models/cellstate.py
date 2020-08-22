@@ -1,18 +1,21 @@
 """
 Cell State Model
 """
-from typing import Tuple, List, Dict, Union, Generator, Optional
 import warnings
-import torch
+from collections import OrderedDict
+from typing import Dict, Generator, List, Optional, Tuple, Union
+
+import h5py
 import numpy as np
 import pandas as pd
-from .abstract import AstirModel
-from astir.data import SCDataset
-from .cellstate_recognet import StateRecognitionNet
-from tqdm import trange
+import torch
 from torch.utils.data import DataLoader
-import h5py
-from collections import OrderedDict
+from tqdm import trange
+
+from astir.data import SCDataset
+
+from .abstract import AstirModel
+from .cellstate_recognet import StateRecognitionNet
 
 
 class CellStateModel(AstirModel):

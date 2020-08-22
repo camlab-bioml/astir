@@ -1,12 +1,13 @@
-import unittest
-import rootpath
-import pandas as pd
-import yaml
 import os
-import sys
 import subprocess
-import torch
+import sys
+import unittest
 import warnings
+
+import pandas as pd
+import rootpath
+import torch
+import yaml
 
 from astir.astir import Astir
 

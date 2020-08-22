@@ -2,12 +2,12 @@
 State Recognition Neural Network Model
 """
 
-import torch
-import torch.nn.functional as F
-import torch.nn as nn
 import math
-
 from typing import Tuple
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 
 # The recognition net

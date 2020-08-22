@@ -1,11 +1,11 @@
+import os
 import unittest
+
 import pandas as pd
-import yaml
 import torch
+import yaml
 
 from astir.data import SCDataset
-
-import os
 
 
 class TestSCDataset(unittest.TestCase):

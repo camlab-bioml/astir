@@ -1,0 +1,13 @@
+site_name: astir
+site_description: ``astir`` is a modelling framework for the assignment of cell type and cell state across a range of single-cell technologies such as Imaging Mass Cytometry (IMC). ``astir`` is built using `pytorch <https://pytorch.org/>`_ and uses recognition networks for fast minibatch stochastic variational inference. 
+site_url: https://https://github.com/camlab-bioml/astir/kieranrcampbell/astir
+
+theme:
+    name: 'material'
+
+repo_name: kieranrcampbell/astir
+repo_url: https://https://github.com/camlab-bioml/astir/kieranrcampbell/astir
+edit_uri: ''
+
+nav:
+    - astir: 'index.md'

@@ -1,19 +1,17 @@
 import contextlib
 import os
+import subprocess as sp
 import warnings
 from unittest import TestCase
 
+import h5py
 import numpy as np
 import pandas as pd
 import torch
 import yaml
-import h5py
-import subprocess as sp
-import os
 
 from astir import Astir
-from astir.data import from_csv_yaml, from_csv_dir_yaml, from_anndata_yaml
-from astir.data import SCDataset
+from astir.data import SCDataset, from_anndata_yaml, from_csv_dir_yaml, from_csv_yaml
 
 
 class TestAstir(TestCase):

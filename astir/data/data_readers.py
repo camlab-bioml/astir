@@ -1,19 +1,18 @@
+import os
 import warnings
+from typing import Any
+
+import anndata
+import loompy
 import matplotlib.cbook
+import numpy as np
+import pandas as pd
+import torch
+import yaml
+from sklearn.preprocessing import OneHotEncoder
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
-
-import yaml
-import os
-import loompy
-import anndata
-
-import numpy as np
-import pandas as pd
-
-from sklearn.preprocessing import OneHotEncoder
-import torch
 
 
 def from_csv_yaml(
@@ -22,7 +21,7 @@ def from_csv_yaml(
     design_csv: str = None,
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
-):
+) -> Any:
     """ Create an Astir object from an expression CSV and marker YAML
 
     :param csv_input: Path to input csv containing expression for cells (rows) by proteins (columns). First column is 
@@ -52,7 +51,7 @@ def from_csv_dir_yaml(
     marker_yaml: str,
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
-):
+) -> Any:
     """Create an Astir object a directory containing multiple csv files
 
     :param input_dir: Path to a directory containing multiple CSV files, each in the format expected by
@@ -102,7 +101,7 @@ def from_loompy_yaml(
     batch_name_attr: str = "batch",
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
-):
+) -> Any:
     """ Create an Astir object from a loom file and a marker yaml
 
     :param loom_file: Path to a loom file, where rows correspond to proteins and columns to cells
@@ -155,7 +154,7 @@ def from_anndata_yaml(
     batch_name: str = "batch",
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
-):
+) -> Any:
     """ Create an Astir object from an :class:`anndata.Anndata` file and a
         marker yaml
 

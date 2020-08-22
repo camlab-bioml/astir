@@ -25,6 +25,14 @@ args <- parser$parse_args()
 
 sce <- readRDS(args$rds_in)
 
+winsorize_one <- function(y,
+                          w_limits) {
+  q <- quantile(y, p = w_limits)
+  y[y < q[1]] <- q[1]
+  y[y > q[2]] <- q[2]
+  y
+}
+
 winsorize <- function(sce,
                       exprs_values = "logcounts",
                       w_limits = c(0.05, 0.95)) {
@@ -58,3 +66,5 @@ if (design != "") {
     write.csv(design_mm, args$design_csv, row.names=TRUE)
   }
 }
+
+# Rscript rds_reader.R ../../tests/test-data/test_rds.rds ../../tests/test-data/test_rds.csv --assay logcounts --winsorize 0.005
