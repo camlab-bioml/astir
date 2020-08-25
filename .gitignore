@@ -4,6 +4,11 @@
 # *.hdf5
 # *.csv
 # *.pt
+cellstate_summary.hdf5
+celltype_summary.hdf5
+docs/tutorials/notebooks/data/a_summary.hdf5
+docs/tutorials/notebooks/data/astir_summary.hdf5
+docs/tutorials/notebooks/data/test_data_type_assignments.csv
 
 
 
