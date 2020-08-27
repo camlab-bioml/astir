@@ -324,16 +324,16 @@ class CellTypeModel(AstirModel):
         assignment_type: str = "threshold",
         prob_assign: Optional[pd.DataFrame] = None,
     ) -> pd.DataFrame:
-        """Get the most likely cell types
-
-        A cell is assigned to a cell type if the probability is greater than threshold.
-        If no cell types have a probability higher than threshold, then "Unknown" is returned.
+        """Get the most likely cell types. A cell is assigned to a cell type
+        if the probability is greater than threshold.
+        If no cell types have a probability higher than threshold,
+        then "Unknown" is returned.
 
         :param assignment_type: either 'threshold' or 'max'. If threshold,
-        type assignment is based on whether the probability threshold is
-        above prob_assignment. If 'max', type assignment is based on the max
-        probability value or "unknown" if there are multiple max
-        probabilities. Defaults to 'threshold'.
+            type assignment is based on whether the probability threshold is
+            above prob_assignment. If 'max', type assignment is based on the max
+            probability value or "unknown" if there are multiple max
+            probabilities. Defaults to 'threshold'.
         :param threshold: the probability threshold above which a cell is
             assigned to a cell type, defaults to 0.7
         :return: a data frame with most likely cell types for each
