@@ -522,7 +522,7 @@ class Astir:
 
         :param threshold: the probability threshold above which a cell is assigned to a cell type
         :param assignment_type: See
-        :meth:`astir.CellTypeModel.get_celltypes` for full documentation
+            :meth:`astir.CellTypeModel.get_celltypes` for full documentation
         :return: a data frame with most likely cell types for each
         """
         if self._type_ast is None:
@@ -700,7 +700,7 @@ class Astir:
 
         :param output_csv: name for the output .csv file
         :param assignment_type: See
-        :meth:`astir.CellTypeModel.get_celltypes` for full documentation
+            :meth:`astir.CellTypeModel.get_celltypes` for full documentation
         :type output_csv: str
         """
         self.get_celltypes(threshold, assignment_type=assignment_type).to_csv(
