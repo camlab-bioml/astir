@@ -9,8 +9,8 @@ from astir.data import SCDataset
 
 
 class AstirModel:
-    """Abstract class to perform statistical inference to assign. This module is the super class of 
-        `CellTypeModel` and `CellStateModel` and is not supposed to be instantiated.
+    """Abstract class to perform statistical inference to assign. This module is the super class of
+    `CellTypeModel` and `CellStateModel` and is not supposed to be instantiated.
     """
 
     def __init__(
@@ -44,7 +44,7 @@ class AstirModel:
         self._is_converged = False
 
     def get_losses(self) -> torch.Tensor:
-        """ Getter for losses.
+        """Getter for losses.
 
         :return: self.losses
         """
@@ -62,7 +62,7 @@ class AstirModel:
         return self._dset
 
     def get_data(self) -> Dict[str, torch.Tensor]:
-        """ Get model data
+        """Get model data
 
         :return: data
         """
@@ -71,7 +71,7 @@ class AstirModel:
         return self._data
 
     def get_variables(self) -> Dict[str, torch.Tensor]:
-        """ Returns all variables
+        """Returns all variables
 
         :return: self._variables
         """
@@ -80,7 +80,7 @@ class AstirModel:
         return self._variables
 
     def is_converged(self) -> bool:
-        """ Returns True if the model converged
+        """Returns True if the model converged
 
         :return: self._is_converged
         """
@@ -96,15 +96,13 @@ class AstirModel:
         return self._assignment
 
     def _param_init(self) -> None:
-        """ Initializes parameters and design matrices.
-        """
+        """Initializes parameters and design matrices."""
         raise NotImplementedError("AbstractModel is not supposed to be instantiated.")
 
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
-        """ One forward pass
-        """
+        """One forward pass"""
         raise NotImplementedError("AbstractModel is not supposed to be instantiated.")
 
     def fit(
@@ -116,14 +114,13 @@ class AstirModel:
         delta_loss_batch: int,
         msg: str,
     ) -> None:
-        """ Runs train loops until the convergence reaches delta_loss for
+        """Runs train loops until the convergence reaches delta_loss for
         delta_loss_batch sizes or for max_epochs number of times
         """
         raise NotImplementedError("AbstractModel is not supposed to be instantiated.")
 
 
 class NotClassifiableError(RuntimeError):
-    """ Raised when the input data is not classifiable.
-    """
+    """Raised when the input data is not classifiable."""
 
     pass

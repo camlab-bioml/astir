@@ -9,17 +9,17 @@ from torch.utils.data import DataLoader, Dataset
 
 
 class SCDataset(Dataset):
-    """Container for single-cell proteomic data in the form of 
+    """Container for single-cell proteomic data in the form of
     a pytorch dataset
 
-    :param expr_input: Input expression data. See details :`expr_input` is either a `pd.DataFrame` 
+    :param expr_input: Input expression data. See details :`expr_input` is either a `pd.DataFrame`
         or a three-element `tuple`. When it is `pd.DataFrame`, its index and column should indicate the cell
-        name and feature name of the dataset; when it is a three-element `tuple`, it should be in the form 
+        name and feature name of the dataset; when it is a three-element `tuple`, it should be in the form
         of `Tuple[Union[np.array, torch.Tensor], List[str], List[str]]` and  its first element should
-        be the actual dataset as either `np.array` or `torch.tensor`, the second element should be 
-        a list containing the name of the columns or the names of features, the third element should be a 
+        be the actual dataset as either `np.array` or `torch.tensor`, the second element should be
+        a list containing the name of the columns or the names of features, the third element should be a
         list containing the name of the indices or the names of the cells.:
-    :param marker_dict: Marker dictionary containing cell type and 
+    :param marker_dict: Marker dictionary containing cell type and
         information. See details :The dictionary maps the name of cell type/state to protein features. :
     :param design: A design matrix
     :param include_other_column: Should an additional 'other' column be included?
@@ -37,8 +37,7 @@ class SCDataset(Dataset):
         dtype: torch.dtype = torch.float64,
         device: torch.device = torch.device("cpu"),
     ) -> None:
-        """Initialize an SCDataset object.
-        """
+        """Initialize an SCDataset object."""
         self._dtype = dtype
         self._marker_dict = marker_dict
         self._m_features = sorted(
@@ -94,7 +93,7 @@ class SCDataset(Dataset):
             )
 
     def _process_tp_input(self, in_data: Union[torch.Tensor, np.array]) -> torch.Tensor:
-        """Process the input as Tuple[np.array, np.array, np.array] and convert it 
+        """Process the input as Tuple[np.array, np.array, np.array] and convert it
             to torch.Tensor.
 
         :param in_data: input as a np.array or torch.tensor
@@ -121,7 +120,7 @@ class SCDataset(Dataset):
         return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
 
     def _construct_marker_mat(self, include_other_column: bool) -> torch.Tensor:
-        """ Construct a marker matrix.
+        """Construct a marker matrix.
 
         :param include_other_column: indicates whether or not include other columns.
         :return: A marker matrix. The rows are features and the coloumns are
@@ -140,7 +139,7 @@ class SCDataset(Dataset):
         return marker_mat
 
     def __len__(self) -> int:
-        """ Length of the input file
+        """Length of the input file
 
         :return: total number of cells
         """
@@ -150,7 +149,7 @@ class SCDataset(Dataset):
     def __getitem__(
         self, idx: Union[slice, int]
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """ Returns the protein expression of the indexed cell on the SCDataset
+        """Returns the protein expression of the indexed cell on the SCDataset
         object
 
         :param idx: the index of the cell
@@ -162,7 +161,7 @@ class SCDataset(Dataset):
         return y, x, self._design[idx, :]
 
     def _fix_design(self, design: Union[np.array, pd.DataFrame]) -> torch.Tensor:
-        """ Sanitize the design matrix.
+        """Sanitize the design matrix.
 
         :param design: the unsanitized design matrix
         :raises NotClassifiableError: raised when the design matrix has
@@ -187,8 +186,7 @@ class SCDataset(Dataset):
         return d
 
     def rescale(self) -> None:
-        """Normalize the expression data.
-        """
+        """Normalize the expression data."""
         self._exprs = self._exprs / (self.get_sigma())
 
     def get_dtype(self) -> torch.dtype:
@@ -200,50 +198,41 @@ class SCDataset(Dataset):
         return self._dtype
 
     def get_exprs(self) -> torch.Tensor:
-        """ Return the expression data as a :class:`torch.Tensor`.
-        """
+        """Return the expression data as a :class:`torch.Tensor`."""
         return self._exprs
 
     def get_exprs_df(self) -> pd.DataFrame:
-        """ Return the expression data as a :class:`pandas.DataFrame`.
-        """
+        """Return the expression data as a :class:`pandas.DataFrame`."""
         df = pd.DataFrame(self._exprs.detach().cpu().numpy())
         df.index = self.get_cell_names()
         df.columns = self.get_features()
         return df
 
     def get_marker_mat(self) -> torch.Tensor:
-        """Return the marker matrix as a :class:`torch.Tensor`.
-        """
+        """Return the marker matrix as a :class:`torch.Tensor`."""
         return self._marker_mat
 
     def get_mu(self) -> torch.Tensor:
-        """Get the mean expression of each protein as a :class:`torch.Tensor`.
-        """
+        """Get the mean expression of each protein as a :class:`torch.Tensor`."""
         return self._exprs_mean
 
     def get_sigma(self) -> torch.Tensor:
-        """ Get the standard deviation of each protein
+        """Get the standard deviation of each protein
 
         :return: standard deviation of each protein
         """
         return self._exprs_std
 
     def get_n_classes(self) -> int:
-        """Get the number of 'classes': either the number of cell types or cell states.
-
-        """
+        """Get the number of 'classes': either the number of cell types or cell states."""
         return len(self._classes)
 
     def get_n_cells(self) -> int:
-        """Get the number of cells: either the number of cell types or cell states.
-
-        """
+        """Get the number of cells: either the number of cell types or cell states."""
         return len(self.get_cell_names())
 
     def get_n_features(self) -> int:
-        """Get the number of features (proteins).
-        """
+        """Get the number of features (proteins)."""
         return len(self._m_features)
 
     def get_features(self) -> List[str]:
@@ -284,7 +273,7 @@ class SCDataset(Dataset):
         percentile_upper: float = 99.9,
         cofactor: float = 5.0,
     ) -> None:
-        """ Normalize the expression data
+        """Normalize the expression data
 
         This performs a two-step normalization:
         1. A `log(1+x)` transformation to the data

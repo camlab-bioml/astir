@@ -22,13 +22,13 @@ def from_csv_yaml(
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
 ) -> Any:
-    """ Create an Astir object from an expression CSV and marker YAML
+    """Create an Astir object from an expression CSV and marker YAML
 
-    :param csv_input: Path to input csv containing expression for cells (rows) by proteins (columns). First column is 
+    :param csv_input: Path to input csv containing expression for cells (rows) by proteins (columns). First column is
         cell identifier, and additional column names are gene identifiers.
-    :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state      
+    :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state
         entries. See documention.
-    :param design_csv: Path to design matrix as a CSV. Rows should be cells, and columns covariates. First column is cell 
+    :param design_csv: Path to design matrix as a CSV. Rows should be cells, and columns covariates. First column is cell
         identifier, and additional column names are covariate identifiers.
     :param random_seed: The random seed to be used to initialize variables,
         defaults to 1234
@@ -56,9 +56,9 @@ def from_csv_dir_yaml(
 
     :param input_dir: Path to a directory containing multiple CSV files, each in the format expected by
         `from_csv_yaml`
-    :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state      
+    :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state
         entries. See documention.
-    :param design_csv: Path to design matrix as a CSV. Rows should be cells, and columns covariates. First column is cell 
+    :param design_csv: Path to design matrix as a CSV. Rows should be cells, and columns covariates. First column is cell
         identifier, and additional column names are covariate identifiers
     :param random_seed: The random seed to be used to initialize variables,
         defaults to 1234
@@ -102,12 +102,12 @@ def from_loompy_yaml(
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
 ) -> Any:
-    """ Create an Astir object from a loom file and a marker yaml
+    """Create an Astir object from a loom file and a marker yaml
 
     :param loom_file: Path to a loom file, where rows correspond to proteins and columns to cells
-    :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state      
+    :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state
         entries. See documention.
-    :param protein_name_attr: The attribute (key) in the row attributes that identifies the protein names 
+    :param protein_name_attr: The attribute (key) in the row attributes that identifies the protein names
         (required to match with the marker gene information), defaults to
         protein
     :param cell_name_attr: The attribute (key) in the column attributes that
@@ -155,11 +155,11 @@ def from_anndata_yaml(
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
 ) -> Any:
-    """ Create an Astir object from an :class:`anndata.Anndata` file and a
+    """Create an Astir object from an :class:`anndata.Anndata` file and a
         marker yaml
 
     :param anndata_file: Path to an :class:`anndata.Anndata` `h5py` file
-    :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state      
+    :param marker_yaml: Path to input YAML file containing marker gene information. Should include cell_type and cell_state
         entries. See documention.
     :param protein_name: The column of `adata.var` containing protein names. If this is none, defaults to `adata.var_names`
     :param cell_name:  The column of `adata.obs` containing cell names. If this is none, defaults to `adata.obs_names`

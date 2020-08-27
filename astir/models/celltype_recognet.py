@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class TypeRecognitionNet(nn.Module):
-    """ Type Recognition Neural Network.
+    """Type Recognition Neural Network.
 
     :param C: number of classes
     :param G: number of features

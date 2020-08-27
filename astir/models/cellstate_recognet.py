@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 # The recognition net
 class StateRecognitionNet(nn.Module):
-    """ State Recognition Neural Network to get mean of z and standard
+    """State Recognition Neural Network to get mean of z and standard
     deviation of z. The neural network architecture looks like this: G ->
     const * C -> const * C -> G (for mu) or -> G (for std). With batch
     normal layers after each activation output layers and dropout
@@ -62,7 +62,7 @@ class StateRecognitionNet(nn.Module):
             self.bn_out_std = nn.BatchNorm1d(num_features=C).float()
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """ One forward pass of the StateRecognitionNet
+        """One forward pass of the StateRecognitionNet
 
         :param x: the input to the recognition network model
         :return: the value from the output layer of the network

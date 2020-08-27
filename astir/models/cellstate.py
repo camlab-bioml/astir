@@ -60,8 +60,7 @@ class CellStateModel(AstirModel):
         self._is_converged = False
 
     def _param_init(self) -> None:
-        """ Initializes sets of parameters
-        """
+        """Initializes sets of parameters"""
         if self._dset is None:
             raise Exception("the dataset is not provided")
         N = len(self._dset)
@@ -97,7 +96,7 @@ class CellStateModel(AstirModel):
         ).to(device=self._device, dtype=self._dtype)
 
     def load_hdf5(self, hdf5_name: str) -> None:
-        """ Initializes Cell State Model from a hdf5 file type
+        """Initializes Cell State Model from a hdf5 file type
 
         :param hdf5_name: file path
         """
@@ -148,7 +147,7 @@ class CellStateModel(AstirModel):
         z_sample: torch.Tensor,
         y_in: torch.Tensor,
     ) -> torch.Tensor:
-        """ Returns the calculated loss
+        """Returns the calculated loss
 
         :param mu_z: the predicted mean of z
         :param std_z: the predicted standard deviation of z
@@ -185,7 +184,7 @@ class CellStateModel(AstirModel):
         X: Optional[torch.Tensor] = None,
         design: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """ One forward pass
+        """One forward pass
 
         :param Y: dataset to do forward pass on
         :return: mu_z, std_z, z_sample
@@ -284,14 +283,14 @@ class CellStateModel(AstirModel):
         self._assignment.index = self._dset.get_cell_names()
 
     def get_recognet(self) -> StateRecognitionNet:
-        """ Getter for the recognition net
+        """Getter for the recognition net
 
         :return: the recognition net
         """
         return self._recog
 
     def get_final_mu_z(self, new_dset: Optional[SCDataset] = None) -> torch.Tensor:
-        """ Returns the mean of the predicted z values for each core
+        """Returns the mean of the predicted z values for each core
 
         :param new_dset: returns the predicted z values of this dataset on
             the existing model. If None, it predicts using the existing
@@ -310,7 +309,7 @@ class CellStateModel(AstirModel):
         return final_mu_z
 
     def get_correlations(self) -> np.array:
-        """ Returns a C (# of pathways) X G (# of proteins) matrix
+        """Returns a C (# of pathways) X G (# of proteins) matrix
         where each element represents the correlation value of the pathway
         and the protein
 
@@ -337,7 +336,7 @@ class CellStateModel(AstirModel):
         return corr_mat
 
     def diagnostics(self) -> pd.DataFrame:
-        """ Run diagnostics on cell type assignments
+        """Run diagnostics on cell type assignments
 
         See :meth:`astir.Astir.diagnostics_cellstate` for full documentation
         """
@@ -409,7 +408,6 @@ class CellStateModel(AstirModel):
 
 
 class NotClassifiableError(RuntimeError):
-    """ Raised when the input data is not classifiable.
-    """
+    """Raised when the input data is not classifiable."""
 
     pass
