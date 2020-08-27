@@ -11,7 +11,7 @@ from astir.models import CellStateModel
 
 
 class TestCellStateModel(TestCase):
-    """ Unittest class for CellStateModel class
+    """Unittest class for CellStateModel class
 
     This class assumes that all data initializating functions in Astir class
     are working
@@ -54,8 +54,7 @@ class TestCellStateModel(TestCase):
         self.variables = self.model.get_variables()
 
     def test_basic_instance_creation(self):
-        """ Testing if the instance is created or not
-        """
+        """Testing if the instance is created or not"""
         self.assertIsInstance(self.model, CellStateModel)
 
     def test_dtype(self):

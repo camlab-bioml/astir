@@ -60,7 +60,7 @@ class TestSCDataset(unittest.TestCase):
         self.assertIsInstance(self.ds, SCDataset)
 
     def test_marker_genes(self):
-        """ Testing if _m_proteins field is declared correctly
+        """Testing if _m_proteins field is declared correctly
         Also tests get_features() and get_n_features() methods
         """
         expected_gene_count = len(self.marker_genes)
@@ -77,7 +77,7 @@ class TestSCDataset(unittest.TestCase):
         self.assertEqual(self.expr.shape[0], len(self.ds))
 
     def test_get_classes(self):
-        """ Testing if _classes field is declared correctly
+        """Testing if _classes field is declared correctly
         Also tests get_classes() and get_n_classes() methods
         """
         expected_class_count = len(self.state_markers.keys())

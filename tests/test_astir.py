@@ -42,15 +42,13 @@ class TestAstir(TestCase):
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def test_basic_instance_creation(self):
-        """ Tests basic instance creation
-        """
+        """Tests basic instance creation"""
 
         self.assertIsInstance(self.a, Astir)
         # self.assertTrue(isinstance(a, str))
 
     def test_csv_reading(self):
-        """ Test from_csv_yaml function
-        """
+        """Test from_csv_yaml function"""
         a = from_csv_yaml(self.expr_csv_file, self.marker_yaml_file)
 
         self.assertIsInstance(a, Astir)
@@ -128,8 +126,7 @@ class TestAstir(TestCase):
     # # future unittests
 
     def test_sanitize_dict_state(self):
-        """ Testing the method _sanitize_dict
-        """
+        """Testing the method _sanitize_dict"""
         expected_state_dict = self.marker_dict["cell_states"]
         (_, actual_state_dict, _) = self.a._sanitize_dict(self.marker_dict)
 
@@ -149,8 +146,7 @@ class TestAstir(TestCase):
         )
 
     def test_state_names(self):
-        """ Test _state_names field
-        """
+        """Test _state_names field"""
         expected_state_names = sorted(self.marker_dict["cell_states"].keys())
         (_, actual_state_dict, _) = self.a._sanitize_dict(self.marker_dict)
         actual_state_names = sorted(actual_state_dict.keys())
@@ -160,7 +156,7 @@ class TestAstir(TestCase):
         )
 
     def test_celltype_same_seed_same_result(self):
-        """ Test whether the loss after one epoch one two different models
+        """Test whether the loss after one epoch one two different models
         with the same random seed have the same losses after one epochs
         """
         warnings.filterwarnings("ignore", category=UserWarning)
@@ -185,7 +181,7 @@ class TestAstir(TestCase):
         self.assertTrue(np.abs(model1_loss - model2_loss)[-1] < 1e-6)
 
     def test_celltype_diff_seed_diff_result(self):
-        """ Test whether the loss after one epoch one two different models
+        """Test whether the loss after one epoch one two different models
         with the different random seed have different losses after one epoch
         """
         warnings.filterwarnings("ignore", category=UserWarning)
@@ -210,7 +206,7 @@ class TestAstir(TestCase):
         self.assertFalse(np.abs(model1_loss - model2_loss)[-1] < 1e-6)
 
     def test_cellstate_same_seed_same_result(self):
-        """ Test whether the loss after one epoch one two different models
+        """Test whether the loss after one epoch one two different models
         with the same random seed have the same losses after one epochs
         """
         warnings.filterwarnings("ignore", category=UserWarning)
@@ -236,7 +232,7 @@ class TestAstir(TestCase):
 
     # @pytest.mark.filterwarnings("ignore")
     def test_cellstate_diff_seed_diff_result(self):
-        """ Test whether the loss after one epoch one two different models
+        """Test whether the loss after one epoch one two different models
         with the different random seed have different losses after one epoch
         """
         warnings.filterwarnings("ignore", category=UserWarning)

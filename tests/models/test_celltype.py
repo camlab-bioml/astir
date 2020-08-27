@@ -11,7 +11,7 @@ from astir.models import CellTypeModel
 
 
 class TestCellTypeModel(TestCase):
-    """ Unittest class for CellTypeModel class
+    """Unittest class for CellTypeModel class
 
     This class assumes that all data initializating functions in Astir class
     are working
@@ -46,8 +46,7 @@ class TestCellTypeModel(TestCase):
         self.model.fit(max_epochs=1)
 
     def test_basic_instance_creation(self):
-        """ Testing if the instance is created or not
-        """
+        """Testing if the instance is created or not"""
         self.assertIsInstance(self.model, CellTypeModel)
 
     def test_dtype32(self):
