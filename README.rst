@@ -18,6 +18,13 @@ astir - Automated cell identity from single-cell multiplexed imaging and proteom
     :align: center
     :alt: automated single-cell pathology
 
+Key Applications
+---------------------
+
+- To predict cell types given cell expression data
+- To predict cell states given cell expression data
+-
+
 Getting started
 ---------------------
 
