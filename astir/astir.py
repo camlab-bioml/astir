@@ -515,8 +515,7 @@ class Astir:
     def get_celltypes(
         self, threshold: float = 0.7, assignment_type: str = "threshold"
     ) -> pd.DataFrame:
-        """
-        Get the most likely cell types
+        """Get the most likely cell types
 
         A cell is assigned to a cell type if the probability is greater than threshold.
         If no cell types have a probability higher than threshold, then "Unknown" is returned
