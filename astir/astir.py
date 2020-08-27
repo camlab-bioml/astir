@@ -507,7 +507,10 @@ class Astir:
 
         return assign_rescale
 
-    def get_celltypes(self, threshold: float = 0.7) -> pd.DataFrame:
+    def get_celltypes(self, threshold: float = 0.7, assignment_type: str =
+    "threshold") \
+            -> \
+            pd.DataFrame:
         """
         Get the most likely cell types
 
@@ -515,11 +518,13 @@ class Astir:
         If no cell types have a probability higher than threshold, then "Unknown" is returned
 
         :param threshold: the probability threshold above which a cell is assigned to a cell type
+        :param assignment_type: See
+        :meth:`astir.CellTypeModel.get_celltypes` for full documentation
         :return: a data frame with most likely cell types for each
         """
         if self._type_ast is None:
             raise Exception("The type model has not been trained yet")
-        return self._type_ast.get_celltypes(threshold)
+        return self._type_ast.get_celltypes(threshold, assignment_type=assignment_type)
 
     def predict_celltypes(self, dset: pd.DataFrame = None) -> pd.DataFrame:
         """Predict the probabilities of different cell type assignments.
@@ -683,13 +688,17 @@ class Astir:
             raise Exception("The state model has not been trained yet")
         return self._state_ast.get_losses()
 
-    def type_to_csv(self, output_csv: str, threshold: float = 0.7) -> None:
+    def type_to_csv(self, output_csv: str, threshold: float = 0.7,
+                    assignment_type: str = "threshold") -> None:
         """Save the cell type assignemnt to a `csv` file.
 
         :param output_csv: name for the output .csv file
+        :param assignment_type: See
+        :meth:`astir.CellTypeModel.get_celltypes` for full documentation
         :type output_csv: str
         """
-        self.get_celltypes(threshold).to_csv(output_csv)
+        self.get_celltypes(threshold,
+                           assignment_type=assignment_type).to_csv(output_csv)
 
     def state_to_csv(self, output_csv: str) -> None:
         """ Writes state assignment output from training state model in csv

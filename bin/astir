@@ -31,11 +31,13 @@ subparsers = parser.add_subparsers(title="Criterion", help="specify if the cells
 type_parser = subparsers.add_parser("type")
 state_parser = subparsers.add_parser("state")
 
+type_parser.add_argument("--prob_max", "-pm", help="For cell type only. Classifies celltypes according to the max probability values", default=False, action="store_true")
+
 
 def parser_setup(parser):
     parser.add_argument("expr_csv", help="Path to CSV expression matrix with cells as rows and proteins as columns. First column is cell ID")
     parser.add_argument("marker_yaml", help="Path to YAML file of cell markers")
-    parser.add_argument("output_csv", help="Output CSV of cell assignment probabilities")
+    parser.add_argument("output_csv", help="Output CSV of cell assignments")
     parser.add_argument("--design", "-d",
                         help="Path to design matrix CSV, default to None",
                         type=str,
@@ -106,7 +108,15 @@ def run_type(args):
         delta_loss = args.delta_loss,
         n_init = args.n_init,
         n_init_epochs = args.n_init_epochs)
-    a.type_to_csv(args.output_csv)
+
+    if args.prob_max:
+        a.type_to_csv(args.output_csv, assignment_type="max")
+    else:
+        a.type_to_csv(args.output_csv, assignment_type="threshold")
+
+    prob_fn = os.path.splitext(args.output_csv)[0] + ".probabilities.csv"
+    a.get_celltype_probabilities().to_csv(prob_fn)
+
 
 def run_state(args):
     if args.design == "None":

@@ -292,31 +292,45 @@ class CellTypeModel(AstirModel):
         return self._recog
 
     def _most_likely_celltype(
-        self, row: pd.DataFrame, threshold: float, cell_types: List[str]
+        self, row: pd.DataFrame,
+            threshold: float, cell_types: List[str],
+            assignment_type: str
     ) -> str:
         """Given a row of the assignment matrix, return the most likely cell type
 
         :param row: the row of cell assignment matrix to be evaluated
         :param threshold: the higher bound of the maximun probability to classify a cell as `Unknown`
         :param cell_types: the names of cell types, in the same order as the features of the row
+        :param assignment_type: See
+        :meth:`astir.CellTypeModel.get_celltypes` for full documentation
         :return: the most likely cell type of this cell
         """
         row = row.values
         max_prob = np.max(row)
 
-        if max_prob < threshold:
-            return "Unknown"
+        if assignment_type == "threshold":
+            if max_prob < threshold:
+                return "Unknown"
+        elif assignment_type == "max":
+            if sum(row == max_prob) > 1:
+                return "Unknown"
 
         return cell_types[np.argmax(row)]
 
     def get_celltypes(
-        self, threshold: float = 0.7, prob_assign: Optional[pd.DataFrame] = None
+        self, threshold: float = 0.7, assignment_type: str = "threshold",
+            prob_assign: Optional[pd.DataFrame] = None,
     ) -> pd.DataFrame:
         """ Get the most likely cell types
 
         A cell is assigned to a cell type if the probability is greater than threshold.
         If no cell types have a probability higher than threshold, then "Unknown" is returned.
 
+        :param assignment_type: either 'threshold' or 'max'. If threshold,
+        type assignment is based on whether the probability threshold is
+        above prob_assignment. If 'max', type assignment is based on the max
+        probability value or "unknown" if there are multiple max
+        probabilities. Defaults to 'threshold'.
         :param threshold: the probability threshold above which a cell is
             assigned to a cell type, defaults to 0.7
         :return: a data frame with most likely cell types for each 
@@ -325,11 +339,23 @@ class CellTypeModel(AstirModel):
             type_probability = self.get_assignment()
         else:
             type_probability = prob_assign
+
+        if assignment_type != "threshold" and assignment_type != "max":
+            warnings.warn("Wrong assignment type. Defaults the assignment "
+                          "type to threshold.")
+            assignment_type = "threshold"
+
+        if assignment_type == "max" and prob_assign is not None:
+            warnings.warn("Assignment type is 'max' but probability "
+                          "threshold value was passed in. Probability "
+                          "threshold value will be ignored.")
+
         cell_types = list(type_probability.columns)
 
         cell_type_assignments = type_probability.apply(
             self._most_likely_celltype,
             axis=1,
+            assignment_type=assignment_type,
             threshold=threshold,
             cell_types=cell_types,
         )
