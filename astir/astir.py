@@ -98,7 +98,7 @@ class Astir:
     def _sanitize_dict(
         self, marker_dict: Optional[Dict[str, Dict[str, List[str]]]]
     ) -> Union[List[None], List[dict]]:
-        """ Sanitizes the marker dictionary.
+        """Sanitizes the marker dictionary.
 
         :param marker_dict: dictionary read from the yaml file
         :raises NotClassifiableError: raized when the marker dictionary doesn't
@@ -134,7 +134,7 @@ class Astir:
         n_init: int = 5,
         n_init_epochs: int = 5,
     ) -> None:
-        """ Run Variational Bayes to infer cell types
+        """Run Variational Bayes to infer cell types
 
         :param max_epochs: maximum number of epochs to train
         :param learning_rate: ADAM optimizer learning rate
@@ -150,7 +150,12 @@ class Astir:
         np.random.seed(self.random_seed)
         seeds = np.random.randint(1, 100000000, n_init)
         type_models = [
-            CellTypeModel(self._type_dset, int(seed), self._dtype,) for seed in seeds
+            CellTypeModel(
+                self._type_dset,
+                int(seed),
+                self._dtype,
+            )
+            for seed in seeds
         ]
         n_init_epochs = min(max_epochs, n_init_epochs)
         for i in range(n_init):
@@ -293,7 +298,7 @@ class Astir:
         }
 
     def save_models(self, hdf5_name: str = "astir_summary.hdf5") -> None:
-        """ Save the summary of this model to an `hdf5` file.
+        """Save the summary of this model to an `hdf5` file.
 
         :param hdf5_name: name of the output `hdf5` file, default to "astir_summary.hdf5"
         :raises Exception: raised when this function is called before the model is trained.
@@ -364,7 +369,7 @@ class Astir:
             )
 
     def load_model(self, hdf5_name: str) -> None:
-        """ Load model from hdf5 file
+        """Load model from hdf5 file
 
         :param hdf5_name: the full path to file
         """
@@ -420,7 +425,7 @@ class Astir:
             self._state_ast.load_hdf5(hdf5_name)
 
     def get_type_dataset(self) -> SCDataset:
-        """ Get the `SCDataset` for cell type training.
+        """Get the `SCDataset` for cell type training.
 
         :return: `self._type_dset`
         """
@@ -490,7 +495,7 @@ class Astir:
         return self._type_ast.get_assignment()
 
     def get_cellstates(self) -> pd.DataFrame:
-        """ Get cell state activations. It returns the rescaled activations,
+        """Get cell state activations. It returns the rescaled activations,
         values between 0 and 1
 
         :return: state assignments
@@ -507,10 +512,9 @@ class Astir:
 
         return assign_rescale
 
-    def get_celltypes(self, threshold: float = 0.7, assignment_type: str =
-    "threshold") \
-            -> \
-            pd.DataFrame:
+    def get_celltypes(
+        self, threshold: float = 0.7, assignment_type: str = "threshold"
+    ) -> pd.DataFrame:
         """
         Get the most likely cell types
 
@@ -549,7 +553,7 @@ class Astir:
         return type_assignments
 
     def predict_cellstates(self, dset: SCDataset = None) -> pd.DataFrame:
-        """ Get the prediction cell state activations on a dataset on an
+        """Get the prediction cell state activations on a dataset on an
         existing model
 
         :param new_dset: the dataset to predict cell state activations, default to None
@@ -587,7 +591,7 @@ class Astir:
             in the dictionary.
 
         :param depth: the depth of hierarchy to assign probability to, defaults to 1
-        :type depth: int, optional 
+        :type depth: int, optional
         :raises Exception: raised when the dictionary for hierarchical structure is not provided
             or the model hasn't been trained.
         :return: probability assignment of cell type at a superstructure
@@ -611,8 +615,7 @@ class Astir:
         dic: dict,
         depth: int = 1,
     ) -> None:
-        """ Helper for `assign_celltype_hierarchy`, calculates summed probabilities recursively.
-        """
+        """Helper for `assign_celltype_hierarchy`, calculates summed probabilities recursively."""
         if depth == 1:
             for key, val in dic.items():
                 hier_df[key] = self._assign_celltype_hierarchy_helper2(prob, val)
@@ -629,7 +632,7 @@ class Astir:
     def _assign_celltype_hierarchy_helper2(
         self, prob: pd.DataFrame, dic: dict
     ) -> pd.Series:
-        """ Helper for `assign_celltype_hierarchy`, calculates summed probability for 
+        """Helper for `assign_celltype_hierarchy`, calculates summed probability for
         cells under the given dict.
         """
         if isinstance(dic, list):
@@ -688,8 +691,12 @@ class Astir:
             raise Exception("The state model has not been trained yet")
         return self._state_ast.get_losses()
 
-    def type_to_csv(self, output_csv: str, threshold: float = 0.7,
-                    assignment_type: str = "threshold") -> None:
+    def type_to_csv(
+        self,
+        output_csv: str,
+        threshold: float = 0.7,
+        assignment_type: str = "threshold",
+    ) -> None:
         """Save the cell type assignemnt to a `csv` file.
 
         :param output_csv: name for the output .csv file
@@ -697,11 +704,12 @@ class Astir:
         :meth:`astir.CellTypeModel.get_celltypes` for full documentation
         :type output_csv: str
         """
-        self.get_celltypes(threshold,
-                           assignment_type=assignment_type).to_csv(output_csv)
+        self.get_celltypes(threshold, assignment_type=assignment_type).to_csv(
+            output_csv
+        )
 
     def state_to_csv(self, output_csv: str) -> None:
-        """ Writes state assignment output from training state model in csv
+        """Writes state assignment output from training state model in csv
         file
 
         :param output_csv: path to output csv
@@ -710,8 +718,7 @@ class Astir:
         self.get_cellstates().to_csv(output_csv)
 
     def __str__(self) -> str:
-        """ String representation of Astir object
-        """
+        """String representation of Astir object"""
         msg = "Astir object"
         l = 0
         if self._type_dset is not None:
@@ -749,7 +756,7 @@ class Astir:
         return self.get_type_model().diagnostics(celltypes, alpha=alpha)
 
     def diagnostics_cellstate(self) -> pd.DataFrame:
-        """ Run diagnostics on cell state assignments
+        """Run diagnostics on cell state assignments
 
         This performs a basic test by comparing the correlation values
         between all marker genes and all non marker genes. It detects where the
@@ -782,8 +789,7 @@ class Astir:
 
 
 class NotClassifiableError(RuntimeError):
-    """ Raised when the input data is not classifiable.
-    """
+    """Raised when the input data is not classifiable."""
 
     pass
 

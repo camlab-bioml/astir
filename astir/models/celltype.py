@@ -54,8 +54,7 @@ class CellTypeModel(AstirModel):
             self._param_init()
 
     def _param_init(self) -> None:
-        """ Initializes parameters and design matrices.
-        """
+        """Initializes parameters and design matrices."""
         if self._dset is None:
             raise Exception("the dataset is not provided")
         G = self._dset.get_n_features()
@@ -110,7 +109,7 @@ class CellTypeModel(AstirModel):
             self._variables[n].requires_grad = True
 
     def load_hdf5(self, hdf5_name: str) -> None:
-        """ Initializes Cell Type Model from a hdf5 file type
+        """Initializes Cell Type Model from a hdf5 file type
 
         :param hdf5_name: file path
         """
@@ -149,7 +148,7 @@ class CellTypeModel(AstirModel):
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
     ) -> torch.Tensor:
-        """ One forward pass.
+        """One forward pass.
 
         :param Y: a sample from the dataset
         :param X: normalized sample data
@@ -202,7 +201,7 @@ class CellTypeModel(AstirModel):
         delta_loss_batch: int = 10,
         msg: str = "",
     ) -> None:
-        """ Runs train loops until the convergence reaches delta_loss for
+        """Runs train loops until the convergence reaches delta_loss for
         delta_loss_batch sizes or for max_epochs number of times
 
         :param max_epochs: number of train loop iterations, defaults to 50
@@ -285,16 +284,18 @@ class CellTypeModel(AstirModel):
         return g
 
     def get_recognet(self) -> TypeRecognitionNet:
-        """ Getter for the recognition net.
+        """Getter for the recognition net.
 
         :return: the trained recognition net
         """
         return self._recog
 
     def _most_likely_celltype(
-        self, row: pd.DataFrame,
-            threshold: float, cell_types: List[str],
-            assignment_type: str
+        self,
+        row: pd.DataFrame,
+        threshold: float,
+        cell_types: List[str],
+        assignment_type: str,
     ) -> str:
         """Given a row of the assignment matrix, return the most likely cell type
 
@@ -318,10 +319,12 @@ class CellTypeModel(AstirModel):
         return cell_types[np.argmax(row)]
 
     def get_celltypes(
-        self, threshold: float = 0.7, assignment_type: str = "threshold",
-            prob_assign: Optional[pd.DataFrame] = None,
+        self,
+        threshold: float = 0.7,
+        assignment_type: str = "threshold",
+        prob_assign: Optional[pd.DataFrame] = None,
     ) -> pd.DataFrame:
-        """ Get the most likely cell types
+        """Get the most likely cell types
 
         A cell is assigned to a cell type if the probability is greater than threshold.
         If no cell types have a probability higher than threshold, then "Unknown" is returned.
@@ -333,7 +336,7 @@ class CellTypeModel(AstirModel):
         probabilities. Defaults to 'threshold'.
         :param threshold: the probability threshold above which a cell is
             assigned to a cell type, defaults to 0.7
-        :return: a data frame with most likely cell types for each 
+        :return: a data frame with most likely cell types for each
         """
         if prob_assign is None:
             type_probability = self.get_assignment()
@@ -341,14 +344,17 @@ class CellTypeModel(AstirModel):
             type_probability = prob_assign
 
         if assignment_type != "threshold" and assignment_type != "max":
-            warnings.warn("Wrong assignment type. Defaults the assignment "
-                          "type to threshold.")
+            warnings.warn(
+                "Wrong assignment type. Defaults the assignment " "type to threshold."
+            )
             assignment_type = "threshold"
 
         if assignment_type == "max" and prob_assign is not None:
-            warnings.warn("Assignment type is 'max' but probability "
-                          "threshold value was passed in. Probability "
-                          "threshold value will be ignored.")
+            warnings.warn(
+                "Assignment type is 'max' but probability "
+                "threshold value was passed in. Probability "
+                "threshold value will be ignored."
+            )
 
         cell_types = list(type_probability.columns)
 
