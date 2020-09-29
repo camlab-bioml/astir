@@ -59,14 +59,15 @@ class CellTypeModel(AstirModel):
             raise Exception("the dataset is not provided")
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
+        n_other = self._dset._n_other
 
         self._recog = TypeRecognitionNet(
-            self._dset.get_n_classes(), self._dset.get_n_features()
+            self._dset.get_n_classes(), self._dset.get_n_features(), self._dset._n_other
         ).to(self._device, dtype=self._dtype)
 
         # Establish data
         self._data: Dict[str, torch.Tensor] = {
-            "log_alpha": torch.log(torch.ones(C + 1, dtype=self._dtype) / (C + 1)).to(
+            "log_alpha": torch.log(torch.ones(C + n_other, dtype=self._dtype) / (C + n_other)).to(
                 self._device
             ),
             "rho": self._dset.get_marker_mat().to(self._device),
@@ -79,19 +80,20 @@ class CellTypeModel(AstirModel):
             delta_init_mean.clone().detach().to(self._dtype),
             torch.tensor(0.1, dtype=self._dtype),
         )
-        log_delta_init = t.sample((G, C + 1))
+        log_delta_init = t.sample((G, C + n_other))
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
         mu_init = mu_init - (
             self._data["rho"] * torch.exp(log_delta_init).to(self._device)
         ).mean(1)
         mu_init = mu_init.reshape(-1, 1)
+        # mu_init = mu_init + 0.5 * torch.randn_like(mu_init)
 
         # Create initialization dictionary
         initializations = {
             "mu": mu_init,
             "log_sigma": torch.log(self._dset.get_sigma()).to(self._device),
             "log_delta": log_delta_init,
-            "p": torch.zeros((G, C + 1), dtype=self._dtype, device=self._device),
+            "p": torch.zeros((G, C + n_other), dtype=self._dtype, device=self._device),
         }
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
@@ -145,6 +147,12 @@ class CellTypeModel(AstirModel):
             self._recog.load_state_dict(state_dict)
             self._recog.eval()
 
+    def check_na(self, tensor, tensor_name):
+        # if torch.isnan(tensor).any():
+        #     print(f"NaN found in {tensor_name}")
+        #     assert 1==0
+        return None
+
     def _forward(
         self, Y: torch.Tensor, X: torch.Tensor, design: torch.Tensor
     ) -> torch.Tensor:
@@ -159,36 +167,53 @@ class CellTypeModel(AstirModel):
             raise Exception("the dataset is not provided")
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
+        n_other = self._dset._n_other
+
+
         N = Y.shape[0]
 
-        Y_spread = Y.reshape(-1, G, 1).repeat(1, 1, C + 1)
+        Y_spread = Y.reshape(-1, G, 1).repeat(1, 1, C + n_other)
 
-        delta_tilde = torch.exp(self._variables["log_delta"])  # + np.log(0.5)
+        delta_tilde = torch.exp(self._variables["log_delta"]) + 0.5
+        self.check_na(delta_tilde, "delta_tilde")
+
         mean = delta_tilde * self._data["rho"]
+        self.check_na(mean, "mean")
         mean2 = torch.mm(design, self._variables["mu"].T)  ## N x P * P x G
-        mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, C + 1)
+        self.check_na(mean2, "mean2")
+        mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, C + n_other)
+        self.check_na(mean2, "mean2_2")
         mean = mean + mean2
 
         # now do the variance modelling
         p = torch.sigmoid(self._variables["p"])
+        self.check_na(p, "p")
 
         sigma = torch.exp(self._variables["log_sigma"])
+        self.check_na(sigma, "sigma")
         v1 = (self._data["rho"] * p).T * sigma
+        self.check_na(v1, "v1")
         v2 = torch.pow(sigma, 2) * (1 - torch.pow(self._data["rho"] * p, 2)).T
+        self.check_na(v2, "v2")
 
-        v1 = v1.reshape(1, C + 1, G, 1).repeat(N, 1, 1, 1)  # extra 1 is the "rank"
-        v2 = v2.reshape(1, C + 1, G).repeat(N, 1, 1) + 1e-6
+        v1 = v1.reshape(1, C + n_other, G, 1).repeat(N, 1, 1, 1)  # extra 1 is the "rank"
+        v2 = v2.reshape(1, C + n_other, G).repeat(N, 1, 1) + 1e-6
 
         dist = LowRankMultivariateNormal(
             loc=torch.exp(mean).permute(0, 2, 1), cov_factor=v1, cov_diag=v2
         )
 
         log_p_y_on_c = dist.log_prob(Y_spread.permute(0, 2, 1))
+        self.check_na(log_p_y_on_c, "log_p_y_on_c")
 
-        gamma = self._recog.forward(X)
+        gamma, log_gamma = self._recog.forward(X)
+        self.check_na(gamma, "gamma")
+        self.check_na(log_gamma, "log_gamma")
         elbo = (
-            gamma * (log_p_y_on_c + self._data["log_alpha"] - torch.log(gamma))
+            gamma * (log_p_y_on_c + self._data["log_alpha"] - log_gamma)
         ).sum()
+
+        self.check_na(elbo, "elbo")
 
         return -elbo
 
@@ -213,6 +238,7 @@ class CellTypeModel(AstirModel):
             defaults to 10
         :param msg: iterator bar message, defaults to empty string
         """
+
         if self._dset is None:
             raise Exception("the dataset is not provided")
         # Make dataloader
@@ -261,9 +287,13 @@ class CellTypeModel(AstirModel):
 
         # Save output
         self._assignment = pd.DataFrame(
-            self._recog.forward(exprs_X).detach().cpu().numpy()
+            self._recog.forward(exprs_X)[0].detach().cpu().numpy()
         )
-        self._assignment.columns = self._dset.get_classes() + ["Other"]
+
+        n_other = self._dset._n_other
+        other_str = ["Other" for i in range(n_other)]
+
+        self._assignment.columns = self._dset.get_classes() + other_str
         self._assignment.index = self._dset.get_cell_names()
 
         if self._losses.shape[0] == 0:
@@ -280,7 +310,7 @@ class CellTypeModel(AstirModel):
         :return: the resulting cell type assignment
         """
         _, exprs_X, _ = new_dset[:]
-        g = pd.DataFrame(self._recog.forward(exprs_X).detach().cpu().numpy())
+        g = pd.DataFrame(self._recog.forward(exprs_X)[0].detach().cpu().numpy())
         return g
 
     def get_recognet(self) -> TypeRecognitionNet:

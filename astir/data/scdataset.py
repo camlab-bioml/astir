@@ -33,6 +33,7 @@ class SCDataset(Dataset):
         ],
         marker_dict: Dict[str, List[str]],
         include_other_column: bool,
+        n_other: int = 1,
         design: Optional[Union[np.array, pd.DataFrame]] = None,
         dtype: torch.dtype = torch.float64,
         device: torch.device = torch.device("cpu"),
@@ -45,6 +46,8 @@ class SCDataset(Dataset):
         )
         self._classes = list(marker_dict.keys())
 
+        self._n_other = n_other
+
         self._device = device
         ## sanitize features
         if len(self._classes) <= 1 and include_other_column:
@@ -53,7 +56,8 @@ class SCDataset(Dataset):
                 + "should be at least two cell classes to classify the data into."
             )
         self._marker_mat = self._construct_marker_mat(
-            include_other_column=include_other_column
+            include_other_column=include_other_column,
+            n_other = n_other
         )
 
         if isinstance(expr_input, pd.DataFrame):
@@ -119,7 +123,9 @@ class SCDataset(Dataset):
             return Y_np.to(device=self._device, dtype=self._dtype)
         return torch.from_numpy(Y_np).to(device=self._device, dtype=self._dtype)
 
-    def _construct_marker_mat(self, include_other_column: bool) -> torch.Tensor:
+    def _construct_marker_mat(self, 
+        include_other_column: bool,
+        n_other: int=1) -> torch.Tensor:
         """Construct a marker matrix.
 
         :param include_other_column: indicates whether or not include other columns.
@@ -129,13 +135,15 @@ class SCDataset(Dataset):
         G = self.get_n_features()
         C = self.get_n_classes()
 
-        marker_mat = torch.zeros(
-            (G, C + 1 if include_other_column else C), dtype=self._dtype
+        marker_mat = -0.1 * torch.ones(
+            (G, C + n_other if include_other_column else C), dtype=self._dtype
         ).to(self._device)
         for g, feature in enumerate(self._m_features):
             for c, cell_class in enumerate(self._classes):
                 if feature in self._marker_dict[cell_class]:
                     marker_mat[g, c] = 1.0
+                else:
+                    marker_mat[g,c] = 0.0
         return marker_mat
 
     def __len__(self) -> int:

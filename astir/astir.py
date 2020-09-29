@@ -47,6 +47,8 @@ class Astir:
         design: Union[pd.DataFrame, np.array, None] = None,
         random_seed: int = 1234,
         dtype: torch.dtype = torch.float64,
+        include_other: bool = True,
+        n_other: int = 1
     ) -> None:
 
         if not isinstance(random_seed, int):
@@ -81,7 +83,8 @@ class Astir:
                     expr_input=input_expr,
                     marker_dict=type_dict,
                     design=design,
-                    include_other_column=True,
+                    include_other_column=include_other,
+                    n_other=n_other,
                     dtype=self._dtype,
                     device=self._device,
                 )
