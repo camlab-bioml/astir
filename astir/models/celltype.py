@@ -88,15 +88,19 @@ class CellTypeModel(AstirModel):
         mu_init = mu_init - (
             self._data["rho"] * torch.exp(log_delta_init).to(self._device)
         ).mean(1)
-        mu_init = mu_init.reshape(-1, 1)
+        mu_init = mu_init.view(-1, 1)
         # mu_init = mu_init + 0.5 * torch.randn_like(mu_init)
+
+        p_init = self._dset.get_sigma().to(self._device)
+        p_init = p_init.view(1, G, 1).repeat(C + n_other, 1, 1) # extra 1 = rank 1
+
 
         # Create initialization dictionary
         initializations = {
             "mu": mu_init,
             "log_sigma": torch.log(self._dset.get_sigma()).to(self._device),
             "log_delta": log_delta_init,
-            "p": 0.1 * torch.randn((G, C + n_other, 5), dtype=self._dtype, device=self._device),
+            "p": 0.5 * p_init
         }
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
@@ -175,7 +179,7 @@ class CellTypeModel(AstirModel):
 
         N = Y.shape[0]
 
-        Y_spread = Y.reshape(-1, G, 1).repeat(1, 1, C + n_other)
+        Y_spread = Y.view(-1, G, 1).repeat(1, 1, C + n_other)
 
         delta_tilde = torch.exp(self._variables["log_delta"])
         self.check_na(delta_tilde, "delta_tilde")
@@ -184,7 +188,7 @@ class CellTypeModel(AstirModel):
         self.check_na(mean, "mean")
         mean2 = torch.mm(design, self._variables["mu"].T)  ## N x P * P x G
         self.check_na(mean2, "mean2")
-        mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, C + n_other)
+        mean2 = mean2.view(-1, G, 1).repeat(1, 1, C + n_other)
         self.check_na(mean2, "mean2_2")
         mean = mean + mean2
 
@@ -199,10 +203,10 @@ class CellTypeModel(AstirModel):
         # v2 = torch.pow(sigma, 2) * (1 - torch.pow(self._data["rho"] * p, 2)).T
         # self.check_na(v2, "v2")
 
-        v1 = self._variables["p"] # G x C x 5
-        v1 = v1.reshape(1, C + n_other, G, 5).repeat(N, 1, 1, 5)  # extra 1 is the "rank"
+        v1 = self._variables["p"] # G x C 
+        v1 = v1.view(1, C + n_other, G, 1).repeat(N, 1, 1, 1)  # extra 1 is the "rank"
         v2 = torch.pow(sigma, 2)
-        v2 = v2.reshape(1, 1, G).repeat(N, C + n_other, 1) + 1e-6
+        v2 = v2.view(1, 1, G).repeat(N, C + n_other, 1) + 1e-6
 
         dist = LowRankMultivariateNormal(
             loc=torch.exp(mean).permute(0, 2, 1), 

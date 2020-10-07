@@ -135,7 +135,7 @@ class SCDataset(Dataset):
         G = self.get_n_features()
         C = self.get_n_classes()
 
-        marker_mat = 0 * torch.ones(
+        marker_mat = -0.1 * torch.ones(
             (G, C + n_other if include_other_column else C), dtype=self._dtype
         ).to(self._device)
         for g, feature in enumerate(self._m_features):
