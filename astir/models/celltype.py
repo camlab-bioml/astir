@@ -96,7 +96,7 @@ class CellTypeModel(AstirModel):
             "mu": mu_init,
             "log_sigma": torch.log(self._dset.get_sigma()).to(self._device),
             "log_delta": log_delta_init,
-            "p": torch.zeros((G, C + n_other), dtype=self._dtype, device=self._device),
+            "p": 0.1 * torch.randn((G, C + n_other, 5), dtype=self._dtype, device=self._device),
         }
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
@@ -189,21 +189,25 @@ class CellTypeModel(AstirModel):
         mean = mean + mean2
 
         # now do the variance modelling
-        p = torch.sigmoid(self._variables["p"])
-        self.check_na(p, "p")
+        # p = torch.sigmoid(self._variables["p"])
+        # self.check_na(p, "p")
 
         sigma = torch.exp(self._variables["log_sigma"])
-        self.check_na(sigma, "sigma")
-        v1 = (self._data["rho"] * p).T * sigma
-        self.check_na(v1, "v1")
-        v2 = torch.pow(sigma, 2) * (1 - torch.pow(self._data["rho"] * p, 2)).T
-        self.check_na(v2, "v2")
+        # self.check_na(sigma, "sigma")
+        # v1 = (self._data["rho"] * p).T * sigma
+        # self.check_na(v1, "v1")
+        # v2 = torch.pow(sigma, 2) * (1 - torch.pow(self._data["rho"] * p, 2)).T
+        # self.check_na(v2, "v2")
 
-        v1 = v1.reshape(1, C + n_other, G, 1).repeat(N, 1, 1, 1)  # extra 1 is the "rank"
-        v2 = v2.reshape(1, C + n_other, G).repeat(N, 1, 1) + 1e-6
+        v1 = self._variables["p"] # G x C x 5
+        v1 = v1.reshape(1, C + n_other, G, 5).repeat(N, 1, 1, 5)  # extra 1 is the "rank"
+        v2 = torch.pow(sigma, 2)
+        v2 = v2.reshape(1, 1, G).repeat(N, C + n_other, 1) + 1e-6
 
         dist = LowRankMultivariateNormal(
-            loc=torch.exp(mean).permute(0, 2, 1), cov_factor=v1, cov_diag=v2
+            loc=torch.exp(mean).permute(0, 2, 1), 
+            cov_factor=v1, 
+            cov_diag=v2
         )
 
         log_p_y_on_c = dist.log_prob(Y_spread.permute(0, 2, 1))
