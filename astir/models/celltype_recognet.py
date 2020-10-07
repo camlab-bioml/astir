@@ -11,7 +11,7 @@ class TypeRecognitionNet(nn.Module):
     :param hidden_size: size of hidden layers, defaults to 10
     """
 
-    def __init__(self, C: int, G: int, n_other: int, hidden_size: int = 20) -> None:
+    def __init__(self, C: int, G: int, n_other: int, hidden_size: int = 40) -> None:
         super(TypeRecognitionNet, self).__init__()
         self.hidden_1 = nn.Linear(G, hidden_size)
         self.hidden_2 = nn.Linear(hidden_size, C + n_other)

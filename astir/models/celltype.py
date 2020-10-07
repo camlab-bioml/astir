@@ -73,15 +73,18 @@ class CellTypeModel(AstirModel):
             "rho": self._dset.get_marker_mat().to(self._device),
         }
         # Initialize mu, log_delta
-        delta_init_mean = torch.log(
-            torch.log(torch.tensor(3.0, dtype=self._dtype))
-        )  # the log of the log of this is the multiplier
+        # delta_init_mean = torch.log(
+        #     torch.log(torch.tensor(3.0, dtype=self._dtype))
+        # )  # the log of the log of this is the multiplier
+        
         t = torch.distributions.Normal(
-            delta_init_mean.clone().detach().to(self._dtype),
-            torch.tensor(0.1, dtype=self._dtype),
+            # delta_init_mean.clone().detach().to(self._dtype),
+            torch.tensor(0, dtype=self._dtype),
+            torch.tensor(0.05, dtype=self._dtype),
         )
         log_delta_init = t.sample((G, C + n_other))
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
+
         mu_init = mu_init - (
             self._data["rho"] * torch.exp(log_delta_init).to(self._device)
         ).mean(1)
@@ -174,7 +177,7 @@ class CellTypeModel(AstirModel):
 
         Y_spread = Y.reshape(-1, G, 1).repeat(1, 1, C + n_other)
 
-        delta_tilde = torch.exp(self._variables["log_delta"]) + 0.5
+        delta_tilde = torch.exp(self._variables["log_delta"])
         self.check_na(delta_tilde, "delta_tilde")
 
         mean = delta_tilde * self._data["rho"]
