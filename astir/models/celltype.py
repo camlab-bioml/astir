@@ -164,7 +164,7 @@ class CellTypeModel(AstirModel):
 
         Y_spread = Y.view(N, 1, G).repeat(1, C + 1, 1)
 
-        delta_tilde = torch.exp(self._variables["log_delta"]) 
+        delta_tilde = torch.exp(self._variables["log_delta"])
         mean = delta_tilde * self._data["rho"]
         mean2 = torch.mm(design, self._variables["mu"].T)  ## N x P * P x G
         mean2 = mean2.view(-1, G, 1).repeat(1, 1, C + 1)
@@ -181,17 +181,13 @@ class CellTypeModel(AstirModel):
         v2 = v2.view(1, C + 1, G).repeat(N, 1, 1) + 1e-6
 
         dist = LowRankMultivariateNormal(
-            loc=torch.exp(mean).permute(0, 2, 1), 
-            cov_factor=v1, 
-            cov_diag=v2
+            loc=torch.exp(mean).permute(0, 2, 1), cov_factor=v1, cov_diag=v2
         )
 
         log_p_y_on_c = dist.log_prob(Y_spread)
 
         gamma, log_gamma = self._recog.forward(X)
-        elbo = (
-            gamma * (log_p_y_on_c + self._data["log_alpha"] - log_gamma)
-        ).sum()
+        elbo = (gamma * (log_p_y_on_c + self._data["log_alpha"] - log_gamma)).sum()
 
         return -elbo
 
