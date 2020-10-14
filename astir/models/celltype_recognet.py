@@ -11,7 +11,7 @@ class TypeRecognitionNet(nn.Module):
     :param hidden_size: size of hidden layers, defaults to 10
     """
 
-    def __init__(self, C: int, G: int, hidden_size: int = 10) -> None:
+    def __init__(self, C: int, G: int, hidden_size: int = 20) -> None:
         super(TypeRecognitionNet, self).__init__()
         self.hidden_1 = nn.Linear(G, hidden_size)
         self.hidden_2 = nn.Linear(hidden_size, C + 1)
@@ -23,7 +23,7 @@ class TypeRecognitionNet(nn.Module):
         :return: the calculated cost value
         """
         x = self.hidden_1(x)
-        x = F.relu(x)
+        x = F.leaky_relu(x)
         x = self.hidden_2(x)
-        x = F.softmax(x, dim=1)
-        return x
+
+        return F.softmax(x, dim=1), F.log_softmax(x, dim=1)

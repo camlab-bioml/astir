@@ -76,7 +76,8 @@ class CellTypeModel(AstirModel):
             torch.log(torch.tensor(3.0, dtype=self._dtype))
         )  # the log of the log of this is the multiplier
         t = torch.distributions.Normal(
-            delta_init_mean.clone().detach().to(self._dtype),
+            # delta_init_mean.clone().detach().to(self._dtype),
+            torch.tensor(0, dtype=self._dtype),
             torch.tensor(0.1, dtype=self._dtype),
         )
         log_delta_init = t.sample((G, C + 1))
@@ -161,12 +162,12 @@ class CellTypeModel(AstirModel):
         C = self._dset.get_n_classes()
         N = Y.shape[0]
 
-        Y_spread = Y.reshape(-1, G, 1).repeat(1, 1, C + 1)
+        Y_spread = Y.view(N, 1, G).repeat(1, C + 1, 1)
 
-        delta_tilde = torch.exp(self._variables["log_delta"])  # + np.log(0.5)
+        delta_tilde = torch.exp(self._variables["log_delta"]) 
         mean = delta_tilde * self._data["rho"]
         mean2 = torch.mm(design, self._variables["mu"].T)  ## N x P * P x G
-        mean2 = mean2.reshape(-1, G, 1).repeat(1, 1, C + 1)
+        mean2 = mean2.view(-1, G, 1).repeat(1, 1, C + 1)
         mean = mean + mean2
 
         # now do the variance modelling
@@ -176,18 +177,20 @@ class CellTypeModel(AstirModel):
         v1 = (self._data["rho"] * p).T * sigma
         v2 = torch.pow(sigma, 2) * (1 - torch.pow(self._data["rho"] * p, 2)).T
 
-        v1 = v1.reshape(1, C + 1, G, 1).repeat(N, 1, 1, 1)  # extra 1 is the "rank"
-        v2 = v2.reshape(1, C + 1, G).repeat(N, 1, 1) + 1e-6
+        v1 = v1.view(1, C + 1, G, 1).repeat(N, 1, 1, 1)  # extra 1 is the "rank"
+        v2 = v2.view(1, C + 1, G).repeat(N, 1, 1) + 1e-6
 
         dist = LowRankMultivariateNormal(
-            loc=torch.exp(mean).permute(0, 2, 1), cov_factor=v1, cov_diag=v2
+            loc=torch.exp(mean).permute(0, 2, 1), 
+            cov_factor=v1, 
+            cov_diag=v2
         )
 
-        log_p_y_on_c = dist.log_prob(Y_spread.permute(0, 2, 1))
+        log_p_y_on_c = dist.log_prob(Y_spread)
 
-        gamma = self._recog.forward(X)
+        gamma, log_gamma = self._recog.forward(X)
         elbo = (
-            gamma * (log_p_y_on_c + self._data["log_alpha"] - torch.log(gamma))
+            gamma * (log_p_y_on_c + self._data["log_alpha"] - log_gamma)
         ).sum()
 
         return -elbo
@@ -261,7 +264,7 @@ class CellTypeModel(AstirModel):
 
         # Save output
         self._assignment = pd.DataFrame(
-            self._recog.forward(exprs_X).detach().cpu().numpy()
+            self._recog.forward(exprs_X)[0].detach().cpu().numpy()
         )
         self._assignment.columns = self._dset.get_classes() + ["Other"]
         self._assignment.index = self._dset.get_cell_names()
@@ -280,7 +283,7 @@ class CellTypeModel(AstirModel):
         :return: the resulting cell type assignment
         """
         _, exprs_X, _ = new_dset[:]
-        g = pd.DataFrame(self._recog.forward(exprs_X).detach().cpu().numpy())
+        g = pd.DataFrame(self._recog.forward(exprs_X)[0].detach().cpu().numpy())
         return g
 
     def get_recognet(self) -> TypeRecognitionNet:
