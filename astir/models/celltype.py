@@ -53,6 +53,7 @@ class CellTypeModel(AstirModel):
         if dset is not None:
             self._param_init()
 
+
     def _param_init(self) -> None:
         """Initializes parameters and design matrices."""
         if self._dset is None:
@@ -60,6 +61,9 @@ class CellTypeModel(AstirModel):
         G = self._dset.get_n_features()
         C = self._dset.get_n_classes()
         n_other = self._dset._n_other
+
+                
+        self._cov_rank = 1
 
         self._recog = TypeRecognitionNet(
             self._dset.get_n_classes(), self._dset.get_n_features(), self._dset._n_other
@@ -80,27 +84,37 @@ class CellTypeModel(AstirModel):
         t = torch.distributions.Normal(
             # delta_init_mean.clone().detach().to(self._dtype),
             torch.tensor(0, dtype=self._dtype),
-            torch.tensor(0.05, dtype=self._dtype),
+            torch.tensor(0.01, dtype=self._dtype),
         )
         log_delta_init = t.sample((G, C + n_other))
+
+
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
 
-        mu_init = mu_init - (
-            self._data["rho"] * torch.exp(log_delta_init).to(self._device)
-        ).mean(1)
+        # log_delta_init, mu_init = self._dset.get_delta_mu_init()
+        # log_delta_init = torch.tensor(log_delta_init, dtype=self._dtype).to(self._device)
+
+        # mu_init = torch.tensor(mu_init, dtype=self._dtype).to(self._device)
+
+
+
+        # mu_init = mu_init - (
+        #     self._data["rho"] * torch.exp(log_delta_init).to(self._device)
+        # ).mean(1)
         mu_init = mu_init.view(-1, 1)
         # mu_init = mu_init + 0.5 * torch.randn_like(mu_init)
 
-        p_init = self._dset.get_sigma().to(self._device)
-        p_init = p_init.view(1, G, 1).repeat(C + n_other, 1, 1) # extra 1 = rank 1
+        # p_init = self._dset.get_sigma().to(self._device).mean()
+        p_init = 0.1 * torch.randn( (C + n_other, G, self._cov_rank), dtype=self._dtype).to(self._device)
+        # p_init = p_init.view(1, 1, 1).repeat(C + n_other, G, self._cov_rank) # extra 1 = rank 1
 
 
         # Create initialization dictionary
         initializations = {
             "mu": mu_init,
-            "log_sigma": torch.log(self._dset.get_sigma()).to(self._device),
+            "log_sigma": torch.log(2 * self._dset.get_sigma()).to(self._device),
             "log_delta": log_delta_init,
-            "p": 0.5 * p_init
+            "p": p_init
         }
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
@@ -116,6 +130,8 @@ class CellTypeModel(AstirModel):
         for (n, v) in initializations.items():
             self._variables[n] = Variable(v.clone()).to(self._device)
             self._variables[n].requires_grad = True
+        
+        self.initializations = initializations
 
     def load_hdf5(self, hdf5_name: str) -> None:
         """Initializes Cell Type Model from a hdf5 file type
@@ -204,7 +220,7 @@ class CellTypeModel(AstirModel):
         # self.check_na(v2, "v2")
 
         v1 = self._variables["p"] # G x C 
-        v1 = v1.view(1, C + n_other, G, 1).repeat(N, 1, 1, 1)  # extra 1 is the "rank"
+        v1 = v1.view(1, C + n_other, G, self._cov_rank).repeat(N, 1, 1, 1)  # extra 1 is the "rank"
         v2 = torch.pow(sigma, 2)
         v2 = v2.view(1, 1, G).repeat(N, C + n_other, 1) + 1e-6
 
@@ -361,7 +377,7 @@ class CellTypeModel(AstirModel):
 
     def get_celltypes(
         self,
-        threshold: float = 0.7,
+        threshold: float = 0.5,
         assignment_type: str = "threshold",
         prob_assign: Optional[pd.DataFrame] = None,
     ) -> pd.DataFrame:
