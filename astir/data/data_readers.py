@@ -108,6 +108,7 @@ def from_loompy_yaml(
     batch_name_attr: str = "batch",
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
+    build_design=False
 ) -> Any:
     """Create an Astir object from a loom file and a marker yaml
 
@@ -141,7 +142,7 @@ def from_loompy_yaml(
 
     design = None
 
-    if batch_list is not None:
+    if batch_list is not None and build_design:
         design = OneHotEncoder().fit_transform(batch_list.reshape(-1, 1)).todense()
         design = design[:, :-1]  # remove final column
         design = np.concatenate([np.ones((design.shape[0], 1)), design], axis=1)
