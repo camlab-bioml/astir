@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader, Dataset
 
 # from sklearn.cluster import SpectralClustering
 
-import scanpy as sc
+# import scanpy as sc
 from sklearn.preprocessing import StandardScaler
 
 
@@ -98,56 +98,56 @@ class SCDataset(Dataset):
 
         return np.log(mean_init), ldi
 
-    def get_delta_mu_init(self, nc=None, method="scanpy"):
-        print("Initializing from delta")
+    # def get_delta_mu_init(self, nc=None, method="scanpy"):
+    #     print("Initializing from delta")
 
 
-        G = self.get_n_features()
-        C = self.get_n_classes()
+    #     G = self.get_n_features()
+    #     C = self.get_n_classes()
 
-        nc = 2 * C
+    #     nc = 2 * C
 
-        exprs = self._exprs.detach().numpy()
+    #     exprs = self._exprs.detach().numpy()
 
-        exprs_scaled = StandardScaler().fit_transform(exprs)
+    #     exprs_scaled = StandardScaler().fit_transform(exprs)
 
-        if method == "scanpy":
-            adata = sc.AnnData(exprs)
-            sc.tl.pca(adata, svd_solver='arpack')
-            sc.pp.neighbors(adata, n_neighbors=50)
-            sc.tl.leiden(adata)
-            clusters = adata.obs['leiden']
-            clusters = clusters.astype("int64").to_numpy()
-        else:
+    #     if method == "scanpy":
+    #         adata = sc.AnnData(exprs)
+    #         sc.tl.pca(adata, svd_solver='arpack')
+    #         sc.pp.neighbors(adata, n_neighbors=50)
+    #         sc.tl.leiden(adata)
+    #         clusters = adata.obs['leiden']
+    #         clusters = clusters.astype("int64").to_numpy()
+    #     else:
 
-            scl = SpectralClustering(n_clusters=nc, n_init=100,
-                            assign_labels='discretize')
-            clusters = scl.fit_predict(exprs_scaled) 
+    #         scl = SpectralClustering(n_clusters=nc, n_init=100,
+    #                         assign_labels='discretize')
+    #         clusters = scl.fit_predict(exprs_scaled) 
 
-        s = []
-        for cluster in np.unique(clusters):
-            if (cluster == clusters).sum() > 0:
-                s.append(exprs[clusters == cluster,:].mean(0))
-        s = np.array(s)
+    #     s = []
+    #     for cluster in np.unique(clusters):
+    #         if (cluster == clusters).sum() > 0:
+    #             s.append(exprs[clusters == cluster,:].mean(0))
+    #     s = np.array(s)
 
-        # feature_max = s.max(0)
-        # feature_min = s.min(0)
-        qs = np.quantile(s, q = [0.1, 0.9], axis=0)
-        feature_min = qs[0,:]
-        feature_max = qs[1,:]
+    #     # feature_max = s.max(0)
+    #     # feature_min = s.min(0)
+    #     qs = np.quantile(s, q = [0.1, 0.9], axis=0)
+    #     feature_min = qs[0,:]
+    #     feature_max = qs[1,:]
 
-        delta_init = (feature_max / feature_min)
+    #     delta_init = (feature_max / feature_min)
 
-        log_delta_init = np.log(np.log(delta_init))
-        log_delta_init[np.isinf(log_delta_init)] = log_delta_init[np.isinf(log_delta_init) == False].max()
+    #     log_delta_init = np.log(np.log(delta_init))
+    #     log_delta_init[np.isinf(log_delta_init)] = log_delta_init[np.isinf(log_delta_init) == False].max()
 
 
         
-        log_delta_init = np.repeat(log_delta_init.reshape((G, 1)), C + self._n_other, axis=1)
+    #     log_delta_init = np.repeat(log_delta_init.reshape((G, 1)), C + self._n_other, axis=1)
 
-        print("Done")
+    #     print("Done")
 
-        return log_delta_init, np.log(feature_min)
+    #     return log_delta_init, np.log(feature_min)
 
 
 
