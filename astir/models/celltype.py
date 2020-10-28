@@ -82,21 +82,21 @@ class CellTypeModel(AstirModel):
         
         t = torch.distributions.Normal(
             # delta_init_mean.clone().detach().to(self._dtype),
-            torch.tensor(mean_init[0], dtype=self._dtype),
+            torch.tensor(0, dtype=self._dtype),
             torch.tensor(0.01, dtype=self._dtype),
         )
         log_delta_init = t.sample((G, C + n_other))
 
-        mu_init = torch.log(self._dset.get_mu()).to(self._device)
+        mu_init = torch.log(0.5 * self._dset.get_mu()).to(self._device)
 
         mu_init = mu_init - (
             self._data["rho"] * (F.softplus(log_delta_init)).to(self._device)
         ).mean(1)
 
-        mu_init, _ = self._dset.get_delta_mu_init2()
+        # mu_init, _ = self._dset.get_delta_mu_init2()
         # log_delta_init = torch.tensor(log_delta_init, dtype=self._dtype).to(self._device)
         # log_delta_init= log_delta_init.view(G,1).repeat(1, C + n_other)
-        mu_init = torch.tensor(mu_init, dtype=self._dtype).to(self._device)
+        # mu_init = torch.tensor(mu_init, dtype=self._dtype).to(self._device)
 
         mu_init = mu_init.view(-1, 1)
         # print(mu_init.shape)
@@ -107,7 +107,7 @@ class CellTypeModel(AstirModel):
 
         p_init = torch.randn( (C + n_other, G, self._cov_rank), dtype=self._dtype).to(self._device)
         # p_init = p_init.view(1, 1, 1).repeat(C + n_other, G, self._cov_rank) # extra 1 = rank 1
-        p_init = 0.05 * torch.ones((C+n_other, G, self._cov_rank), dtype=self._dtype).to(self._device)
+        p_init = 0.01 * torch.ones((C+n_other, G, self._cov_rank), dtype=self._dtype).to(self._device)
 
 
         # Create initialization dictionary
@@ -125,7 +125,7 @@ class CellTypeModel(AstirModel):
         initializations["mu"] = torch.cat(
             [
                 initializations["mu"],
-                0.1*torch.randn((G, P - 1), dtype=self._dtype, device=self._device),
+                torch.zeros((G, P - 1), dtype=self._dtype, device=self._device),
             ],
             1,
         )
