@@ -24,9 +24,9 @@ class TypeRecognitionNet(nn.Module):
         :return: the calculated cost value
         """
         x = self.hidden_1(x)
-        x = F.leaky_relu(x)
+        x = F.relu(x)
         x = self.hidden(x)
-        x = F.leaky_relu(x)
+        x = F.relu(x)
         x = self.hidden_2(x)
         # x = 
         return F.softmax(x, dim=1), F.log_softmax(x, dim=1)
