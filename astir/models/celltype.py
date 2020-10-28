@@ -63,7 +63,7 @@ class CellTypeModel(AstirModel):
         n_other = self._dset._n_other
 
                 
-        self._cov_rank = 1
+        self._cov_rank = 3
 
         self._recog = TypeRecognitionNet(
             self._dset.get_n_classes(), self._dset.get_n_features(), self._dset._n_other
@@ -71,42 +71,43 @@ class CellTypeModel(AstirModel):
 
         # Establish data
         self._data: Dict[str, torch.Tensor] = {
-            "log_alpha": torch.log(torch.ones(C + n_other, dtype=self._dtype) / (C + n_other)).to(
-                self._device
-            ),
             "rho": self._dset.get_marker_mat().to(self._device),
         }
         # Initialize mu, log_delta
         # delta_init_mean = torch.log(
         #     torch.log(torch.tensor(3.0, dtype=self._dtype))
         # )  # the log of the log of this is the multiplier
+
+        mean_init = np.random.normal(scale=0.5, size=1)
         
         t = torch.distributions.Normal(
             # delta_init_mean.clone().detach().to(self._dtype),
-            torch.tensor(0, dtype=self._dtype),
+            torch.tensor(mean_init[0], dtype=self._dtype),
             torch.tensor(0.01, dtype=self._dtype),
         )
         log_delta_init = t.sample((G, C + n_other))
 
-
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
 
-        # log_delta_init, mu_init = self._dset.get_delta_mu_init()
-        # log_delta_init = torch.tensor(log_delta_init, dtype=self._dtype).to(self._device)
-
-        # mu_init = torch.tensor(mu_init, dtype=self._dtype).to(self._device)
-
-
-
         # mu_init = mu_init - (
-        #     self._data["rho"] * torch.exp(log_delta_init).to(self._device)
+        #     self._data["rho"] * (F.softplus(log_delta_init)).to(self._device)
         # ).mean(1)
+
+        mu_init, _ = self._dset.get_delta_mu_init2()
+        # log_delta_init = torch.tensor(log_delta_init, dtype=self._dtype).to(self._device)
+        # log_delta_init= log_delta_init.view(G,1).repeat(1, C + n_other)
+        mu_init = torch.tensor(mu_init, dtype=self._dtype).to(self._device)
+
         mu_init = mu_init.view(-1, 1)
-        # mu_init = mu_init + 0.5 * torch.randn_like(mu_init)
+        # print(mu_init.shape)
 
         # p_init = self._dset.get_sigma().to(self._device).mean()
-        p_init = 0.1 * torch.randn( (C + n_other, G, self._cov_rank), dtype=self._dtype).to(self._device)
+        # p_init = torch.sqrt(p_init)
+        # p_init = p_init.view((1,1,1)).repeat((C+n_other,G, self._cov_rank))
+
+        p_init = torch.randn( (C + n_other, G, self._cov_rank), dtype=self._dtype).to(self._device)
         # p_init = p_init.view(1, 1, 1).repeat(C + n_other, G, self._cov_rank) # extra 1 = rank 1
+        p_init = 0.05 * torch.ones((C+n_other, G, self._cov_rank), dtype=self._dtype).to(self._device)
 
 
         # Create initialization dictionary
@@ -114,7 +115,10 @@ class CellTypeModel(AstirModel):
             "mu": mu_init,
             "log_sigma": torch.log(2 * self._dset.get_sigma()).to(self._device),
             "log_delta": log_delta_init,
-            "p": p_init
+            "p": p_init,
+            "alpha": torch.zeros(C + n_other, dtype=self._dtype).to(
+                self._device
+            ),
         }
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
@@ -192,13 +196,12 @@ class CellTypeModel(AstirModel):
         C = self._dset.get_n_classes()
         n_other = self._dset._n_other
 
-
         N = Y.shape[0]
 
         Y_spread = Y.view(-1, G, 1).repeat(1, 1, C + n_other)
 
-        delta_tilde = torch.exp(self._variables["log_delta"])
-        self.check_na(delta_tilde, "delta_tilde")
+        # delta_tilde = torch.exp(self._variables["log_delta"])
+        delta_tilde = F.softplus(self._variables['log_delta'])
 
         mean = delta_tilde * self._data["rho"]
         self.check_na(mean, "mean")
@@ -224,6 +227,7 @@ class CellTypeModel(AstirModel):
         v2 = torch.pow(sigma, 2)
         v2 = v2.view(1, 1, G).repeat(N, C + n_other, 1) + 1e-6
 
+
         dist = LowRankMultivariateNormal(
             loc=torch.exp(mean).permute(0, 2, 1), 
             cov_factor=v1, 
@@ -231,13 +235,15 @@ class CellTypeModel(AstirModel):
         )
 
         log_p_y_on_c = dist.log_prob(Y_spread.permute(0, 2, 1))
-        self.check_na(log_p_y_on_c, "log_p_y_on_c")
+        self.mean = torch.exp(mean).permute(0, 2, 1)
+        self.log_p_y_on_c = log_p_y_on_c
 
         gamma, log_gamma = self._recog.forward(X)
-        self.check_na(gamma, "gamma")
-        self.check_na(log_gamma, "log_gamma")
+
+        log_softmax_alpha = F.log_softmax(self._variables['alpha'], dim=0)
+
         elbo = (
-            gamma * (log_p_y_on_c + self._data["log_alpha"] - log_gamma)
+            gamma * (log_p_y_on_c + log_softmax_alpha - log_gamma)
         ).sum()
 
         self.check_na(elbo, "elbo")
