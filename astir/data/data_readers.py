@@ -52,7 +52,7 @@ def from_csv_dir_yaml(
     input_dir: str,
     marker_yaml: str,
     dtype: torch.dtype = torch.float64,
-    build_design=False,
+    build_design=True,
     *args,
     **kwargs,
 ) -> Any:
@@ -108,7 +108,7 @@ def from_loompy_yaml(
     batch_name_attr: str = "batch",
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
-    build_design=False
+    build_design=True
 ) -> Any:
     """Create an Astir object from a loom file and a marker yaml
 
