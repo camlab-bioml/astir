@@ -89,9 +89,9 @@ class CellTypeModel(AstirModel):
 
         mu_init = torch.log(self._dset.get_mu()).to(self._device)
 
-        # mu_init = mu_init - (
-        #     self._data["rho"] * (F.softplus(log_delta_init)).to(self._device)
-        # ).mean(1)
+        mu_init = mu_init - (
+            self._data["rho"] * (F.softplus(log_delta_init)).to(self._device)
+        ).mean(1)
 
         mu_init, _ = self._dset.get_delta_mu_init2()
         # log_delta_init = torch.tensor(log_delta_init, dtype=self._dtype).to(self._device)
@@ -125,7 +125,7 @@ class CellTypeModel(AstirModel):
         initializations["mu"] = torch.cat(
             [
                 initializations["mu"],
-                torch.zeros((G, P - 1), dtype=self._dtype, device=self._device),
+                0.1*torch.randn((G, P - 1), dtype=self._dtype, device=self._device),
             ],
             1,
         )
