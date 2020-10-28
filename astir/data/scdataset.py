@@ -9,8 +9,8 @@ from torch.utils.data import DataLoader, Dataset
 
 # from sklearn.cluster import SpectralClustering
 
-# import scanpy as sc
-# from sklearn.preprocessing import StandardScaler
+import scanpy as sc
+from sklearn.preprocessing import StandardScaler
 
 
 class SCDataset(Dataset):
@@ -83,56 +83,71 @@ class SCDataset(Dataset):
         self._exprs_mean = self._exprs.mean(0)
         self._exprs_std = self._exprs.std(0)
 
-    # def get_delta_mu_init(self, nc=None, method="scanpy"):
-    #     print("Initializing from delta")
+        self.normalize()
 
 
-    #     G = self.get_n_features()
-    #     C = self.get_n_classes()
+    def get_delta_mu_init2(self, nc=None, method="scanpy"):
+        exprs = self._exprs.detach().numpy()
+        qs = np.quantile(exprs, q = [0.5, 0.99], axis=0)
+        mean_init = qs[0,:]
+        ldi = qs[1,:] / mean_init
+        ldi = np.log(np.log(ldi))
 
-    #     nc = 2 * C
+        # print(mean_init)
+        # print(ldi)
 
-    #     exprs = self._exprs.detach().numpy()
+        return np.log(mean_init), ldi
 
-    #     exprs_scaled = StandardScaler().fit_transform(exprs)
+    def get_delta_mu_init(self, nc=None, method="scanpy"):
+        print("Initializing from delta")
 
-    #     if method == "scanpy":
-    #         adata = sc.AnnData(exprs)
-    #         sc.tl.pca(adata, svd_solver='arpack')
-    #         sc.pp.neighbors(adata, n_neighbors=50)
-    #         sc.tl.leiden(adata)
-    #         clusters = adata.obs['leiden']
-    #         clusters = clusters.astype("int64").to_numpy()
-    #     else:
 
-    #         scl = SpectralClustering(n_clusters=nc, n_init=100,
-    #                         assign_labels='discretize')
-    #         clusters = scl.fit_predict(exprs_scaled) 
+        G = self.get_n_features()
+        C = self.get_n_classes()
 
-    #     s = []
-    #     for cluster in np.unique(clusters):
-    #         if (cluster == clusters).sum() > 0:
-    #             s.append(exprs[clusters == cluster,:].mean(0))
-    #     s = np.array(s)
+        nc = 2 * C
 
-    #     # feature_max = s.max(0)
-    #     # feature_min = s.min(0)
-    #     qs = np.quantile(s, q = [0.1, 0.9], axis=0)
-    #     feature_min = qs[0,:]
-    #     feature_max = qs[1,:]
+        exprs = self._exprs.detach().numpy()
 
-    #     delta_init = (feature_max / feature_min)
+        exprs_scaled = StandardScaler().fit_transform(exprs)
 
-    #     log_delta_init = np.log(np.log(delta_init))
-    #     log_delta_init[np.isinf(log_delta_init)] = log_delta_init[np.isinf(log_delta_init) == False].max()
+        if method == "scanpy":
+            adata = sc.AnnData(exprs)
+            sc.tl.pca(adata, svd_solver='arpack')
+            sc.pp.neighbors(adata, n_neighbors=50)
+            sc.tl.leiden(adata)
+            clusters = adata.obs['leiden']
+            clusters = clusters.astype("int64").to_numpy()
+        else:
+
+            scl = SpectralClustering(n_clusters=nc, n_init=100,
+                            assign_labels='discretize')
+            clusters = scl.fit_predict(exprs_scaled) 
+
+        s = []
+        for cluster in np.unique(clusters):
+            if (cluster == clusters).sum() > 0:
+                s.append(exprs[clusters == cluster,:].mean(0))
+        s = np.array(s)
+
+        # feature_max = s.max(0)
+        # feature_min = s.min(0)
+        qs = np.quantile(s, q = [0.1, 0.9], axis=0)
+        feature_min = qs[0,:]
+        feature_max = qs[1,:]
+
+        delta_init = (feature_max / feature_min)
+
+        log_delta_init = np.log(np.log(delta_init))
+        log_delta_init[np.isinf(log_delta_init)] = log_delta_init[np.isinf(log_delta_init) == False].max()
 
 
         
-    #     log_delta_init = np.repeat(log_delta_init.reshape((G, 1)), C + self._n_other, axis=1)
+        log_delta_init = np.repeat(log_delta_init.reshape((G, 1)), C + self._n_other, axis=1)
 
-    #     print("Done")
+        print("Done")
 
-    #     return log_delta_init, np.log(feature_min)
+        return log_delta_init, np.log(feature_min)
 
 
 
@@ -193,7 +208,7 @@ class SCDataset(Dataset):
         G = self.get_n_features()
         C = self.get_n_classes()
 
-        marker_mat = -0.1 * torch.ones(
+        marker_mat = 0 * torch.ones(
             (G, C + n_other if include_other_column else C), dtype=self._dtype
         ).to(self._device)
         for g, feature in enumerate(self._m_features):
@@ -354,7 +369,7 @@ class SCDataset(Dataset):
 
         with torch.no_grad():
             exprs = self.get_exprs().cpu().numpy()
-            exprs = np.arcsinh(exprs / cofactor)
+            # exprs = np.arcsinh(exprs / cofactor)
             q_low = np.percentile(exprs, (percentile_lower), axis=0)
             q_high = np.percentile(exprs, (percentile_upper), axis=0)
 
