@@ -52,6 +52,7 @@ def from_csv_dir_yaml(
     input_dir: str,
     marker_yaml: str,
     dtype: torch.dtype = torch.float64,
+    build_design=False,
     *args,
     **kwargs,
 ) -> Any:
@@ -78,16 +79,19 @@ def from_csv_dir_yaml(
     df_gex = pd.concat(dfs, axis=0)
 
     # Construct a sample specific design matrix
-    design_list = [np.repeat(str(i), dfs[i].shape[0]) for i in range(len(dfs))]
-    design = (
-        OneHotEncoder()
-        .fit_transform(np.concatenate(design_list, axis=0).reshape(-1, 1))
-        .todense()
-    )
-    design = design[:, :-1]  # remove final column
-    design = np.concatenate(
-        [np.ones((design.shape[0], 1)), design], axis=1
-    )  # add in intercept!
+    design = None
+
+    if build_design:
+        design_list = [np.repeat(str(i), dfs[i].shape[0]) for i in range(len(dfs))]
+        design = (
+            OneHotEncoder()
+            .fit_transform(np.concatenate(design_list, axis=0).reshape(-1, 1))
+            .todense()
+        )
+        design = design[:, :-1]  # remove final column
+        design = np.concatenate(
+            [np.ones((design.shape[0], 1)), design], axis=1
+        )  # add in intercept!
 
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
