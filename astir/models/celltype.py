@@ -81,10 +81,13 @@ class CellTypeModel(AstirModel):
             torch.tensor(0.1, dtype=self._dtype),
         )
         log_delta_init = t.sample((G, C + 1))
-        mu_init = torch.log(self._dset.get_mu()).to(self._device)
-        mu_init = mu_init - (
-            self._data["rho"] * torch.exp(log_delta_init).to(self._device)
-        ).mean(1)
+
+        mu_init = torch.log(torch.tensor(self._dset.get_mu_init())).to(self._device)
+        # mu_init = torch.log(self._dset.get_mu()).to(self._device)
+        # mu_init = mu_init - (
+        #     self._data["rho"] * torch.exp(log_delta_init).to(self._device)
+        # ).mean(1)
+
         mu_init = mu_init.reshape(-1, 1)
 
         # Create initialization dictionary

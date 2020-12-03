@@ -298,6 +298,37 @@ class SCDataset(Dataset):
 
             self._exprs = torch.tensor(exprs)
 
+    def get_mu_init(self, n_putative_cells=10):
+        df_exprs = self.get_exprs_df()
+
+        df_scaled = df_exprs.copy()
+        scaler = StandardScaler()
+        df_scaled[df_scaled.columns] = scaler.fit_transform(df_scaled[df_scaled.columns])
+        df_scaled.head()
+
+        putative_cells = {}
+
+        for cell_type, type_markers in self._marker_dict.items():
+            scored_by_marker = df_scaled[type_markers].mean(1)
+            putative_cells[cell_type] = scored_by_marker.nlargest(n_putative_cells).index
+        
+        mean_inits = {}
+
+        for feature in self._m_features:
+            ## List of cell types that do not contain feature
+            celltypes_no_feature = [c for c in self._classes if not feature in self._marker_dict[c]]
+            indices_to_use = [putative_cells[ct] for ct in celltypes_no_feature]
+            idx = indices_to_use[0]
+            for i in range(1, len(indices_to_use)):
+                idx = idx.union(indices_to_use[i])
+            mean_inits[feature] = df_exprs.loc[idx][feature].mean()
+        
+        mean_init = pd.Series(mean_inits).to_numpy()
+
+        print(mean_init)
+
+        return mean_init
+
 
 class NotClassifiableError(RuntimeError):
     pass
