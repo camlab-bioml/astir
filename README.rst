@@ -4,7 +4,7 @@ astir - Automated cell identity from single-cell multiplexed imaging and proteom
 
 |Build Status| |PyPI| |Code Style|
 
-.. |Build Status| image:: https://travis-ci.org/camlab-bioml/astir.svg?branch=master
+.. |Build Status| image:: https://travis-ci.com/camlab-bioml/astir.svg?branch=master
     :target: https://travis-ci.org/camlab-bioml/astir
 .. |Code Style| image:: https://img.shields.io/badge/code%20style-black-black
     :target: https://github.com/python/black
