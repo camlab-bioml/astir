@@ -302,19 +302,19 @@ class TestAstir(TestCase):
         comp = type_predict == type_assignment
         self.assertTrue(comp.all().all())
 
-    def test_adata_reading(self):
-        ast = from_anndata_yaml(
-            self.adata_file,
-            self.marker_yaml_file,
-            protein_name="protein",
-            cell_name="cell_name",
-            batch_name="batch",
-        )
+    # def test_adata_reading(self):
+    #     ast = from_anndata_yaml(
+    #         self.adata_file,
+    #         self.marker_yaml_file,
+    #         protein_name="protein",
+    #         cell_name="cell_name",
+    #         batch_name="batch",
+    #     )
 
-        self.assertTrue(ast.get_type_dataset().get_n_features() == 14)
-        self.assertTrue(ast.get_type_dataset().get_n_classes() == 6)
-        self.assertIsInstance(ast.get_type_dataset().get_exprs(), torch.Tensor)
-        self.assertEqual(ast.get_type_dataset().get_exprs().shape[0], 10)
+    #     self.assertTrue(ast.get_type_dataset().get_n_features() == 14)
+    #     self.assertTrue(ast.get_type_dataset().get_n_classes() == 6)
+    #     self.assertIsInstance(ast.get_type_dataset().get_exprs(), torch.Tensor)
+    #     self.assertEqual(ast.get_type_dataset().get_exprs().shape[0], 10)
 
     def test_cellstate_diagnostics(self):
         warnings.filterwarnings("ignore", category=UserWarning)
