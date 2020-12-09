@@ -88,7 +88,9 @@ class CellTypeModel(AstirModel):
         )
         log_delta_init = t.sample((G, C + 1))
 
-        mu_init = torch.log(torch.tensor(self._dset.get_mu_init())).to(self._device)
+        mu_init = torch.log(
+            torch.tensor(self._dset.get_mu_init(), dtype=self._dtype)
+        ).to(self._device)
         # mu_init = torch.log(self._dset.get_mu()).to(self._device)
         # mu_init = mu_init - (
         #     self._data["rho"] * torch.exp(log_delta_init).to(self._device)
@@ -133,9 +135,9 @@ class CellTypeModel(AstirModel):
                 "log_sigma": torch.tensor(np.array(param["log_sigma"])),
                 "log_delta": torch.tensor(np.array(param["log_delta"])),
                 "p": torch.tensor(np.array(param["p"])),
+                "alpha_logits": torch.tensor(np.array(param["alpha_logits"])),
             }
             self._data = {
-                "log_alpha": torch.tensor(np.array(param["log_alpha"])),
                 "rho": torch.tensor(np.array(param["rho"])),
             }
             self._losses = torch.tensor(np.array(grp["losses"]["losses"]))

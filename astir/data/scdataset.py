@@ -298,7 +298,13 @@ class SCDataset(Dataset):
 
             self._exprs = torch.tensor(exprs)
 
-    def get_mu_init(self, n_putative_cells: int = 10):
+    def get_mu_init(self, n_putative_cells: int = 10) -> np.ndarray:
+        """Intelligent initialization for mu parameters
+
+        See manuscript for details
+
+        :param n_putative_cells: Number of cells to guess as given cell type
+        """
         df_exprs = self.get_exprs_df()
 
         df_scaled = df_exprs.copy()
