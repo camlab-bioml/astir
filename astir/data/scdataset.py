@@ -298,7 +298,7 @@ class SCDataset(Dataset):
 
             self._exprs = torch.tensor(exprs)
 
-    def get_mu_init(self, n_putative_cells=10):
+    def get_mu_init(self, n_putative_cells: int = 10):
         df_exprs = self.get_exprs_df()
 
         df_scaled = df_exprs.copy()
@@ -330,8 +330,6 @@ class SCDataset(Dataset):
             mean_inits[feature] = df_exprs.loc[idx][feature].mean()
 
         mean_init = pd.Series(mean_inits).to_numpy()
-
-        print(mean_init)
 
         return mean_init
 
