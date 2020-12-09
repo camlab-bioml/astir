@@ -5,9 +5,9 @@ with open("README.rst", "r") as fh:
 
 setuptools.setup(
     name="astir",
-    version="0.0.11",
+    version="0.1.0",
     author="Jinyu Hou, Sunyun Lee, Michael Geuenich, Kieran Campbell",
-    author_email="jhou@lunenfeld.ca",
+    author_email="kierancampbell@lunenfeld.ca",
     description=" ",
     long_description=long_description,
     # long_description_content_type="text/markdown",
