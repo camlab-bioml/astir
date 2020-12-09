@@ -73,7 +73,9 @@ class CellTypeModel(AstirModel):
             "rho": self._dset.get_marker_mat().to(self._device),
         }
 
-        self._alpha_prior = Dirichlet(torch.ones(C+1, dtype=self._dtype).to(self._device)  * (C+1) )
+        self._alpha_prior = Dirichlet(
+            torch.ones(C + 1, dtype=self._dtype).to(self._device) * (C + 1)
+        )
 
         # Initialize mu, log_delta
         delta_init_mean = torch.log(
@@ -100,7 +102,7 @@ class CellTypeModel(AstirModel):
             "log_sigma": torch.log(self._dset.get_sigma()).to(self._device),
             "log_delta": log_delta_init,
             "p": torch.zeros((G, C + 1), dtype=self._dtype, device=self._device),
-            "alpha_logits": torch.ones(C+1, dtype=self._dtype, device=self._device)
+            "alpha_logits": torch.ones(C + 1, dtype=self._dtype, device=self._device),
         }
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
@@ -195,11 +197,11 @@ class CellTypeModel(AstirModel):
         log_p_y_on_c = dist.log_prob(Y_spread)
 
         gamma, log_gamma = self._recog.forward(X)
-        log_alpha = F.log_softmax(self._variables['alpha_logits'], dim=0)
-        alpha = F.softmax(self._variables['alpha_logits'],  dim=0)
+        log_alpha = F.log_softmax(self._variables["alpha_logits"], dim=0)
+        alpha = F.softmax(self._variables["alpha_logits"], dim=0)
         mix_prior = self._alpha_prior.log_prob(alpha)
 
-        elbo = (gamma * (log_p_y_on_c + log_alpha - log_gamma)).sum() + mix_prior 
+        elbo = (gamma * (log_p_y_on_c + log_alpha - log_gamma)).sum() + mix_prior
 
         return -elbo
 
