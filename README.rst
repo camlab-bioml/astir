@@ -12,7 +12,7 @@ astir - Automated cell identity from single-cell multiplexed imaging and proteom
     :target: https://pypi.org/project/pypi/
 
 
-``astir`` is a modelling framework for the assignment of cell type and cell state across a range of single-cell technologies such as Imaging Mass Cytometry (IMC). ``astir`` is built using `pytorch <https://pytorch.org/>`_ and uses recognition networks for fast minibatch stochastic variational inference. 
+``astir`` is a modelling framework for the assignment of cell type across a range of single-cell technologies such as Imaging Mass Cytometry (IMC). ``astir`` is built using `pytorch <https://pytorch.org/>`_ and uses recognition networks for fast minibatch stochastic variational inference. 
 
 Key applications:
 
