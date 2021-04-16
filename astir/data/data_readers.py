@@ -176,7 +176,7 @@ def from_anndata_yaml(
 
     ad = anndata.read_h5ad(anndata_file)
 
-    df_gex = pd.DataFrame(ad.X.toarray())
+    df_gex = pd.DataFrame(ad.X)
 
     if protein_name is not None:
         df_gex.columns = ad.var[protein_name]
