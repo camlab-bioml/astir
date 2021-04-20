@@ -73,6 +73,13 @@ class CellTypeModel(AstirModel):
             "rho": self._dset.get_marker_mat().to(self._device),
         }
 
+        self._data['is_not_negative'] = 1.0 * (self._data['rho'] != -1.0) # 
+        self._data['rho'][self._data['rho'] == -1.0] = 0.0
+
+        # print(self._data)
+
+        # assert 1 == 0
+
         self._alpha_prior = Dirichlet(
             torch.ones(C + 1, dtype=self._dtype).to(self._device) * (C + 1)
         )
@@ -192,8 +199,10 @@ class CellTypeModel(AstirModel):
         v1 = v1.view(1, C + 1, G, 1).repeat(N, 1, 1, 1)  # extra 1 is the "rank"
         v2 = v2.view(1, C + 1, G).repeat(N, 1, 1) + 1e-6
 
+        final_mean = (self._data['is_not_negative'] * torch.exp(mean)).permute(0, 2, 1)
+
         dist = LowRankMultivariateNormal(
-            loc=torch.exp(mean).permute(0, 2, 1), cov_factor=v1, cov_diag=v2
+            loc=final_mean, cov_factor=v1, cov_diag=v2
         )
 
         log_p_y_on_c = dist.log_prob(Y_spread)

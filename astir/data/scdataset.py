@@ -41,7 +41,7 @@ class SCDataset(Dataset):
         self._dtype = dtype
         self._marker_dict = marker_dict
         self._m_features = sorted(
-            list(set([l for s in marker_dict.values() for l in s]))
+            list(set([l.lstrip('-') for s in marker_dict.values() for l in s]))
         )
         self._classes = list(marker_dict.keys())
 
@@ -136,6 +136,11 @@ class SCDataset(Dataset):
             for c, cell_class in enumerate(self._classes):
                 if feature in self._marker_dict[cell_class]:
                     marker_mat[g, c] = 1.0
+                if "-" + feature in self._marker_dict[cell_class]:
+                    marker_mat[g,c] = -1.0
+
+        print(marker_mat)
+
         return marker_mat
 
     def __len__(self) -> int:
@@ -317,7 +322,8 @@ class SCDataset(Dataset):
         putative_cells = {}
 
         for cell_type, type_markers in self._marker_dict.items():
-            scored_by_marker = df_scaled[type_markers].mean(1)
+            tm = [x for x in type_markers.copy() if not x.startswith('-')]
+            scored_by_marker = df_scaled[tm].mean(1)
             putative_cells[cell_type] = scored_by_marker.nlargest(
                 n_putative_cells
             ).index
