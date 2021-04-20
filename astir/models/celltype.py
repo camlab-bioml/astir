@@ -195,11 +195,18 @@ class CellTypeModel(AstirModel):
         sigma = torch.exp(self._variables["log_sigma"])
         v1 = (self._data["rho"] * p).T * sigma
         v2 = torch.pow(sigma, 2) * (1 - torch.pow(self._data["rho"] * p, 2)).T
+        v2 = v2 * self._data['is_not_negative'].T
+
 
         v1 = v1.view(1, C + 1, G, 1).repeat(N, 1, 1, 1)  # extra 1 is the "rank"
         v2 = v2.view(1, C + 1, G).repeat(N, 1, 1) + 1e-6
 
         final_mean = (self._data['is_not_negative'] * torch.exp(mean)).permute(0, 2, 1)
+
+        # print(v2[0,:,:])
+        # print(final_mean[0,:,:])
+
+        # assert 1 == 0
 
         dist = LowRankMultivariateNormal(
             loc=final_mean, cov_factor=v1, cov_diag=v2
