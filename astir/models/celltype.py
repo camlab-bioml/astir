@@ -223,7 +223,7 @@ class CellTypeModel(AstirModel):
         alpha = F.softmax(self._variables["alpha_logits"], dim=0)
         mix_prior = self._alpha_prior.log_prob(alpha)
 
-        p_delta = Normal(self._variables['nu'], 0.1).log_prob(delta_tilde.T).sum()
+        p_delta = Normal(self._variables['nu'], 0.001).log_prob(delta_tilde.T).sum()
 
         elbo = (gamma * (log_p_y_on_c + log_alpha - log_gamma)).sum() + mix_prior + p_delta
 
