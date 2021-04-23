@@ -112,6 +112,7 @@ class CellTypeModel(AstirModel):
             "log_delta": log_delta_init,
             "p": torch.zeros((G, C + 1), dtype=self._dtype, device=self._device),
             "alpha_logits": torch.ones(C + 1, dtype=self._dtype, device=self._device),
+            "nu": torch.ones(G, dtype=self._dtype, device=self._device)
         }
         P = self._dset.get_design().shape[1]
         # Add additional columns of mu for anything in the design matrix
@@ -196,17 +197,17 @@ class CellTypeModel(AstirModel):
 
         v1 = (self._data["rho"] * p).T * sigma
         v2 = torch.pow(sigma, 2) * (1 - torch.pow(self._data["rho"] * p, 2)).T
-        # v2 = v2 * self._data['is_not_negative'].T
+        # v2 = v2 * self._data['is_not_negative'].T + 0.01 * (1-self._data['is_not_negative'].T)
 
 
         v1 = v1.view(1, C + 1, G, 1).repeat(N, 1, 1, 1)  # extra 1 is the "rank"
         v2 = v2.view(1, C + 1, G).repeat(N, 1, 1) + 1e-6
 
-
+        # tmp = 1 - self._data['is_not_negative'] # the negative entries
 
         final_mean = (self._data['is_not_negative'] * torch.exp(mean)).permute(0, 2, 1)
 
-        # print(v2[0,:,:])
+        # print(final_mean.shape)
         # print(final_mean[0,:,:])
 
         # assert 1 == 0
@@ -222,7 +223,9 @@ class CellTypeModel(AstirModel):
         alpha = F.softmax(self._variables["alpha_logits"], dim=0)
         mix_prior = self._alpha_prior.log_prob(alpha)
 
-        elbo = (gamma * (log_p_y_on_c + log_alpha - log_gamma)).sum() + mix_prior
+        p_delta = Normal(self._variables['nu'], 0.05).log_prob(delta_tilde.T).sum()
+
+        elbo = (gamma * (log_p_y_on_c + log_alpha - log_gamma)).sum() + mix_prior + p_delta
 
         return -elbo
 
@@ -272,6 +275,9 @@ class CellTypeModel(AstirModel):
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]",
         )
 
+        # print(self._dset.get_features())
+        # print(self._dset.get_classes())
+
         for ep in iterator:
             # for ep in range(max_epochs):
             L = None
@@ -300,6 +306,8 @@ class CellTypeModel(AstirModel):
         )
         self._assignment.columns = self._dset.get_classes() + ["Other"]
         self._assignment.index = self._dset.get_cell_names()
+
+        print(self._variables['nu'])
 
         if self._losses.shape[0] == 0:
             self._losses = torch.tensor(losses)

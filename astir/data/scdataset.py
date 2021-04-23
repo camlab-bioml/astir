@@ -138,8 +138,10 @@ class SCDataset(Dataset):
                     marker_mat[g, c] = 1.0
                 if "-" + feature in self._marker_dict[cell_class]:
                     marker_mat[g,c] = -1.0
+        
+        # marker_mat[:,-1] = -1.0
 
-        print(marker_mat)
+        # print(marker_mat)
 
         return marker_mat
 
