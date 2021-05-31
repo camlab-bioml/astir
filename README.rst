@@ -31,6 +31,10 @@ Getting started
 
 See the full `documentation <https://astir.readthedocs.io/en/latest>`_ and check out the `tutorials <https://astir.readthedocs.io/en/latest/tutorials/index.html>`_.
 
+An interactive vignette can be found as a Google colab notebook as part of the following repository.
+
+https://github.com/camlab-bioml/Astir-Vignette
+
 
 Authors
 ---------------------
