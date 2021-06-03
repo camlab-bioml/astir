@@ -26,3 +26,6 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+
+For an interactive vignette showcasing the capabilities of Astir please visit: https://colab.research.google.com/github/camlab-bioml/Astir-Vignette/blob/main/astir_tutorial.ipynb
