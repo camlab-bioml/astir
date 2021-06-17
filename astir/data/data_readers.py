@@ -19,6 +19,7 @@ def from_csv_yaml(
     csv_input: str,
     marker_yaml: str,
     design_csv: str = None,
+    create_design_mat: bool = True,
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
 ) -> Any:
@@ -30,6 +31,7 @@ def from_csv_yaml(
         entries. See documention.
     :param design_csv: Path to design matrix as a CSV. Rows should be cells, and columns covariates. First column is cell
         identifier, and additional column names are covariate identifiers.
+    :param create_design_mat: Determines whether a design matrix is created. Defaults to True.
     :param random_seed: The random seed to be used to initialize variables,
         defaults to 1234
     :param dtype: datatype of the model parameters, defaults to torch.float64
@@ -37,7 +39,7 @@ def from_csv_yaml(
     df_gex = pd.read_csv(csv_input, index_col=0)
 
     design = None
-    if design_csv is not None:
+    if design_csv is not None and create_design_mat == True:
         design = pd.read_csv(design_csv, index_col=0)
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
@@ -49,6 +51,7 @@ def from_csv_yaml(
 def from_csv_dir_yaml(
     input_dir: str,
     marker_yaml: str,
+    create_design_mat: bool = True,
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
 ) -> Any:
@@ -60,6 +63,7 @@ def from_csv_dir_yaml(
         entries. See documention.
     :param design_csv: Path to design matrix as a CSV. Rows should be cells, and columns covariates. First column is cell
         identifier, and additional column names are covariate identifiers
+    :param create_design_mat: Determines whether a design matrix is created. Defaults to True.
     :param random_seed: The random seed to be used to initialize variables,
         defaults to 1234
     :param dtype: datatype of the model parameters, defaults to torch.float64
@@ -73,18 +77,20 @@ def from_csv_dir_yaml(
     # Read to gene expression df and parse
     dfs = [pd.read_csv(f, index_col=0) for f in csv_files]
     df_gex = pd.concat(dfs, axis=0)
-
-    # Construct a sample specific design matrix
-    design_list = [np.repeat(str(i), dfs[i].shape[0]) for i in range(len(dfs))]
-    design = (
-        OneHotEncoder()
-        .fit_transform(np.concatenate(design_list, axis=0).reshape(-1, 1))
-        .todense()
-    )
-    design = design[:, :-1]  # remove final column
-    design = np.concatenate(
-        [np.ones((design.shape[0], 1)), design], axis=1
-    )  # add in intercept!
+    
+    design = None
+    if create_design_mat == True:
+        # Construct a sample specific design matrix
+        design_list = [np.repeat(str(i), dfs[i].shape[0]) for i in range(len(dfs))]
+        design = (
+            OneHotEncoder()
+            .fit_transform(np.concatenate(design_list, axis=0).reshape(-1, 1))
+            .todense()
+        )
+        design = design[:, :-1]  # remove final column
+        design = np.concatenate(
+            [np.ones((design.shape[0], 1)), design], axis=1
+        )  # add in intercept!
 
     with open(marker_yaml, "r") as stream:
         marker_dict = yaml.safe_load(stream)
@@ -99,6 +105,7 @@ def from_loompy_yaml(
     protein_name_attr: str = "protein",
     cell_name_attr: str = "cell_name",
     batch_name_attr: str = "batch",
+    create_design_mat: bool = True,
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
 ) -> Any:
@@ -115,6 +122,7 @@ def from_loompy_yaml(
     :param batch_name_attr: The attribute (key) in the column attributes that identifies the batch. A design matrix
         will be built using this (if present) using a one-hot encoding to
         control for batch, defaults to batch
+    :param create_design_mat: Determines whether a design matrix is created. Defaults to True.
     :param random_seed: The random seed to be used to initialize variables,
         defaults to 1234
     :param dtype: datatype of the model parameters, defaults to torch.float64
@@ -134,7 +142,7 @@ def from_loompy_yaml(
 
     design = None
 
-    if batch_list is not None:
+    if batch_list is not None and create_design_mat == True:
         design = OneHotEncoder().fit_transform(batch_list.reshape(-1, 1)).todense()
         design = design[:, :-1]  # remove final column
         design = np.concatenate([np.ones((design.shape[0], 1)), design], axis=1)
@@ -152,6 +160,7 @@ def from_anndata_yaml(
     protein_name: str = None,
     cell_name: str = None,
     batch_name: str = "batch",
+    create_design_mat: bool = True,
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
 ) -> Any:
@@ -166,6 +175,7 @@ def from_anndata_yaml(
     :param batch_name: The column of `adata.obs` containing batch names. A design matrix
         will be built using this (if present) using a one-hot encoding to
         control for batch, defaults to 'batch'
+    :param create_design_mat: Determines whether a design matrix is created. Defaults to True.
     :param random_seed: The random seed to be used to initialize variables,
         defaults to 1234
     :param dtype: datatype of the model parameters, defaults to torch.float64
@@ -193,7 +203,7 @@ def from_anndata_yaml(
 
     design = None
 
-    if batch_list is not None:
+    if batch_list is not None and create_design_mat == True:
         design = (
             OneHotEncoder()
             .fit_transform(batch_list.to_numpy().reshape(-1, 1))
