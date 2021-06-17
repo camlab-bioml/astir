@@ -731,7 +731,7 @@ class Astir:
         return msg
 
     def diagnostics_celltype(
-        self, threshold: float = 0.7, alpha: float = 0.01
+        self, threshold: float = 0.5, alpha: float = 0.01
     ) -> pd.DataFrame:
         """Run diagnostics on cell type assignments
 
