@@ -29,11 +29,13 @@ Key applications:
 Getting started
 ---------------------
 
+Launch the interactive tutorial: 
+<a href="https://colab.research.google.com/github/camlab-bioml/Astir-Vignette/blob/main/astir_tutorial.ipynb" target="_parent"><img src="https://camo.githubusercontent.com/52feade06f2fecbf006889a904d221e6a730c194/68747470733a2f2f636f6c61622e72657365617263682e676f6f676c652e636f6d2f6173736574732f636f6c61622d62616467652e737667" alt="Open In Colab" data-canonical-src="https://colab.research.google.com/assets/colab-badge.svg"></a> 
+.. |On github| image:: https://img.shields.io/badge/on-github-black
+    :target: https://github.com/camlab-bioml/Astir-Vignette
+
+
 See the full `documentation <https://astir.readthedocs.io/en/latest>`_ and check out the `tutorials <https://astir.readthedocs.io/en/latest/tutorials/index.html>`_.
-
-An interactive vignette can be found as a Google colab notebook as part of the following repository.
-
-https://github.com/camlab-bioml/Astir-Vignette
 
 
 Authors
