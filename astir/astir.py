@@ -154,6 +154,7 @@ class Astir:
                 self._type_dset,
                 int(seed),
                 self._dtype,
+                self._device,
             )
             for seed in seeds
         ]
