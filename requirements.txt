@@ -29,4 +29,5 @@ nbsphinx-link
 tables
 typeguard
 mypy
-
+astir
+scanpy
