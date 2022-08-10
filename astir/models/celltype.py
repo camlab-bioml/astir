@@ -294,7 +294,7 @@ class CellTypeModel(AstirModel):
         :param new_dset: the dataset to be predicted
         :return: the resulting cell type assignment
         """
-        _, exprs_X, _ = new_dset[:]
+        exprs_X = new_dset[:]
         g = pd.DataFrame(self._recog.forward(exprs_X)[0].detach().cpu().numpy())
         return g
 
@@ -328,7 +328,7 @@ class CellTypeModel(AstirModel):
             if max_prob < threshold:
                 return "Unknown"
         elif assignment_type == "max":
-            if sum(row == max_prob) > 1:
+            if sum(row == max_prob) > 1: # multiple maximum values
                 return "Unknown"
 
         return cell_types[np.argmax(row)]
@@ -354,7 +354,7 @@ class CellTypeModel(AstirModel):
         :return: a data frame with most likely cell types for each
         """
         if prob_assign is None:
-            type_probability = self.get_assignment()
+            type_probability = self.get_assignment() # returns empty Dataframe 
         else:
             type_probability = prob_assign
 

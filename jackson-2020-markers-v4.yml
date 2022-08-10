@@ -1,0 +1,92 @@
+
+cell_states:
+  HALLMARK_TNFA_SIGNALING_VIA_NFKB:
+  - CD44
+  - c-Myc
+  HALLMARK_APOPTOSIS:
+  - CD44
+  - Cytokeratin 8/18
+  - Her2
+  - cleaved PARP
+  - Cleaved Caspase3
+  HALLMARK_ESTROGEN_RESPONSE_LATE:
+  - CD44
+  - E-Cadherin
+  - Cytokeratin 19
+  - Progesterone Receptor A/B antibody 1
+  - Progesterone Receptor A/B antibody 2
+  HALLMARK_PROTEIN_SECRETION:
+  - Cytokeratin 8/18
+  - EGFR
+  HALLMARK_APICAL_JUNCTION:
+  - CD31
+  - E-Cadherin
+  - EGFR
+  - CD45
+  HALLMARK_COMPLEMENT:
+  - GATA3
+  - Fibronectin
+  HALLMARK_E2F_TARGETS:
+  - c-Myc
+  - p53
+  - Ki-67
+  HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION:
+  - CD44
+  - SMA
+  - Vimentin
+  - Fibronectin
+  - Slug
+  HALLMARK_GLYCOLYSIS:
+  - CD44
+  - EGFR
+  HALLMARK_UV_RESPONSE_DN:
+  - c-Myc
+  - Her2
+  - Slug
+  HALLMARK_COAGULATION:
+  - CD31
+  - Fibronectin
+  HALLMARK_ALLOGRAFT_REJECTION:
+  - EGFR
+  - CD3
+  - CD45
+  mTOR_signalling:
+  - phospho mTOR
+  - phospho S6
+
+cell_types:
+  Stromal:
+    - Vimentin
+    - Fibronectin
+    - SMA
+  B cells:
+    - CD45
+    - CD20
+    # - Vimentin
+  T cells:
+    - CD45
+    - CD3
+    # - Vimentin
+  Epithelial (basal):
+    - E-Cadherin
+    - pan Cytokeratin
+    - Cytokeratin 5
+    - Cytokeratin 14
+  Epithelial (other):
+    - E-Cadherin
+    - pan Cytokeratin
+  Epithelial (luminal):
+    - E-Cadherin
+    - pan Cytokeratin
+    - Cytokeratin 7
+    - Cytokeratin 8/18
+    - Cytokeratin 19
+  Macrophage:
+    - CD45
+    - CD68
+    # - Vimentin
+  Endothelial:
+    - vWF
+    - Vimentin
+    
+

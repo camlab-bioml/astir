@@ -1,0 +1,19 @@
+cell_types:
+  Cytotoxic T cell: 
+    - CD3
+    - CD45
+    - CD8a
+  Helper T cell:
+    - CD3
+    - CD45
+    - CD4
+  B cell:
+    - CD20
+  Melenoma cell:
+    - SOX10
+    - S100
+  Vascular differentiation:
+    - CD31
+  Macrophage: 
+    - CD14
+    - CD68

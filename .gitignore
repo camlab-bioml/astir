@@ -1,6 +1,7 @@
 # Output files of the models
 # *.loom
-# *.png
+*.png
+*.pdf
 # *.hdf5
 # *.csv
 # *.pt
