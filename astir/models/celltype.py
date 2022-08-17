@@ -328,7 +328,7 @@ class CellTypeModel(AstirModel):
             if max_prob < threshold:
                 return "Unknown"
         elif assignment_type == "max":
-            if sum(row == max_prob) > 1: # multiple maximum values
+            if sum(row == max_prob) > 1:
                 return "Unknown"
 
         return cell_types[np.argmax(row)]
@@ -354,7 +354,7 @@ class CellTypeModel(AstirModel):
         :return: a data frame with most likely cell types for each
         """
         if prob_assign is None:
-            type_probability = self.get_assignment() # returns empty Dataframe 
+            type_probability = self.get_assignment()
         else:
             type_probability = prob_assign
 
