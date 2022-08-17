@@ -294,7 +294,7 @@ class CellTypeModel(AstirModel):
         :param new_dset: the dataset to be predicted
         :return: the resulting cell type assignment
         """
-        exprs_X = new_dset[:]
+        exprs_X = torch.tensor(new_dset[:].values)
         g = pd.DataFrame(self._recog.forward(exprs_X)[0].detach().cpu().numpy())
         return g
 
