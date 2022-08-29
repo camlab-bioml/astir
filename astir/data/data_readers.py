@@ -22,6 +22,8 @@ def from_csv_yaml(
     create_design_mat: bool = True,
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
+    sep: str = ',',
+    usecols: list = None
 ) -> Any:
     """Create an Astir object from an expression CSV and marker YAML
 
@@ -36,7 +38,7 @@ def from_csv_yaml(
         defaults to 1234
     :param dtype: datatype of the model parameters, defaults to torch.float64
     """
-    df_gex = pd.read_csv(csv_input, index_col=0)
+    df_gex = pd.read_csv(csv_input, sep=sep, usecols=usecols, index_col=0)
 
     design = None
     if design_csv is not None and create_design_mat == True:
