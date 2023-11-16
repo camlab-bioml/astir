@@ -26,7 +26,7 @@ setuptools.setup(
         "numpy",
         "nbformat",
         "pyyaml",
-        "sklearn",
+        "scikit-learn",
         "argparse",
         "matplotlib",
         "loompy",
