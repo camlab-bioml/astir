@@ -71,8 +71,9 @@ class SCDataset(Dataset):
                 "Classification failed. There "
                 + "should be at least one row of data to be classified."
             )
-        self._exprs_mean = self._exprs.mean(0)
-        self._exprs_std = self._exprs.std(0)
+        # adding epsilon to avoid NaN's down the line, which arise due to normalization when the stdev is 0
+        self._exprs_mean = self._exprs.mean(0) + 1e-6
+        self._exprs_std = self._exprs.std(0) + 1e-6
 
     def _process_df_input(self, df_input: pd.DataFrame) -> torch.Tensor:
         """Processes input as pd.DataFrame and convert it into torch.Tensor
@@ -335,7 +336,8 @@ class SCDataset(Dataset):
                 idx = idx.union(indices_to_use[i])
             mean_inits[feature] = df_exprs.loc[idx][feature].mean()
 
-        mean_init = pd.Series(mean_inits).to_numpy()
+        # adding an epsilon to avoid NaN's when logarithmizing during model initialization
+        mean_init = pd.Series(mean_inits).to_numpy() + 1e-6
 
         return mean_init
 
