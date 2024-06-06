@@ -6,7 +6,6 @@ import anndata
 import loompy
 import matplotlib
 from matplotlib import MatplotlibDeprecationWarning
-#import matplotlib.cbook
 import numpy as np
 import pandas as pd
 import torch
@@ -14,7 +13,6 @@ import yaml
 from sklearn.preprocessing import OneHotEncoder
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
-# warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
 warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
 
 
