@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-06-11
+
+### Fixed
+
+- Check type in `CellStateModel.predict`
+
+### Changed
+
+- Edit test suite to write hdf5 file to a temp path #39
+
+### Removed
+
+- `Pipfile` files due to deprecated package versions
+
 ## [0.0.11] - 2020-08-22
 
 - Conception!

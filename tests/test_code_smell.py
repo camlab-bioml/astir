@@ -123,6 +123,7 @@ class TestCodeSmells(unittest.TestCase):
             for line in output:
                 if line.__contains__("error:"):
                     errors.append(line)
+            print(errors)
 
             self.assertTrue(
                 errors == [],

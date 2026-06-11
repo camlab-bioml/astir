@@ -67,8 +67,8 @@ class Astir:
         self._type_run_info: dict = {}
         self._state_run_info: dict = {}
 
-        self._type_dset: Optional[SCDataset] = None
-        self._state_dset: Optional[SCDataset] = None
+        self._type_dset: Union[SCDataset, None] = None
+        self._state_dset: Union[SCDataset, None] = None
 
         self._hierarchy_dict: Optional[Dict[str, List[str]]] = None
 
@@ -432,6 +432,7 @@ class Astir:
         """
         if self._type_dset is None:
             raise Exception("the type dataset is not provided")
+
         return self._type_dset
 
     def get_state_dataset(self) -> SCDataset:
@@ -552,11 +553,11 @@ class Astir:
         type_assignments.index = dset.get_cell_names()
         return type_assignments
 
-    def predict_cellstates(self, dset: SCDataset = None) -> pd.DataFrame:
+    def predict_cellstates(self, dset: Union[SCDataset, None] = None) -> pd.DataFrame:
         """Get the prediction cell state activations on a dataset on an
         existing model
 
-        :param new_dset: the dataset to predict cell state activations, default to None
+        :param dset: the dataset to predict cell state activations, default to None
 
         :return: the prediction of cell state activations
         """

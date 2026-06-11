@@ -1,3 +1,5 @@
+sandbox/
+.idea/
 # Output files of the models
 # *.loom
 # *.png

@@ -36,7 +36,7 @@ class CellStateModel(AstirModel):
 
     def __init__(
         self,
-        dset: SCDataset = None,
+        dset: Union[SCDataset, None] = None,
         const: int = 2,
         dropout_rate: float = 0,
         batch_norm: bool = False,
