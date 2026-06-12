@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.6] - 2026-06-11
+## [0.1.6] - 2026-06-12
 
 ### Fixed
 
@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Edit test suite to write hdf5 file to a temp path #39
+- Updated conda yml in `envs` #40 
 
 ### Removed
 
