@@ -26,6 +26,13 @@ Key applications:
     :align: center
     :alt: automated single-cell pathology
 
+Installation
+---------------------
+
+Refer to the `installation page <https://astir.readthedocs.io/en/latest/installation.html>`_ in the documentation
+for complete installation instructions.
+
+
 Getting started
 ---------------------
 
