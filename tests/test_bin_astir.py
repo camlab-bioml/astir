@@ -29,7 +29,6 @@ from astir.astir import Astir
 class TestBinAstir(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestBinAstir, self).__init__(*args, **kwargs)
-        self.exec_path = os.path.join(rootpath.detect(), "bin/astir")
         self.expr_csv_file = os.path.join(
             os.path.dirname(__file__), "test-data/test_data.csv"
         )
@@ -46,7 +45,7 @@ class TestBinAstir(unittest.TestCase):
         warnings.filterwarnings("ignore", category=UserWarning)
 
         bash_command = "python -W ignore {} {} {} {} {}".format(
-            self.exec_path,
+            "astir",
             "state",
             self.expr_csv_file,
             self.marker_yaml_file,
@@ -77,7 +76,7 @@ class TestBinAstir(unittest.TestCase):
             delta_loss_batch,
         ) = (None, 2, 1e-1, 128, 1234, 1, 1, torch.float64, 1e-3, 10)
         bash_command = "python -W ignore {} {} {} {} {}".format(
-            self.exec_path,
+            "astir",
             "state",
             self.expr_csv_file,
             self.marker_yaml_file,
