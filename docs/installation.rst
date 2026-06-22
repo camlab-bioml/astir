@@ -4,8 +4,8 @@ Installation
 Prerequisites
 ~~~~~~~~~~~~~~
 
-Install python 3.7
-Astir uses python 3.*
+Install python 3.10 or 3.11 (**recommended**).
+Astir has been tested on Python 3.9-3.11.
 
 
 Astir installation
@@ -17,10 +17,20 @@ PyPI
 
     pip3 install astir
 
+Conda
+####
+
+The source code provides a conda environment templates under `envs/astir.yml`:
+
+.. code::
+
+    git clone https://github.com/camlab-bioml/astir.git
+    conda env create -f envs/astir.yml
+    pip install -e .
 
 Dev
-###
-Clone this repo and run
+####
+With one of the recommended Python versions, clone this repo and run
 
 .. code::
 

@@ -288,13 +288,14 @@ class CellTypeModel(AstirModel):
                 (self._losses.view(self._losses.shape[0]), torch.tensor(losses)), dim=0
             )
 
-    def predict(self, new_dset: pd.DataFrame) -> np.array:
+    def predict(self, new_dset: Union[pd.DataFrame, SCDataset]) -> np.array:
         """Feed `new_dset` to the recognition net to get a prediction.
 
         :param new_dset: the dataset to be predicted
         :return: the resulting cell type assignment
         """
-        exprs_X = torch.tensor(new_dset[:].values)
+        # exprs_X = torch.tensor(new_dset[:].values)
+        exprs_X = new_dset.get_exprs() if isinstance(new_dset, SCDataset) else torch.tensor(new_dset[:].values)
         g = pd.DataFrame(self._recog.forward(exprs_X)[0].detach().cpu().numpy())
         return g
 
@@ -415,8 +416,8 @@ class CellTypeModel(AstirModel):
         x = self._dset.get_exprs().detach().cpu().numpy()[cells_x, current_marker_ind]
         y = self._dset.get_exprs().detach().cpu().numpy()[cells_y, current_marker_ind]
 
-        stat = np.NaN
-        pval = np.Inf
+        stat = np.nan
+        pval = np.inf
         note: Optional[str] = "Only 1 cell in a type: comparison not possible"
 
         if len(x) > 1 and len(y) > 1:

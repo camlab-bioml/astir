@@ -1,10 +1,9 @@
 import os
 import warnings
-from typing import Any
+from typing import Any, Union
 
 import anndata
 import loompy
-import matplotlib
 from matplotlib import MatplotlibDeprecationWarning
 import numpy as np
 import pandas as pd
@@ -19,12 +18,12 @@ warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
 def from_csv_yaml(
     csv_input: str,
     marker_yaml: str,
-    design_csv: str = None,
+    design_csv: Union[str, None] = None,
     create_design_mat: bool = True,
     random_seed: int = 1234,
     dtype: torch.dtype = torch.float64,
     sep: str = ',',
-    usecols: list = None
+    usecols: Union[list, None] = None
 ) -> Any:
     """Create an Astir object from an expression CSV and marker YAML
 
@@ -160,8 +159,8 @@ def from_loompy_yaml(
 def from_anndata_yaml(
     anndata_file: str,
     marker_yaml: str,
-    protein_name: str = None,
-    cell_name: str = None,
+    protein_name: Union[str, None] = None,
+    cell_name: Union[str, None] = None,
     batch_name: str = "batch",
     create_design_mat: bool = True,
     random_seed: int = 1234,
