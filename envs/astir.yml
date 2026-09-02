@@ -76,7 +76,6 @@ dependencies:
       - fastjsonschema==2.21.2
       - fcsparser==0.2.8
       - filelock==3.29.2
-      - flowcytometrytools==0.5.1
       - fonttools==4.63.0
       - fsspec==2026.4.0
       - google-crc32c==1.8.0

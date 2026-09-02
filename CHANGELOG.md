@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-02
+
+### Changed
+
+- Migrate `setup.py` to toml-based install
+- Move `bin/astir` into API as `cli.py`
+
+### Removed
+
+- `bin/astir`: Moved to `cli.py` in package
+- `FlowCytometryTools` package/dependency
+
 ## [0.1.6] - 2026-06-12
 
 ### Fixed
