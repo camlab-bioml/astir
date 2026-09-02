@@ -44,7 +44,6 @@ dependencies = [
   "ipykernel",
   "ipython",
   "h5py",
-  "FlowCytometryTools",
   "fastcluster",
   "sphinx",
   "sphinx_autodoc_typehints",
